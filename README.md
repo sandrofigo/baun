@@ -2,7 +2,7 @@
 
 **baun** is a build pipeline system for .NET that lets you write any kind of workflow, such as CI/CD, releases, or local automation, in plain C#.
 
-Inspired by [NUKE](https://github.com/nuke-build/nuke), baun treats your build as a regular .NET project. You define targets and their dependencies in C#, and you get the full power of the language and its tooling: IntelliSense, refactoring, debugging, and NuGet packages. You don't have to maintain YAML or shell scripts.
+Inspired by [NUKE](https://github.com/nuke-build/nuke), baun treats your build as a regular .NET project. You define steps and their dependencies in C#, and you get the full power of the language and its tooling: IntelliSense, refactoring, debugging, and NuGet packages. You don't have to maintain YAML or shell scripts.
 
 > **Status:** baun is in early development. APIs and features described here may change.
 
@@ -20,7 +20,7 @@ Inspired by [NUKE](https://github.com/nuke-build/nuke), baun treats your build a
 
 ## Concept
 
-A baun build is a small .NET console project that sits next to your code. Inside it you declare **targets**, which are named units of work. You also declare how they depend on each other. baun works out the execution order and runs only the targets that are needed.
+A baun build is a small .NET console project that sits next to your code. Inside it you declare **steps**, which are named units of work. You also declare how they depend on each other. baun works out the execution order and runs only the steps that are needed.
 
 The example below shows the intended style. The final API may differ.
 
@@ -29,20 +29,20 @@ class Build : BaunBuild
 {
     public static int Main() => Execute<Build>(x => x.Test);
 
-    Target Clean => _ => _
+    Step Clean => _ => _
         .Executes(() =>
         {
             // delete output directories
         });
 
-    Target Compile => _ => _
+    Step Compile => _ => _
         .DependsOn(Clean)
         .Executes(() =>
         {
             // dotnet build
         });
 
-    Target Test => _ => _
+    Step Test => _ => _
         .DependsOn(Compile)
         .Executes(() =>
         {
@@ -51,7 +51,7 @@ class Build : BaunBuild
 }
 ```
 
-Running a target from the command line:
+Running a step from the command line:
 
 ```shell
 dotnet run --project build -- Test
