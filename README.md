@@ -32,27 +32,36 @@ The example below shows the intended style. The final API may differ.
 // Program.cs
 return await BaunBuild.RunAsync(args, defaultStep: Test);
 
-Step Clean() => Executes(() =>
+Step Clean() => new()
 {
-    // delete output directories
-});
+    Executes = () =>
+    {
+        // delete output directories
+    },
+};
 
-Step Compile() => DependsOn(Clean)
-    .Executes(() =>
+Step Compile() => new()
+{
+    DependsOn = [Clean],
+    Executes = () =>
     {
         // dotnet build
-    });
+    },
+};
 
-Step Test() => DependsOn(Compile)
-    .Executes(() =>
+Step Test() => new()
+{
+    DependsOn = [Compile],
+    Executes = async () =>
     {
         // dotnet test
-    });
+    },
+};
 ```
 
 baun includes a source generator that finds your steps at compile time. It finds every local function that returns a `Step`, takes each step's name from its function name, and registers it with the build. This avoids runtime reflection, and you don't need to register anything by hand. It also lets baun report problems like circular dependencies as compiler errors.
 
-The baun package also adds a global `using static` for the step API. This is why `Executes` and `DependsOn` can be called directly, without a `Step.` prefix or a `using` line in your build.
+Each step is configured with an object initializer, so default code formatting keeps every setting on its own line. IntelliSense lists every available option after `new() {`. `Executes` accepts both synchronous and `async` lambdas.
 
 Running a step from the command line:
 
