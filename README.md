@@ -22,39 +22,35 @@ Inspired by [NUKE](https://github.com/nuke-build/nuke), baun treats your build a
 
 A baun build is a small .NET console project that sits next to your code. Inside it you declare **steps**, which are named units of work. You also declare how they depend on each other. baun works out the execution order and runs only the steps that are needed.
 
-By default you write a baun build without a build class. Like the `Program.cs` of an ASP.NET Core app, you create a builder with top-level statements, register your steps on it, and then run it.
+By default you write a baun build without a build class. Like the `Program.cs` of an ASP.NET Core app, it uses top-level statements: a single line starts the build, and below it each step is a local function that returns a `Step`.
 
-Each step reads from top to bottom: its name, then its dependencies, then the work it does. Steps refer to each other through the variables that hold them, not through strings. The compiler catches a misspelled or missing dependency, and IDE features such as renaming and "find all references" work on steps. A step's name is used only to run it from the command line.
+A step's name is its function name, so you never repeat a name as a string. Steps refer to each other through these functions, so the compiler catches a misspelled or missing dependency. IDE features such as renaming and "find all references" work on steps too. Each step reads from top to bottom: its name, then its dependencies, then the work it does.
 
 The example below shows the intended style. The final API may differ.
 
 ```csharp
 // Program.cs
-var builder = BaunBuild.CreateBuilder(args);
+return await BaunBuild.RunAsync(args, defaultStep: Test);
 
-var clean = builder.AddStep("Clean")
+Step Clean() => Step
     .Executes(() =>
     {
         // delete output directories
     });
 
-var compile = builder.AddStep("Compile")
-    .DependsOn(clean)
+Step Compile() => Step
+    .DependsOn(Clean)
     .Executes(() =>
     {
         // dotnet build
     });
 
-var test = builder.AddStep("Test")
-    .DependsOn(compile)
+Step Test() => Step
+    .DependsOn(Compile)
     .Executes(() =>
     {
         // dotnet test
     });
-
-var build = builder.Build();
-
-return await build.RunAsync(defaultStep: test);
 ```
 
 Running a step from the command line:
