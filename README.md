@@ -32,21 +32,18 @@ The example below shows the intended style. The final API may differ.
 // Program.cs
 return await BaunBuild.RunAsync(args, defaultStep: Test);
 
-Step Clean() => Step
-    .Executes(() =>
-    {
-        // delete output directories
-    });
+Step Clean() => Executes(() =>
+{
+    // delete output directories
+});
 
-Step Compile() => Step
-    .DependsOn(Clean)
+Step Compile() => DependsOn(Clean)
     .Executes(() =>
     {
         // dotnet build
     });
 
-Step Test() => Step
-    .DependsOn(Compile)
+Step Test() => DependsOn(Compile)
     .Executes(() =>
     {
         // dotnet test
@@ -54,6 +51,8 @@ Step Test() => Step
 ```
 
 baun includes a source generator that finds your steps at compile time. It finds every local function that returns a `Step`, takes each step's name from its function name, and registers it with the build. This avoids runtime reflection, and you don't need to register anything by hand. It also lets baun report problems like circular dependencies as compiler errors.
+
+The baun package also adds a global `using static` for the step API. This is why `Executes` and `DependsOn` can be called directly, without a `Step.` prefix or a `using` line in your build.
 
 Running a step from the command line:
 
