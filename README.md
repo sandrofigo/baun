@@ -126,22 +126,6 @@ dotnet run --project build -- Test
 
 To turn an existing single-file build into a project, run `dotnet project convert Build.cs`.
 
-## Running a build
-
-The `baun` command-line tool runs builds of both kinds with the same command. Install it as a .NET tool:
-
-```shell
-dotnet tool install --global baun
-```
-
-Then run a step from your repository:
-
-```shell
-baun Test
-```
-
-Running `baun` without a step name runs the default step. The tool looks for a `Build.cs` file or a build project in the current folder and its `build` subfolder, and runs it. You don't need to remember whether a repository uses a single-file or a project build, and CI scripts stay short.
-
 ### Organizing larger builds
 
 Local functions can only live in `Build.cs`. To spread a build across several files, use a project build and group your steps into your own static classes, spread across as many files as you like:
@@ -186,6 +170,22 @@ await Baun.RunAsync(TestSteps.Test);
 ```
 
 The source generator finds these steps just like local functions. Steps in different classes refer to each other through the class name, such as `CompileSteps.Compile`. Add `using static CompileSteps;` if you'd rather leave the class name out. A step's name is still its method name, so step names must be unique across the whole build. The source generator reports duplicates as compiler errors. A static class can't see the local functions in `Build.cs`, so once you split a build, move all of its steps into static classes.
+
+## Running a build
+
+The `baun` command-line tool runs builds of both kinds with the same command. Install it as a .NET tool:
+
+```shell
+dotnet tool install --global baun
+```
+
+Then run a step from your repository:
+
+```shell
+baun Test
+```
+
+Running `baun` without a step name runs the default step. The tool looks for a `Build.cs` file or a build project in the current folder and its `build` subfolder, and runs it. You don't need to remember whether a repository uses a single-file or a project build, and CI scripts stay short.
 
 ## Inspiration
 
