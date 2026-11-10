@@ -22,14 +22,14 @@ Inspired by [NUKE](https://github.com/nuke-build/nuke), baun treats your build a
 
 A baun build is a small .NET console project that sits next to your code. Inside it you declare **steps**, which are named units of work. You also declare how they depend on each other. baun works out the execution order and runs only the steps that are needed.
 
-By default you write a baun build without a build class. Like the `Program.cs` of an ASP.NET Core app, it uses top-level statements: a single line starts the build, and below it each step is a local function that returns a `Step`.
+By default you write a baun build without a build class. The entry point is `Build.cs`, which plays the role of `Program.cs` in an ASP.NET Core app. It uses top-level statements: a single line starts the build, and below it each step is a local function that returns a `Step`. C# doesn't care what the file with top-level statements is called, so no extra setup is needed.
 
 A step's name is its function name, so you never repeat a name as a string. Steps refer to each other through these functions, so the compiler catches a misspelled or missing dependency. IDE features such as renaming and "find all references" work on steps too. Each step reads from top to bottom: its name, then its dependencies, then the work it does.
 
 The example below shows the intended style. The final API may differ.
 
 ```csharp
-// Program.cs
+// Build.cs
 return await BaunBuild.RunAsync(args, defaultStep: Test);
 
 Step Clean() => _ => _
@@ -59,7 +59,7 @@ A `Step` is a delegate. Each step returns a lambda, and baun calls that lambda w
 
 ### Organizing larger builds
 
-Local functions can only live in `Program.cs`. When a build grows, you can group its steps into your own static classes, spread across as many files as you like:
+Local functions can only live in `Build.cs`. When a build grows, you can group its steps into your own static classes, spread across as many files as you like:
 
 ```csharp
 // Steps/CompileSteps.cs
@@ -93,14 +93,14 @@ static class TestSteps
 }
 ```
 
-`Program.cs` then contains only the line that starts the build:
+`Build.cs` then contains only the line that starts the build:
 
 ```csharp
-// Program.cs
+// Build.cs
 return await BaunBuild.RunAsync(args, defaultStep: TestSteps.Test);
 ```
 
-The source generator finds these steps just like local functions. Steps in different classes refer to each other through the class name, such as `CompileSteps.Compile`. Add `using static CompileSteps;` if you'd rather leave the class name out. A step's name is still its method name, so step names must be unique across the build project. The source generator reports duplicates as compiler errors. A static class can't see the local functions in `Program.cs`, so once you split a build, move all of its steps into static classes.
+The source generator finds these steps just like local functions. Steps in different classes refer to each other through the class name, such as `CompileSteps.Compile`. Add `using static CompileSteps;` if you'd rather leave the class name out. A step's name is still its method name, so step names must be unique across the build project. The source generator reports duplicates as compiler errors. A static class can't see the local functions in `Build.cs`, so once you split a build, move all of its steps into static classes.
 
 Running a step from the command line:
 
