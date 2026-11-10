@@ -10,7 +10,7 @@ Inspired by [NUKE](https://github.com/nuke-build/nuke), baun treats your build a
 
 - **Builds as code**: Define pipelines in strongly typed C# instead of YAML, PowerShell, or Bash.
 - **Any workflow**: Use it for CI/CD, packaging, publishing, code generation, or any other repeatable task.
-- **Single-file builds**: A whole build can live in one `Build.cs` file and run with `dotnet run Build.cs`, with no project file needed.
+- **Single file or project**: Keep a whole build in one `Build.cs` file and run it with `dotnet run Build.cs`, or use a regular build project. Both are fully supported.
 - **Simple by default**: Getting started takes little ceremony, and complex scenarios are still possible.
 - **Runs anywhere**: Run the same build locally and on any CI server, with the same results.
 - **First-class tooling**: Debug your build like any other .NET application.
@@ -21,7 +21,7 @@ Inspired by [NUKE](https://github.com/nuke-build/nuke), baun treats your build a
 
 ## Concept
 
-A baun build is a single C# file, `Build.cs`, that sits next to your code. Inside it you declare **steps**, which are named units of work. You also declare how they depend on each other. baun works out the execution order and runs only the steps that are needed.
+A baun build is either a single C# file, `Build.cs`, or a small build project that sits next to your code. Inside it you declare **steps**, which are named units of work. You also declare how they depend on each other. baun works out the execution order and runs only the steps that are needed.
 
 By default you write a baun build without a build class. The entry point is `Build.cs`, which plays the role of `Program.cs` in an ASP.NET Core app. It uses top-level statements: a single line starts the build, and below it each step is a local function that returns a `Step`.
 
@@ -59,9 +59,20 @@ baun includes a source generator that finds your steps at compile time. It finds
 
 A `Step` is a delegate. Each step returns a lambda, and baun calls that lambda with a builder that configures the step. The compiler infers the builder's type, so you never write it. You configure the step by chaining calls on the lambda parameter, which is named `_` by convention, and each setting goes on its own line. IntelliSense lists every available option after `_.`. `Executes` accepts both synchronous and `async` lambdas.
 
+## Single file or project
+
+baun supports two ways to set up a build. Both use the same API and the same `Build.cs` entry point, so you can switch between them at any time.
+
+| | Single file | Project |
+| --- | --- | --- |
+| Files | Only `Build.cs` | `Build.cs`, a `.csproj`, and any other files you add |
+| Package reference | `#:package` line in `Build.cs` | `PackageReference` in the `.csproj` |
+| Steps | Local functions and static classes in `Build.cs` | Local functions in `Build.cs` and static classes in any file |
+| Run | `dotnet run Build.cs -- Test` | `dotnet run --project build -- Test` |
+
 ### Single-file builds
 
-Single-file builds are a main feature of baun. They use the file-based apps introduced in .NET 10: the `#:package` line at the top of `Build.cs` references baun, and the .NET SDK takes care of the rest. You don't need a `.csproj` file, a solution, or a separate build folder.
+Single-file builds use the file-based apps introduced in .NET 10: the `#:package` line at the top of `Build.cs` references baun, and the .NET SDK takes care of the rest. You don't need a `.csproj` file, a solution, or a separate build folder.
 
 Running a step from the command line:
 
@@ -85,15 +96,37 @@ chmod +x Build.cs
 ./Build.cs Test
 ```
 
-### Organizing larger builds
+### Project builds
 
-When a single file is no longer enough, convert the build into a project:
+A project build is a regular .NET console project, for example in a `build` folder, that references baun as a NuGet package:
 
-```shell
-dotnet project convert Build.cs
+```xml
+<!-- build/Build.csproj -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Baun" Version="0.1.0" />
+  </ItemGroup>
+
+</Project>
 ```
 
-Local functions can only live in `Build.cs`. In a project you can group your steps into your own static classes, spread across as many files as you like:
+`Build.cs` looks the same as in a single-file build, without the `#:` lines. Running a step:
+
+```shell
+dotnet run --project build -- Test
+```
+
+To turn an existing single-file build into a project, run `dotnet project convert Build.cs`.
+
+### Organizing larger builds
+
+Local functions can only live in `Build.cs`. To spread a build across several files, use a project build and group your steps into your own static classes, spread across as many files as you like:
 
 ```csharp
 // Steps/CompileSteps.cs
@@ -134,13 +167,7 @@ static class TestSteps
 return await BaunBuild.RunAsync(args, defaultStep: TestSteps.Test);
 ```
 
-The source generator finds these steps just like local functions. Steps in different classes refer to each other through the class name, such as `CompileSteps.Compile`. Add `using static CompileSteps;` if you'd rather leave the class name out. A step's name is still its method name, so step names must be unique across the build project. The source generator reports duplicates as compiler errors. A static class can't see the local functions in `Build.cs`, so once you split a build, move all of its steps into static classes.
-
-Running a step in a project-based build:
-
-```shell
-dotnet run --project build -- Test
-```
+The source generator finds these steps just like local functions. Steps in different classes refer to each other through the class name, such as `CompileSteps.Compile`. Add `using static CompileSteps;` if you'd rather leave the class name out. A step's name is still its method name, so step names must be unique across the whole build. The source generator reports duplicates as compiler errors. A static class can't see the local functions in `Build.cs`, so once you split a build, move all of its steps into static classes.
 
 ## Inspiration
 
