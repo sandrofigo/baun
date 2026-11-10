@@ -2,7 +2,7 @@
 
 **baun** is a build pipeline system for .NET that lets you write any kind of workflow, such as CI/CD, releases, or local automation, in plain C#.
 
-Inspired by [NUKE](https://nuke.build), baun treats your build as a regular .NET project. You define targets and their dependencies in C#, and you get the full power of the language and its tooling: IntelliSense, refactoring, debugging, and NuGet packages. You don't have to maintain YAML or shell scripts.
+Inspired by [NUKE](https://github.com/nuke-build/nuke), baun treats your build as a regular .NET project. You define targets and their dependencies in C#, and you get the full power of the language and its tooling: IntelliSense, refactoring, debugging, and NuGet packages. You don't have to maintain YAML or shell scripts.
 
 > **Status:** baun is in early development. APIs and features described here may change.
 
@@ -59,7 +59,7 @@ dotnet run --project build -- Test
 
 ## Inspiration
 
-baun is heavily inspired by [NUKE](https://nuke.build) and its idea of writing builds as C# code. It aims to keep that idea while targeting modern .NET (10 and above).
+baun is heavily inspired by [NUKE](https://github.com/nuke-build/nuke) and its idea of writing builds as C# code. It aims to keep that idea while targeting modern .NET (10 and above).
 
 ## License
 
