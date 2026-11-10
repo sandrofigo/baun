@@ -22,33 +22,35 @@ Inspired by [NUKE](https://github.com/nuke-build/nuke), baun treats your build a
 
 A baun build is a small .NET console project that sits next to your code. Inside it you declare **steps**, which are named units of work. You also declare how they depend on each other. baun works out the execution order and runs only the steps that are needed.
 
+By default you write a baun build without a build class. Like the `Program.cs` of an ASP.NET Core app, you create a builder with top-level statements, register your steps on it, and then run it.
+
 The example below shows the intended style. The final API may differ.
 
 ```csharp
-class Build : BaunBuild
+// Program.cs
+var builder = BaunBuild.CreateBuilder(args);
+
+var clean = builder.Step("Clean", () =>
 {
-    public static int Main() => Execute<Build>(x => x.Test);
+    // delete output directories
+});
 
-    Step Clean => _ => _
-        .Executes(() =>
-        {
-            // delete output directories
-        });
+var compile = builder.Step("Compile", () =>
+{
+    // dotnet build
+})
+.DependsOn(clean);
 
-    Step Compile => _ => _
-        .DependsOn(Clean)
-        .Executes(() =>
-        {
-            // dotnet build
-        });
+builder.Step("Test", () =>
+{
+    // dotnet test
+})
+.DependsOn(compile)
+.IsDefault();
 
-    Step Test => _ => _
-        .DependsOn(Compile)
-        .Executes(() =>
-        {
-            // dotnet test
-        });
-}
+var build = builder.Build();
+
+return await build.RunAsync();
 ```
 
 Running a step from the command line:
