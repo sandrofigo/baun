@@ -53,9 +53,54 @@ Step Test() => _ => _
     });
 ```
 
-baun includes a source generator that finds your steps at compile time. It finds every local function that returns a `Step`, takes each step's name from its function name, and registers it with the build. This avoids runtime reflection, and you don't need to register anything by hand. It also lets baun report problems like circular dependencies as compiler errors.
+baun includes a source generator that finds your steps at compile time. It finds every local function and every static method on `Program` that returns a `Step`, takes each step's name from its function name, and registers it with the build. This avoids runtime reflection, and you don't need to register anything by hand. It also lets baun report problems like circular dependencies as compiler errors.
 
 A `Step` is a delegate. Each step returns a lambda, and baun calls that lambda with a builder that configures the step. The compiler infers the builder's type, so you never write it. You configure the step by chaining calls on the lambda parameter, which is named `_` by convention, and each setting goes on its own line. IntelliSense lists every available option after `_.`. `Executes` accepts both synchronous and `async` lambdas.
+
+### Organizing larger builds
+
+Local functions can only live in `Program.cs`. When a build grows, you can spread its steps across several files. Top-level statements compile into a `partial class Program`, so other files can add steps to it as `static` methods:
+
+```csharp
+// Steps/Compile.cs
+partial class Program
+{
+    static Step Clean() => _ => _
+        .Executes(() =>
+        {
+            // delete output directories
+        });
+
+    static Step Compile() => _ => _
+        .DependsOn(Clean)
+        .Executes(() =>
+        {
+            // dotnet build
+        });
+}
+```
+
+```csharp
+// Steps/Test.cs
+partial class Program
+{
+    static Step Test() => _ => _
+        .DependsOn(Compile)
+        .Executes(() =>
+        {
+            // dotnet test
+        });
+}
+```
+
+`Program.cs` then contains only the line that starts the build:
+
+```csharp
+// Program.cs
+return await BaunBuild.RunAsync(args, defaultStep: Test);
+```
+
+The source generator finds these steps just like local functions. Steps in any file can depend on each other. A step in another file can't see a local function in `Program.cs`, so once you split a build, move all of its steps into `partial class Program`.
 
 Running a step from the command line:
 
