@@ -23,43 +23,48 @@ Inspired by [NUKE](https://github.com/nuke-build/nuke), baun treats your build a
 
 A baun build is either a single C# file, `Build.cs`, or a small build project that sits next to your code. Inside it you declare **steps**, which are named units of work. You also declare how they depend on each other. baun works out the execution order and runs only the steps that are needed.
 
-By default you write a baun build without a build class. The entry point is `Build.cs`, which plays the role of `Program.cs` in an ASP.NET Core app. It uses top-level statements: a single line starts the build, and below it each step is a local function that returns a `Step`.
+`Build.cs` is the entry point, much like `Program.cs` in an ASP.NET Core app. A single top-level line starts the build. Below it, a `partial class Build` holds the steps, and each step is a method that returns a `Step`.
 
-A step's name is its function name, so you never repeat a name as a string. Steps refer to each other through these functions, so the compiler catches a misspelled or missing dependency. IDE features such as renaming and "find all references" work on steps too. Each step reads from top to bottom: its name, then its dependencies, then the work it does.
+A step's name is its method name, so you never repeat a name as a string. Steps refer to each other through these methods, so the compiler catches a misspelled or missing dependency. IDE features such as renaming and "find all references" work on steps too. Each step reads from top to bottom: its name, then its dependencies, then the work it does.
 
 The example `Build.cs` below shows the intended style. The final API may differ.
 
 ```csharp
 #:package Baun@0.1.0
 
-await Baun.RunAsync(Test);
+await Baun.RunAsync<Build>(x => x.Test);
 
-Step Clean() => _ => _
-    .Executes(() =>
-    {
-        // delete output directories
-    });
+partial class Build
+{
+    Step Clean() => _ => _
+        .Executes(() =>
+        {
+            // delete output directories
+        });
 
-Step Compile() => _ => _
-    .DependsOn(Clean)
-    .Executes(() =>
-    {
-        // dotnet build
-    });
+    Step Compile() => _ => _
+        .DependsOn(Clean)
+        .Executes(() =>
+        {
+            // dotnet build
+        });
 
-Step Test() => _ => _
-    .DependsOn(Compile)
-    .Executes(async () =>
-    {
-        // dotnet test
-    });
+    Step Test() => _ => _
+        .DependsOn(Compile)
+        .Executes(async () =>
+        {
+            // dotnet test
+        });
+}
 ```
 
 `Baun.RunAsync` takes the default step, which runs when you don't name a step on the command line. baun reads the command-line arguments itself and sets the process exit code when a step fails, so you don't have to pass `args` or `return` anything.
 
-baun includes a source generator that finds your steps at compile time. It finds every local function and every static method in the build that returns a `Step`, takes each step's name from its function name, and registers it with the build. This avoids runtime reflection, and you don't need to register anything by hand. It also lets baun report problems like circular dependencies as compiler errors.
-
 A `Step` is a delegate. Each step returns a lambda, and baun calls that lambda with a builder that configures the step. The compiler infers the builder's type, so you never write it. You configure the step by chaining calls on the lambda parameter, which is named `_` by convention, and each setting goes on its own line. IntelliSense lists every available option after `_.`. `Executes` accepts both synchronous and `async` lambdas.
+
+Because steps are members of a class, the build class is also the natural place for anything they share, such as settings or version numbers. Use regular fields and properties for these.
+
+baun includes a source generator that completes the `partial class Build` at compile time. It finds every method that returns a `Step`, takes each step's name from its method name, and registers it with the build. This avoids runtime reflection, and you don't need to register anything by hand. It also lets baun report problems like circular dependencies as compiler errors.
 
 The baun package adds `using Baun;` to your build automatically, in both single-file and project builds, so a build never needs `using` lines for baun itself.
 
@@ -71,7 +76,7 @@ baun supports two ways to set up a build. Both use the same API and the same `Bu
 | --- | --- | --- |
 | Files | Only `Build.cs` | `Build.cs`, a `.csproj`, and any other files you add |
 | Package reference | `#:package` line in `Build.cs` | `PackageReference` in the `.csproj` |
-| Steps | Local functions and static classes in `Build.cs` | Local functions in `Build.cs` and static classes in any file |
+| Steps | `partial class Build` in `Build.cs` | `partial class Build` spread across any number of files |
 | Run | `baun Test` | `baun Test` |
 
 ### Single-file builds
@@ -128,48 +133,64 @@ To turn an existing single-file build into a project, run `dotnet project conver
 
 ### Organizing larger builds
 
-Local functions can only live in `Build.cs`. To spread a build across several files, use a project build and group your steps into your own static classes, spread across as many files as you like:
+In a project build, you can spread the build class across as many files as you like, because it's `partial`. For example, keep the main steps in `Build.cs` and the deployment steps in `DeploySteps.cs`:
 
 ```csharp
-// Steps/CompileSteps.cs
-static class CompileSteps
+// Build.cs
+await Baun.RunAsync<Build>(x => x.Test);
+
+partial class Build
 {
-    public static Step Clean() => _ => _
+    Step Clean() => _ => _
         .Executes(() =>
         {
             // delete output directories
         });
 
-    public static Step Compile() => _ => _
+    Step Compile() => _ => _
         .DependsOn(Clean)
         .Executes(() =>
         {
             // dotnet build
         });
-}
-```
 
-```csharp
-// Steps/TestSteps.cs
-static class TestSteps
-{
-    public static Step Test() => _ => _
-        .DependsOn(CompileSteps.Compile)
+    Step Test() => _ => _
+        .DependsOn(Compile)
         .Executes(() =>
         {
             // dotnet test
         });
+
+    Step Pack() => _ => _
+        .DependsOn(Test)
+        .Executes(() =>
+        {
+            // dotnet pack
+        });
 }
 ```
 
-`Build.cs` then contains only the line that starts the build:
-
 ```csharp
-// Build.cs
-await Baun.RunAsync(TestSteps.Test);
+// DeploySteps.cs
+partial class Build
+{
+    Step DeployStaging() => _ => _
+        .DependsOn(Pack)
+        .Executes(() =>
+        {
+            // deploy to staging
+        });
+
+    Step DeployProduction() => _ => _
+        .DependsOn(DeployStaging)
+        .Executes(() =>
+        {
+            // deploy to production
+        });
+}
 ```
 
-The source generator finds these steps just like local functions. Steps in different classes refer to each other through the class name, such as `CompileSteps.Compile`. Add `using static CompileSteps;` if you'd rather leave the class name out. A step's name is still its method name, so step names must be unique across the whole build. The source generator reports duplicates as compiler errors. A static class can't see the local functions in `Build.cs`, so once you split a build, move all of its steps into static classes.
+All parts form one class, so steps in any file can depend on steps in any other file without a prefix. The source generator finds steps in every part.
 
 ## Running a build
 
