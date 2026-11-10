@@ -10,7 +10,7 @@ Inspired by [NUKE](https://github.com/nuke-build/nuke), baun treats your build a
 
 - **Builds as code**: Define pipelines in strongly typed C# instead of YAML, PowerShell, or Bash.
 - **Any workflow**: Use it for CI/CD, packaging, publishing, code generation, or any other repeatable task.
-- **Single file or project**: Keep a whole build in one `Build.cs` file and run it with `dotnet run Build.cs`, or use a regular build project. Both are fully supported.
+- **Single file or project**: Keep a whole build in one `Build.cs` file, or use a regular build project. Run either with `baun Test`. Both are fully supported.
 - **Simple by default**: Getting started takes little ceremony, and complex scenarios are still possible.
 - **Runs anywhere**: Run the same build locally and on any CI server, with the same results.
 - **First-class tooling**: Debug your build like any other .NET application.
@@ -32,7 +32,7 @@ The example `Build.cs` below shows the intended style. The final API may differ.
 ```csharp
 #:package Baun@0.1.0
 
-return await BaunBuild.RunAsync(args, defaultStep: Test);
+await Baun.RunAsync(Test);
 
 Step Clean() => _ => _
     .Executes(() =>
@@ -55,9 +55,13 @@ Step Test() => _ => _
     });
 ```
 
+`Baun.RunAsync` takes the default step, which runs when you don't name a step on the command line. baun reads the command-line arguments itself and sets the process exit code when a step fails, so you don't have to pass `args` or `return` anything.
+
 baun includes a source generator that finds your steps at compile time. It finds every local function and every static method in the build that returns a `Step`, takes each step's name from its function name, and registers it with the build. This avoids runtime reflection, and you don't need to register anything by hand. It also lets baun report problems like circular dependencies as compiler errors.
 
 A `Step` is a delegate. Each step returns a lambda, and baun calls that lambda with a builder that configures the step. The compiler infers the builder's type, so you never write it. You configure the step by chaining calls on the lambda parameter, which is named `_` by convention, and each setting goes on its own line. IntelliSense lists every available option after `_.`. `Executes` accepts both synchronous and `async` lambdas.
+
+The baun package adds `using Baun;` to your build automatically, in both single-file and project builds, so a build never needs `using` lines for baun itself.
 
 ## Single file or project
 
@@ -68,19 +72,17 @@ baun supports two ways to set up a build. Both use the same API and the same `Bu
 | Files | Only `Build.cs` | `Build.cs`, a `.csproj`, and any other files you add |
 | Package reference | `#:package` line in `Build.cs` | `PackageReference` in the `.csproj` |
 | Steps | Local functions and static classes in `Build.cs` | Local functions in `Build.cs` and static classes in any file |
-| Run | `dotnet run Build.cs -- Test` | `dotnet run --project build -- Test` |
+| Run | `baun Test` | `baun Test` |
 
 ### Single-file builds
 
 Single-file builds use the file-based apps introduced in .NET 10: the `#:package` line at the top of `Build.cs` references baun, and the .NET SDK takes care of the rest. You don't need a `.csproj` file, a solution, or a separate build folder.
 
-Running a step from the command line:
+Without the [baun tool](#running-a-build), you run a step with the .NET SDK directly:
 
 ```shell
 dotnet run Build.cs -- Test
 ```
-
-Running `dotnet run Build.cs` without a step name runs the default step.
 
 On Linux and macOS you can also make the build directly executable. Add a shebang as the first line of `Build.cs`:
 
@@ -116,13 +118,29 @@ A project build is a regular .NET console project, for example in a `build` fold
 </Project>
 ```
 
-`Build.cs` looks the same as in a single-file build, without the `#:` lines. Running a step:
+`Build.cs` looks the same as in a single-file build, without the `#:` lines. Without the [baun tool](#running-a-build), you run a step with the .NET SDK directly:
 
 ```shell
 dotnet run --project build -- Test
 ```
 
 To turn an existing single-file build into a project, run `dotnet project convert Build.cs`.
+
+## Running a build
+
+The `baun` command-line tool runs builds of both kinds with the same command. Install it as a .NET tool:
+
+```shell
+dotnet tool install --global baun
+```
+
+Then run a step from your repository:
+
+```shell
+baun Test
+```
+
+Running `baun` without a step name runs the default step. The tool looks for a `Build.cs` file or a build project in the current folder and its `build` subfolder, and runs it. You don't need to remember whether a repository uses a single-file or a project build, and CI scripts stay short.
 
 ### Organizing larger builds
 
@@ -164,7 +182,7 @@ static class TestSteps
 
 ```csharp
 // Build.cs
-return await BaunBuild.RunAsync(args, defaultStep: TestSteps.Test);
+await Baun.RunAsync(TestSteps.Test);
 ```
 
 The source generator finds these steps just like local functions. Steps in different classes refer to each other through the class name, such as `CompileSteps.Compile`. Add `using static CompileSteps;` if you'd rather leave the class name out. A step's name is still its method name, so step names must be unique across the whole build. The source generator reports duplicates as compiler errors. A static class can't see the local functions in `Build.cs`, so once you split a build, move all of its steps into static classes.
