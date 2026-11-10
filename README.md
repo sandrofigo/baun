@@ -32,20 +32,20 @@ The example below shows the intended style. The final API may differ.
 // Program.cs
 return await BaunBuild.RunAsync(args, defaultStep: Test);
 
-Step Clean() => step => step
+Step Clean() => _ => _
     .Executes(() =>
     {
         // delete output directories
     });
 
-Step Compile() => step => step
+Step Compile() => _ => _
     .DependsOn(Clean)
     .Executes(() =>
     {
         // dotnet build
     });
 
-Step Test() => step => step
+Step Test() => _ => _
     .DependsOn(Compile)
     .Executes(async () =>
     {
@@ -55,7 +55,7 @@ Step Test() => step => step
 
 baun includes a source generator that finds your steps at compile time. It finds every local function that returns a `Step`, takes each step's name from its function name, and registers it with the build. This avoids runtime reflection, and you don't need to register anything by hand. It also lets baun report problems like circular dependencies as compiler errors.
 
-A `Step` is a delegate. Each step returns a lambda, and baun calls that lambda with a builder that configures the step. The compiler infers the builder's type, so you never write it. You configure the step by chaining calls on the lambda parameter, and each setting goes on its own line. IntelliSense lists every available option after `step.`. `Executes` accepts both synchronous and `async` lambdas.
+A `Step` is a delegate. Each step returns a lambda, and baun calls that lambda with a builder that configures the step. The compiler infers the builder's type, so you never write it. You configure the step by chaining calls on the lambda parameter, which is named `_` by convention, and each setting goes on its own line. IntelliSense lists every available option after `_.`. `Executes` accepts both synchronous and `async` lambdas.
 
 Running a step from the command line:
 
