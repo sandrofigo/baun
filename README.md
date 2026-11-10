@@ -53,6 +53,8 @@ Step Test() => Step
     });
 ```
 
+baun includes a source generator that finds your steps at compile time. It finds every local function that returns a `Step`, takes each step's name from its function name, and registers it with the build. This avoids runtime reflection, and you don't need to register anything by hand. It also lets baun report problems like circular dependencies as compiler errors.
+
 Running a step from the command line:
 
 ```shell
