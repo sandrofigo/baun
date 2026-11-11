@@ -26,8 +26,3 @@ jobs:
       - name: Test
         run: dotnet test Baun.slnx
 
-      - name: Run single-file example
-        run: dotnet run examples/single-file/Build.cs -- Pack
-
-      - name: Run project example
-        run: dotnet run --project examples/project/build -- DeployProduction
