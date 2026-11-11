@@ -80,7 +80,7 @@ baun supports two ways to set up a build. Both use the same API and the same `Bu
 | Steps | `partial class Build` in `Build.cs` | `partial class Build` spread across any number of files |
 | Run | `baun Test` | `baun Test` |
 
-The [`examples`](examples) folder contains a sample of each: a [single-file build](examples/single-file/Build.cs) and a [project build](examples/project/build) with deployment steps in a separate file.
+The [`examples`](examples) folder contains a sample of each: a [single-file build](examples/single-file/Build.cs) and a [project build](examples/project/build) with deployment steps in a separate file. They build against the baun source code in this repository, so they always match the current API.
 
 ### Single-file builds
 

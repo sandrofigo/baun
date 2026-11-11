@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/examples/">
+    <Project Path="examples/project/build/Build.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Baun/Baun.csproj" />
     <Project Path="src/Baun.Cli/Baun.Cli.csproj" />
