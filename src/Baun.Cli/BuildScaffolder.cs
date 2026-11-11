@@ -1,7 +1,7 @@
 namespace BaunCli;
 
 /// <summary>
-/// The kind of build <c>baun setup</c> creates.
+/// The kind of build <c>baun init</c> creates.
 /// </summary>
 internal enum BuildKind
 {
@@ -13,7 +13,7 @@ internal enum BuildKind
 }
 
 /// <summary>
-/// Implements <c>baun setup</c>, which creates a new build.
+/// Implements <c>baun init</c>, which creates a new build.
 /// </summary>
 internal static class BuildScaffolder
 {
@@ -24,7 +24,7 @@ internal static class BuildScaffolder
     /// Creates a new build in <paramref name="directory"/>.
     /// </summary>
     /// <param name="directory">The folder to create the build in.</param>
-    /// <param name="options">The options after <c>setup</c>: <c>--single-file</c> or <c>--project</c>.</param>
+    /// <param name="options">The options after <c>init</c>: <c>--single-file</c> or <c>--project</c>.</param>
     /// <param name="console">The console to use. If it is interactive and no option is given, the user is asked.</param>
     /// <param name="baunVersion">The version of the Baun package the new build references.</param>
     /// <returns>The process exit code.</returns>

@@ -38,31 +38,31 @@ public sealed class CliAppTests : IDisposable
     }
 
     [Fact]
-    public async Task Passes_setup_to_an_existing_build_so_it_can_run_a_Setup_step()
+    public async Task Passes_init_to_an_existing_build_so_it_can_run_a_Init_step()
     {
         Write("Build.cs", "#:package Baun@0.1.0\n");
 
-        var exitCode = await RunAsync(input: "", "setup");
+        var exitCode = await RunAsync(input: "", "init");
 
         Assert.Equal(0, exitCode);
-        Assert.Equal("setup", Assert.Single(startedProcesses).ArgumentList[^1]);
+        Assert.Equal("init", Assert.Single(startedProcesses).ArgumentList[^1]);
         Assert.Equal(["Build.cs"], Directory.GetFileSystemEntries(root).Select(Path.GetFileName));
     }
 
     [Fact]
-    public async Task Fails_without_a_build_and_suggests_setup()
+    public async Task Fails_without_a_build_and_suggests_init()
     {
         var exitCode = await RunAsync(input: "", "Test");
 
         Assert.Equal(1, exitCode);
         Assert.Empty(startedProcesses);
-        Assert.Contains("Run 'baun setup' to create one.", error.ToString());
+        Assert.Contains("Run 'baun init' to create one.", error.ToString());
     }
 
     [Fact]
-    public async Task Setup_creates_a_single_file_build()
+    public async Task Init_creates_a_single_file_build()
     {
-        var exitCode = await RunAsync(input: "", "setup", "--single-file");
+        var exitCode = await RunAsync(input: "", "init", "--single-file");
 
         Assert.Equal(0, exitCode);
         Assert.Empty(startedProcesses);
@@ -81,9 +81,9 @@ public sealed class CliAppTests : IDisposable
     }
 
     [Fact]
-    public async Task Setup_creates_a_project_build()
+    public async Task Init_creates_a_project_build()
     {
-        var exitCode = await RunAsync(input: "", "setup", "--project");
+        var exitCode = await RunAsync(input: "", "init", "--project");
 
         Assert.Equal(0, exitCode);
 
@@ -98,9 +98,9 @@ public sealed class CliAppTests : IDisposable
     [InlineData("", "Build.cs")]
     [InlineData("1", "Build.cs")]
     [InlineData("3\n2", "build/Build.csproj")]
-    public async Task Setup_asks_which_kind_of_build_to_create(string input, string expectedFile)
+    public async Task Init_asks_which_kind_of_build_to_create(string input, string expectedFile)
     {
-        var exitCode = await RunAsync(input, interactive: true, "setup");
+        var exitCode = await RunAsync(input, interactive: true, "init");
 
         Assert.Equal(0, exitCode);
         Assert.Contains("Which kind of build do you want to create?", output.ToString());
@@ -108,9 +108,9 @@ public sealed class CliAppTests : IDisposable
     }
 
     [Fact]
-    public async Task Setup_creates_a_single_file_build_when_it_cannot_ask()
+    public async Task Init_creates_a_single_file_build_when_it_cannot_ask()
     {
-        var exitCode = await RunAsync(input: "", "setup");
+        var exitCode = await RunAsync(input: "", "init");
 
         Assert.Equal(0, exitCode);
         Assert.DoesNotContain("Which kind of build", output.ToString());
@@ -118,11 +118,11 @@ public sealed class CliAppTests : IDisposable
     }
 
     [Fact]
-    public async Task Setup_does_not_overwrite_existing_files()
+    public async Task Init_does_not_overwrite_existing_files()
     {
         Write("build/Build.cs", "// my own file\n");
 
-        var exitCode = await RunAsync(input: "", "setup", "--project");
+        var exitCode = await RunAsync(input: "", "init", "--project");
 
         Assert.Equal(1, exitCode);
         Assert.Contains("already exists", error.ToString());
@@ -133,9 +133,9 @@ public sealed class CliAppTests : IDisposable
     [Theory]
     [InlineData("--unknown")]
     [InlineData("--single-file", "--project")]
-    public async Task Setup_fails_for_invalid_options(params string[] options)
+    public async Task Init_fails_for_invalid_options(params string[] options)
     {
-        var exitCode = await RunAsync(input: "", ["setup", .. options]);
+        var exitCode = await RunAsync(input: "", ["init", .. options]);
 
         Assert.Equal(1, exitCode);
         Assert.StartsWith("error:", error.ToString());
