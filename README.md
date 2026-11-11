@@ -206,15 +206,15 @@ dotnet tool install --global Baun.Cli
 
 ### Creating a build
 
-Run `baun setup` in your repository to create a new build:
+Run `baun init` in your repository to create a new build:
 
 ```shell
-baun setup                # asks which kind of build to create
-baun setup --single-file  # creates Build.cs
-baun setup --project      # creates build/Build.csproj and build/Build.cs
+baun init                # asks which kind of build to create
+baun init --single-file  # creates Build.cs
+baun init --project      # creates build/Build.csproj and build/Build.cs
 ```
 
-The new build has a few sample steps and references the same version of baun as the tool. When `baun setup` can't ask, for example in a script, it creates a single-file build. It never overwrites existing files.
+The new build has a few sample steps and references the same version of baun as the tool. When `baun init` can't ask, for example in a script, it creates a single-file build. It never overwrites existing files.
 
 ### Running a build
 
@@ -226,7 +226,7 @@ baun Test
 
 Running `baun` without a step name runs the `[Entry]` step. The tool looks for a `Build.cs` file or a build project in the current folder and its `build` subfolder, and runs it. You don't need to remember whether a repository uses a single-file or a project build, and CI scripts stay short.
 
-Once a build exists, the tool passes all arguments to it. This means `baun setup` runs a step called `Setup` if your build has one. `baun setup` only creates a build when there isn't one yet.
+Once a build exists, the tool passes all arguments to it. This means `baun init` runs a step called `Init` if your build has one. `baun init` only creates a build when there isn't one yet.
 
 ## Development
 

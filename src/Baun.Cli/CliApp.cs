@@ -15,8 +15,8 @@ internal static class CliApp
     /// Runs the CLI.
     /// </summary>
     /// <remarks>
-    /// If a build is found, all arguments are passed to it, so <c>baun setup</c> runs a step called <c>Setup</c>
-    /// when the build has one. Only when no build exists does <c>baun setup</c> create a new build.
+    /// If a build is found, all arguments are passed to it, so <c>baun init</c> runs a step called <c>Init</c>
+    /// when the build has one. Only when no build exists does <c>baun init</c> create a new build.
     /// </remarks>
     /// <param name="arguments">The command-line arguments.</param>
     /// <param name="directory">The folder the CLI was started in.</param>
@@ -36,7 +36,7 @@ internal static class CliApp
             return await runProcess(CreateRunCommand(build, arguments));
         }
 
-        if (arguments.Count > 0 && string.Equals(arguments[0], "setup", StringComparison.OrdinalIgnoreCase))
+        if (arguments.Count > 0 && string.Equals(arguments[0], "init", StringComparison.OrdinalIgnoreCase))
         {
             return BuildScaffolder.Run(directory, arguments.Skip(1).ToList(), console, GetBaunVersion());
         }
@@ -44,7 +44,7 @@ internal static class CliApp
         console.Error.WriteLine(
             "error: No baun build found. Expected a single-file Build.cs, or a Build.cs next to a project file, " +
             "in the current folder or its 'build' subfolder.");
-        console.Error.WriteLine("Run 'baun setup' to create one.");
+        console.Error.WriteLine("Run 'baun init' to create one.");
         return 1;
     }
 
