@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>Baun</PackageId>
+    <Description>Write build pipelines and other workflows, such as CI/CD, in plain C#.</Description>
+    <PackageTags>build;ci;cd;pipeline;automation</PackageTags>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Baun.Tests" />
+  </ItemGroup>
+
+  <!-- Ship the source generator inside the Baun package, so that referencing Baun is all a build needs. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Baun.SourceGenerators\Baun.SourceGenerators.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
+    <None Include="..\Baun.SourceGenerators\bin\$(Configuration)\netstandard2.0\Baun.SourceGenerators.dll"
+          Pack="true"
+          PackagePath="analyzers/dotnet/cs"
+          Visible="false" />
+  </ItemGroup>
+
+</Project>

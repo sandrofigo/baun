@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Baun/Baun.csproj" />
+    <Project Path="src/Baun.Cli/Baun.Cli.csproj" />
+    <Project Path="src/Baun.SourceGenerators/Baun.SourceGenerators.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Baun.Tests/Baun.Tests.csproj" />
+  </Folder>
+</Solution>
