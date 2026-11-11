@@ -79,6 +79,8 @@ baun supports two ways to set up a build. Both use the same API and the same `Bu
 | Steps | `partial class Build` in `Build.cs` | `partial class Build` spread across any number of files |
 | Run | `baun Test` | `baun Test` |
 
+The [`examples`](examples) folder contains a sample of each: a [single-file build](examples/single-file/Build.cs) and a [project build](examples/project/build) with deployment steps in a separate file.
+
 ### Single-file builds
 
 Single-file builds use the file-based apps introduced in .NET 10: the `#:package` line at the top of `Build.cs` references baun, and the .NET SDK takes care of the rest. You don't need a `.csproj` file, a solution, or a separate build folder.
