@@ -1,5 +1,5 @@
 // The entry point of a project-based baun build.
-// The project file references baun with a PackageReference, so no #: lines are needed here.
+// Build.csproj references baun, so no #: lines are needed here.
 //
 // Run the entry step:  baun
 // Run a step:          baun Test

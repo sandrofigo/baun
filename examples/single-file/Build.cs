@@ -1,7 +1,9 @@
 #!/usr/bin/env dotnet
-#:package Baun@0.1.0
+#:project ../../src/Baun/Baun.csproj
 
 // A single-file baun build.
+// It references the baun source code in this repository. A real build references the package instead:
+// #:package Baun@0.1.0
 //
 // Run the entry step:  baun
 // Run a step:          baun Test
