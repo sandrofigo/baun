@@ -86,7 +86,7 @@ The [`examples`](examples) folder contains a sample of each: a [single-file buil
 
 Single-file builds use the file-based apps introduced in .NET 10: the `#:package` line at the top of `Build.cs` references baun, and the .NET SDK takes care of the rest. You don't need a `.csproj` file, a solution, or a separate build folder.
 
-Without the [baun tool](#running-a-build), you run a step with the .NET SDK directly:
+Without the [baun tool](#the-baun-tool), you run a step with the .NET SDK directly:
 
 ```shell
 dotnet run Build.cs -- Test
@@ -126,7 +126,7 @@ A project build is a regular .NET console project, for example in a `build` fold
 </Project>
 ```
 
-`Build.cs` looks the same as in a single-file build, without the `#:` lines. Without the [baun tool](#running-a-build), you run a step with the .NET SDK directly:
+`Build.cs` looks the same as in a single-file build, without the `#:` lines. Without the [baun tool](#the-baun-tool), you run a step with the .NET SDK directly:
 
 ```shell
 dotnet run --project build -- Test
@@ -196,21 +196,37 @@ partial class Build
 
 All parts form one class, so steps in any file can depend on steps in any other file without a prefix. The source generator finds steps in every part.
 
-## Running a build
+## The baun tool
 
-The `baun` command-line tool runs builds of both kinds with the same command. Install it as a .NET tool:
+The `baun` command-line tool creates and runs builds of both kinds. Install it as a .NET tool:
 
 ```shell
 dotnet tool install --global Baun.Cli
 ```
 
-Then run a step from your repository:
+### Creating a build
+
+Run `baun setup` in your repository to create a new build:
+
+```shell
+baun setup                # asks which kind of build to create
+baun setup --single-file  # creates Build.cs
+baun setup --project      # creates build/Build.csproj and build/Build.cs
+```
+
+The new build has a few sample steps and references the same version of baun as the tool. When `baun setup` can't ask, for example in a script, it creates a single-file build. It never overwrites existing files.
+
+### Running a build
+
+Run a step from your repository:
 
 ```shell
 baun Test
 ```
 
-Running `baun` without a step name runs the default step. The tool looks for a `Build.cs` file or a build project in the current folder and its `build` subfolder, and runs it. You don't need to remember whether a repository uses a single-file or a project build, and CI scripts stay short.
+Running `baun` without a step name runs the `[Entry]` step. The tool looks for a `Build.cs` file or a build project in the current folder and its `build` subfolder, and runs it. You don't need to remember whether a repository uses a single-file or a project build, and CI scripts stay short.
+
+Once a build exists, the tool passes all arguments to it. This means `baun setup` runs a step called `Setup` if your build has one. `baun setup` only creates a build when there isn't one yet.
 
 ## Development
 
