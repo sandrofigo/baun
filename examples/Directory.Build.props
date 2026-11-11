@@ -1,0 +1,21 @@
+<Project>
+
+  <!--
+    The examples build against the baun source code in this repository instead of the Baun NuGet package.
+    The package ships the source generator inside it; a project reference doesn't, so it is added here
+    for every example, single-file and project builds alike.
+  -->
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../src/Baun.SourceGenerators/Baun.SourceGenerators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>
