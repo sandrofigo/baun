@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>BaunCli</RootNamespace>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>baun</ToolCommandName>
+    <PackageId>Baun.Cli</PackageId>
+    <Description>The baun command-line tool. Runs single-file and project baun builds with the same command.</Description>
+    <PackageTags>build;ci;cd;pipeline;automation;tool</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Baun.Tests" />
+  </ItemGroup>
+
+</Project>

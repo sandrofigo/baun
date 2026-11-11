@@ -3,11 +3,12 @@
 
 // A single-file baun build.
 //
+// Run the entry step:  baun
 // Run a step:          baun Test
 // Without the tool:    dotnet run Build.cs -- Test
 // On Linux and macOS:  ./Build.cs Test
 
-await Baun.RunAsync<Build>(x => x.Test);
+await Baun.RunAsync<Build>();
 
 partial class Build
 {
@@ -18,34 +19,35 @@ partial class Build
     Step Clean() => _ => _
         .Executes(() =>
         {
-            // delete the output directories
-            // e.g. Directory.Delete(ArtifactsDirectory, recursive: true);
+            Console.WriteLine($"Deleting {ArtifactsDirectory}");
         });
 
     Step Restore() => _ => _
         .Executes(() =>
         {
-            // dotnet restore
+            Console.WriteLine("dotnet restore");
         });
 
     Step Compile() => _ => _
         .DependsOn(Clean, Restore)
         .Executes(() =>
         {
-            // dotnet build --no-restore --configuration {Configuration}
+            Console.WriteLine($"dotnet build --no-restore --configuration {Configuration}");
         });
 
+    [Entry]
     Step Test() => _ => _
         .DependsOn(Compile)
         .Executes(async () =>
         {
-            // dotnet test --no-build --configuration {Configuration}
+            Console.WriteLine($"dotnet test --no-build --configuration {Configuration}");
+            await Task.CompletedTask;
         });
 
     Step Pack() => _ => _
         .DependsOn(Test)
         .Executes(() =>
         {
-            // dotnet pack --no-build --output {ArtifactsDirectory}
+            Console.WriteLine($"dotnet pack --no-build --output {ArtifactsDirectory}");
         });
 }

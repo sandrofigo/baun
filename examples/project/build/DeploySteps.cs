@@ -7,13 +7,15 @@ partial class Build
         .DependsOn(Pack)
         .Executes(async () =>
         {
-            // upload the packages from {ArtifactsDirectory} to the staging environment
+            Console.WriteLine($"Uploading packages from {ArtifactsDirectory} to staging");
+            await Task.CompletedTask;
         });
 
     Step DeployProduction() => _ => _
         .DependsOn(DeployStaging)
         .Executes(async () =>
         {
-            // upload the packages from {ArtifactsDirectory} to the production environment
+            Console.WriteLine($"Uploading packages from {ArtifactsDirectory} to production");
+            await Task.CompletedTask;
         });
 }

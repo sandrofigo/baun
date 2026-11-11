@@ -32,7 +32,7 @@ The example `Build.cs` below shows the intended style. The final API may differ.
 ```csharp
 #:package Baun@0.1.0
 
-await Baun.RunAsync<Build>(x => x.Test);
+await Baun.RunAsync<Build>();
 
 partial class Build
 {
@@ -49,6 +49,7 @@ partial class Build
             // dotnet build
         });
 
+    [Entry]
     Step Test() => _ => _
         .DependsOn(Compile)
         .Executes(async () =>
@@ -58,15 +59,15 @@ partial class Build
 }
 ```
 
-`Baun.RunAsync` takes the default step, which runs when you don't name a step on the command line. baun reads the command-line arguments itself and sets the process exit code when a step fails, so you don't have to pass `args` or `return` anything.
+The `[Entry]` attribute marks the step that runs when you don't name a step on the command line. A build can have at most one entry step. `Baun.RunAsync` runs the build. baun reads the command-line arguments itself and sets the process exit code when a step fails, so you don't have to pass `args` or `return` anything.
 
 A `Step` is a delegate. Each step returns a lambda, and baun calls that lambda with a builder that configures the step. The compiler infers the builder's type, so you never write it. You configure the step by chaining calls on the lambda parameter, which is named `_` by convention, and each setting goes on its own line. IntelliSense lists every available option after `_.`. `Executes` accepts both synchronous and `async` lambdas.
 
 Because steps are members of a class, the build class is also the natural place for anything they share, such as settings or version numbers. Use regular fields and properties for these.
 
-baun includes a source generator that completes the `partial class Build` at compile time. It finds every method that returns a `Step`, takes each step's name from its method name, and registers it with the build. This avoids runtime reflection, and you don't need to register anything by hand. It also lets baun report problems like circular dependencies as compiler errors.
+baun includes a source generator that completes the `partial class Build` at compile time. It finds every method that returns a `Step`, takes each step's name from its method name, and registers it with the build. This avoids scanning the build with reflection, and you don't need to register anything by hand. It also reports mistakes as compiler errors, such as a build class that isn't `partial` or more than one `[Entry]` step. baun checks for circular dependencies before it runs any step.
 
-The baun package adds `using Baun;` to your build automatically, in both single-file and project builds, so a build never needs `using` lines for baun itself.
+baun's types, such as `Baun`, `Step` and `Entry`, are in the global namespace, so a build never needs `using` lines for baun itself.
 
 ## Single file or project
 
@@ -139,7 +140,7 @@ In a project build, you can spread the build class across as many files as you l
 
 ```csharp
 // Build.cs
-await Baun.RunAsync<Build>(x => x.Test);
+await Baun.RunAsync<Build>();
 
 partial class Build
 {
@@ -156,6 +157,7 @@ partial class Build
             // dotnet build
         });
 
+    [Entry]
     Step Test() => _ => _
         .DependsOn(Compile)
         .Executes(() =>
@@ -199,7 +201,7 @@ All parts form one class, so steps in any file can depend on steps in any other 
 The `baun` command-line tool runs builds of both kinds with the same command. Install it as a .NET tool:
 
 ```shell
-dotnet tool install --global baun
+dotnet tool install --global Baun.Cli
 ```
 
 Then run a step from your repository:
@@ -209,6 +211,20 @@ baun Test
 ```
 
 Running `baun` without a step name runs the default step. The tool looks for a `Build.cs` file or a build project in the current folder and its `build` subfolder, and runs it. You don't need to remember whether a repository uses a single-file or a project build, and CI scripts stay short.
+
+## Development
+
+The source code is in the `src` folder:
+
+- `src/Baun`: the library that builds reference.
+- `src/Baun.SourceGenerators`: the source generator, shipped inside the `Baun` package.
+- `src/Baun.Cli`: the `baun` command-line tool, published as the `Baun.Cli` package.
+
+Build and test everything with the .NET 10 SDK:
+
+```shell
+dotnet test Baun.slnx
+```
 
 ## Inspiration
 
