@@ -95,7 +95,7 @@ public class BuildRunnerTests
         var result = await RunAsync(build);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("No step was named and NoEntryBuild has no [Entry] step. Available steps: Compile.", result.Output);
+        Assert.Contains("No step was named and NoEntryBuild has no entry step. Name a step, or add [Entry(nameof(...))] to the build class. Available steps: Compile.", result.Output);
     }
 
     [Fact]
@@ -168,6 +168,7 @@ public class BuildRunnerTests
     private sealed record RunResult(int ExitCode, string Output);
 }
 
+[Entry(nameof(Test))]
 internal sealed partial class SampleBuild
 {
     public List<string> Executed { get; } = [];
@@ -184,7 +185,6 @@ internal sealed partial class SampleBuild
         .DependsOn(Clean, Restore)
         .Executes(() => Executed.Add(nameof(Compile)));
 
-    [Entry]
     public Step Test() => _ => _
         .DependsOn(Compile)
         .Executes(async () =>
@@ -206,6 +206,7 @@ internal sealed partial class SampleBuild
         .DependsOn(Pack);
 }
 
+[Entry(nameof(Last))]
 internal sealed partial class FailingBuild
 {
     public List<string> Executed { get; } = [];
@@ -217,15 +218,14 @@ internal sealed partial class FailingBuild
         .DependsOn(First)
         .Executes(() => throw new InvalidOperationException("Boom"));
 
-    [Entry]
     public Step Last() => _ => _
         .DependsOn(Failing)
         .Executes(() => Executed.Add(nameof(Last)));
 }
 
+[Entry(nameof(A))]
 internal sealed partial class CircularBuild
 {
-    [Entry]
     public Step A() => _ => _.DependsOn(B);
 
     public Step B() => _ => _.DependsOn(C);
@@ -233,9 +233,9 @@ internal sealed partial class CircularBuild
     public Step C() => _ => _.DependsOn(A);
 }
 
+[Entry(nameof(Main))]
 internal sealed partial class ForeignDependencyBuild
 {
-    [Entry]
     public Step Main() => _ => _.DependsOn(Helper);
 
     private static Step Helper() => _ => _;

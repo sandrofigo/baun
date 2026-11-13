@@ -34,6 +34,7 @@ The example `Build.cs` below shows the intended style. The final API may differ.
 
 await Baun.RunAsync<Build>();
 
+[Entry(nameof(Test))]
 partial class Build
 {
     Step Clean() => _ => _
@@ -49,7 +50,6 @@ partial class Build
             // dotnet build
         });
 
-    [Entry]
     Step Test() => _ => _
         .DependsOn(Compile)
         .Executes(async () =>
@@ -59,13 +59,13 @@ partial class Build
 }
 ```
 
-The `[Entry]` attribute marks the step that runs when you don't name a step on the command line. A build can have at most one entry step. `Baun.RunAsync` runs the build. baun reads the command-line arguments itself and sets the process exit code when a step fails, so you don't have to pass `args` or `return` anything.
+The `[Entry]` attribute on the build class names the step that runs when you don't name a step on the command line. Use `nameof`, so the compiler checks the name and renaming the step updates it. `Baun.RunAsync` runs the build. baun reads the command-line arguments itself and sets the process exit code when a step fails, so you don't have to pass `args` or `return` anything.
 
 A `Step` is a delegate. Each step returns a lambda, and baun calls that lambda with a builder that configures the step. The compiler infers the builder's type, so you never write it. You configure the step by chaining calls on the lambda parameter, which is named `_` by convention, and each setting goes on its own line. IntelliSense lists every available option after `_.`. `Executes` accepts both synchronous and `async` lambdas.
 
 Because steps are members of a class, the build class is also the natural place for anything they share, such as settings or version numbers. Use regular fields and properties for these.
 
-baun includes a source generator that completes the `partial class Build` at compile time. It finds every method that returns a `Step`, takes each step's name from its method name, and registers it with the build. This avoids scanning the build with reflection, and you don't need to register anything by hand. It also reports mistakes as compiler errors, such as a build class that isn't `partial` or more than one `[Entry]` step. baun checks for circular dependencies before it runs any step.
+baun includes a source generator that completes the `partial class Build` at compile time. It finds every method that returns a `Step`, takes each step's name from its method name, and registers it with the build. This avoids scanning the build with reflection, and you don't need to register anything by hand. It also reports mistakes as compiler errors, such as a build class that isn't `partial` or an `[Entry]` that doesn't name a step. baun checks for circular dependencies before it runs any step.
 
 baun's types, such as `Baun`, `Step` and `Entry`, are in the global namespace, so a build never needs `using` lines for baun itself.
 
@@ -142,6 +142,7 @@ In a project build, you can spread the build class across as many files as you l
 // Build.cs
 await Baun.RunAsync<Build>();
 
+[Entry(nameof(Test))]
 partial class Build
 {
     Step Clean() => _ => _
@@ -157,7 +158,6 @@ partial class Build
             // dotnet build
         });
 
-    [Entry]
     Step Test() => _ => _
         .DependsOn(Compile)
         .Executes(() =>
@@ -224,7 +224,7 @@ Run a step from your repository:
 baun Test
 ```
 
-Running `baun` without a step name runs the `[Entry]` step. The tool looks for a `Build.cs` file or a build project in the current folder and its `build` subfolder, and runs it. You don't need to remember whether a repository uses a single-file or a project build, and CI scripts stay short.
+Running `baun` without a step name runs the entry step. The tool looks for a `Build.cs` file or a build project in the current folder and its `build` subfolder, and runs it. You don't need to remember whether a repository uses a single-file or a project build, and CI scripts stay short.
 
 baun uses [Spectre.Console](https://spectreconsole.net) for its output. Each step starts with a heading, failures show the exception, and the build ends with a summary table of every step's status and duration.
 

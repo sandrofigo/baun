@@ -10,7 +10,8 @@ namespace BaunSourceGenerators;
 
 /// <summary>
 /// Completes every build class, that is every class with methods returning a <c>Step</c>, by implementing
-/// <c>IBaunBuild</c> and registering each step under its method name.
+/// <c>IBaunBuild</c> and registering each step under its method name. The step named by the class's
+/// <c>[Entry]</c> attribute is marked as the entry step.
 /// </summary>
 [Generator(LanguageNames.CSharp)]
 public sealed class StepGenerator : IIncrementalGenerator
@@ -31,10 +32,10 @@ public sealed class StepGenerator : IIncrementalGenerator
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    private static readonly DiagnosticDescriptor MultipleEntrySteps = new(
-        id: "BAUN003",
-        title: "Build class has more than one entry step",
-        messageFormat: "The build class '{0}' has more than one [Entry] step: {1}",
+    private static readonly DiagnosticDescriptor EntryIsNotAStep = new(
+        id: "BAUN004",
+        title: "Entry is not a step",
+        messageFormat: "The [Entry] of build class '{0}' must name one of its steps, but '{1}' is not a step. Use nameof, for example [Entry(nameof(Test))].",
         category: "Baun",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -82,15 +83,37 @@ public sealed class StepGenerator : IIncrementalGenerator
 
         var isSupported = type.ContainingType is null && !type.IsGenericType;
 
+        var entryAttribute = type.GetAttributes().FirstOrDefault(attribute => IsBaunEntryAttribute(attribute.AttributeClass));
+        var entry = entryAttribute is null ? null : GetEntry(entryAttribute, type, cancellationToken);
+
         return new StepMethod(
             TypeKey: type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             Namespace: type.ContainingNamespace.IsGlobalNamespace ? null : type.ContainingNamespace.ToDisplayString(),
             TypeName: type.Name,
             MethodName: method.Name,
-            IsEntry: method.GetAttributes().Any(attribute => IsBaunEntryAttribute(attribute.AttributeClass)),
+            Entry: entry,
             IsPartial: isPartial,
             IsSupported: isSupported,
             TypeLocation: LocationInfo.From(type.Locations.FirstOrDefault()));
+    }
+
+    private static EntryInfo GetEntry(AttributeData attribute, INamedTypeSymbol type, System.Threading.CancellationToken cancellationToken)
+    {
+        var syntax = attribute.ApplicationSyntaxReference?.GetSyntax(cancellationToken) as AttributeSyntax;
+        var stepName = attribute.ConstructorArguments.FirstOrDefault().Value as string;
+
+        // nameof of a name that doesn't exist, such as nameof(Tset), is already a compiler error,
+        // so baun doesn't report it a second time.
+        var usesNameof = syntax?.ArgumentList?.Arguments.FirstOrDefault()?.Expression is InvocationExpressionSyntax
+        {
+            Expression: IdentifierNameSyntax { Identifier.ValueText: "nameof" },
+        };
+
+        var isCompilerError = usesNameof && stepName is not null && type.GetMembers(stepName).IsEmpty;
+
+        return new EntryInfo(
+            StepName: isCompilerError ? null : stepName,
+            Location: LocationInfo.From(syntax?.GetLocation()));
     }
 
     private static bool IsBaunStep(ITypeSymbol type) =>
@@ -121,22 +144,19 @@ public sealed class StepGenerator : IIncrementalGenerator
                 continue;
             }
 
-            var methods = type
-                .GroupBy(step => step.MethodName)
-                .Select(group => (Name: group.Key, IsEntry: group.Any(step => step.IsEntry)))
-                .ToList();
+            var stepNames = type.Select(step => step.MethodName).Distinct().ToList();
 
-            var entrySteps = methods.Where(method => method.IsEntry).Select(method => method.Name).ToList();
-
-            if (entrySteps.Count > 1)
+            // The class is still completed, so a wrong entry is the only error.
+            if (first.Entry is { StepName: { } entryName } entry && !stepNames.Contains(entryName))
             {
                 context.ReportDiagnostic(Diagnostic.Create(
-                    MultipleEntrySteps,
-                    first.TypeLocation?.ToLocation(),
+                    EntryIsNotAStep,
+                    entry.Location?.ToLocation() ?? first.TypeLocation?.ToLocation(),
                     first.TypeName,
-                    string.Join(", ", entrySteps)));
-                continue;
+                    entryName));
             }
+
+            var methods = stepNames.Select(name => (Name: name, IsEntry: name == first.Entry?.StepName)).ToList();
 
             var hintName = type.Key.Replace("global::", string.Empty).Replace('<', '_').Replace('>', '_') + ".Steps.g.cs";
 
@@ -181,10 +201,12 @@ public sealed class StepGenerator : IIncrementalGenerator
         string? Namespace,
         string TypeName,
         string MethodName,
-        bool IsEntry,
+        EntryInfo? Entry,
         bool IsPartial,
         bool IsSupported,
         LocationInfo? TypeLocation);
+
+    private sealed record EntryInfo(string? StepName, LocationInfo? Location);
 
     private sealed record LocationInfo(string FilePath, TextSpan TextSpan, LinePositionSpan LineSpan)
     {
