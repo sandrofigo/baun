@@ -78,7 +78,7 @@ The workflow runs from the commit the release tag points to, so everything that 
 3. Optionally, check the release locally from an up-to-date `main`:
 
    ```shell
-   dotnet test Baun.slnx --configuration Release
+   dotnet test --solution Baun.slnx --configuration Release
    dotnet pack Baun.slnx --configuration Release --output artifacts -p:Version=1.2.3
    ```
 
