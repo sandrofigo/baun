@@ -55,7 +55,7 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Test
-        run: dotnet test Baun.slnx --configuration Release
+        run: dotnet test --solution Baun.slnx --configuration Release
 
       - name: Pack
         run: >
