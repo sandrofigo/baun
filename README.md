@@ -238,10 +238,10 @@ The source code is in the `src` folder:
 - `src/Baun.SourceGenerators`: the source generator, shipped inside the `Baun` package.
 - `src/Baun.Cli`: the `baun` command-line tool, published as the `Baun.Cli` package.
 
-Build and test everything with the .NET 10 SDK:
+Build and test everything with the .NET 10 SDK. The tests use [xUnit.net v3](https://xunit.net) on Microsoft Testing Platform, which [`global.json`](global.json) enables for `dotnet test`:
 
 ```shell
-dotnet test Baun.slnx
+dotnet test --solution Baun.slnx
 ```
 
 ### Publishing
