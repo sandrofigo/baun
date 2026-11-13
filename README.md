@@ -246,7 +246,7 @@ dotnet test Baun.slnx
 
 ### Publishing
 
-The [`Publish`](.github/workflows/publish.yml) workflow publishes the `Baun` and `Baun.Cli` packages to nuget.org with [trusted publishing](https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing), so no long-lived API key is stored in the repository. It runs when a GitHub release is published, and the release's tag sets the version: the tag `v1.2.3` publishes version `1.2.3`.
+The [`Release`](.github/workflows/release.yml) workflow publishes the `Baun` and `Baun.Cli` packages to nuget.org with [trusted publishing](https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing), so no long-lived API key is stored in the repository. It runs when a GitHub release is published, and the release's tag sets the version: the tag `v1.2.3` publishes version `1.2.3`.
 
 ## Inspiration
 

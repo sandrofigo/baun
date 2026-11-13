@@ -1,4 +1,4 @@
-name: Publish
+name: Release
 
 # Publishes the Baun and Baun.Cli packages to nuget.org with trusted publishing:
 # https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing
@@ -9,7 +9,7 @@ name: Publish
 # The trusted publishing policy on nuget.org must match this workflow:
 #   Repository Owner: sandrofigo
 #   Repository:       baun
-#   Workflow File:    publish.yml
+#   Workflow File:    release.yml
 #   Environment:      release
 #
 # The repository secret NUGET_USER must hold the nuget.org username (profile name, not the email address)
