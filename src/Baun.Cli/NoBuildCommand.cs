@@ -2,7 +2,7 @@ using System.ComponentModel;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-namespace BaunCli;
+namespace Baun.Cli;
 
 /// <summary>
 /// Runs when no build exists and no other command was given, for example <c>baun Test</c> in a folder without a build.

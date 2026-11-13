@@ -1,6 +1,6 @@
 using Spectre.Console.Testing;
 
-namespace BaunTests;
+namespace Baun.Tests;
 
 public class BuildRunnerTests
 {

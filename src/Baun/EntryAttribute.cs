@@ -1,3 +1,5 @@
+namespace Baun;
+
 /// <summary>
 /// Names the step that runs when no step is named on the command line.
 /// </summary>

@@ -1,3 +1,5 @@
+namespace Baun;
+
 /// <summary>
 /// Configures a <see cref="Step"/>.
 /// </summary>
