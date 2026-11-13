@@ -32,7 +32,40 @@ baun uses [semantic versioning](https://semver.org). The release tag is the vers
 
 The workflow rejects any other tag format. The `<Version>` in [`Directory.Build.props`](../Directory.Build.props) is only used for local builds; the tag always decides the published version. You can update it to the released version to keep local builds in step, but it isn't required.
 
-## 2. Mark the analyzer rules as shipped
+## 2. Update the changelog
+
+[`CHANGELOG.md`](../CHANGELOG.md) follows the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. Changes are collected under `## [Unreleased]` as they are made.
+
+1. Check that `## [Unreleased]` lists every notable change since the last release, grouped under `### Added`, `### Changed`, `### Deprecated`, `### Removed`, `### Fixed` or `### Security`.
+2. Rename it to the new version and today's date, and add an empty `## [Unreleased]` above it:
+
+   ```markdown
+   ## [Unreleased]
+
+   ## [1.2.3] - 2026-11-13
+
+   ### Added
+
+   - ...
+   ```
+
+3. Update the comparison links at the end of the file, so `[Unreleased]` compares the new tag with `main` and the new version compares it with the previous tag:
+
+   ```markdown
+   [Unreleased]: https://github.com/sandrofigo/baun/compare/v1.2.3...HEAD
+   [1.2.3]: https://github.com/sandrofigo/baun/compare/v1.2.2...v1.2.3
+   ```
+
+   For the first release, there is no previous tag to compare with:
+
+   ```markdown
+   [Unreleased]: https://github.com/sandrofigo/baun/compare/v0.1.0...HEAD
+   [0.1.0]: https://github.com/sandrofigo/baun/releases/tag/v0.1.0
+   ```
+
+You can copy the version's section into the GitHub release description in step 5.
+
+## 3. Mark the analyzer rules as shipped
 
 The source generator reports its own compiler errors (`BAUN001`, `BAUN002`, ...). Their IDs are tracked in two files in [`src/Baun.SourceGenerators`](../src/Baun.SourceGenerators):
 
@@ -69,11 +102,11 @@ Later releases add their own `## Release x.y.z` section below the earlier ones. 
 
 Build the solution afterwards. A rule that is missing from both files causes warning `RS2000`.
 
-## 3. Prepare `main`
+## 4. Prepare `main`
 
 The workflow runs from the commit the release tag points to, so everything that should be released must be on `main`.
 
-1. Merge the changes from steps 1 and 2 into `main` with a pull request.
+1. Merge the changes from steps 1 to 3 into `main` with a pull request.
 2. Make sure the `Test` workflow passed on that pull request.
 3. Optionally, check the release locally from an up-to-date `main`:
 
@@ -82,26 +115,26 @@ The workflow runs from the commit the release tag points to, so everything that 
    dotnet pack Baun.slnx --configuration Release --output artifacts -p:Version=1.2.3
    ```
 
-## 4. Publish the GitHub release
+## 5. Publish the GitHub release
 
 1. Open **Releases → Draft a new release** on GitHub.
 2. **Choose a tag:** type the new tag, for example `v1.2.3`, and choose **Create new tag on publish**.
 3. **Target:** `main`.
 4. **Title:** the version, for example `v1.2.3`.
-5. **Description:** click **Generate release notes** and edit them as needed.
+5. **Description:** paste the version's section from `CHANGELOG.md`, or click **Generate release notes** and edit them as needed.
 6. For a prerelease version, check **Set as a pre-release**.
 7. Click **Publish release**.
 
 Publishing the release starts the `Release` workflow. Saving a draft doesn't.
 
-## 5. Approve and follow the workflow
+## 6. Approve and follow the workflow
 
 1. Open the **Actions** tab and select the `Release` run for the new tag.
 2. The `build` job tests and packs both packages. If it fails, nothing has been published.
 3. The `publish` job waits for approval if the `release` environment has required reviewers. Click **Review deployments** and approve.
 4. The `publish` job logs in to nuget.org and pushes both packages.
 
-## 6. Check the published packages
+## 7. Check the published packages
 
 1. Both packages appear on nuget.org within a few minutes. Search results and installs can take a bit longer while nuget.org indexes them.
    - https://www.nuget.org/packages/Baun
