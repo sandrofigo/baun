@@ -244,6 +244,10 @@ Build and test everything with the .NET 10 SDK:
 dotnet test Baun.slnx
 ```
 
+### Publishing
+
+The [`Publish`](.github/workflows/publish.yml) workflow publishes the `Baun` and `Baun.Cli` packages to nuget.org with [trusted publishing](https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing), so no long-lived API key is stored in the repository. It runs when a GitHub release is published, and the release's tag sets the version: the tag `v1.2.3` publishes version `1.2.3`.
+
 ## Inspiration
 
 baun is heavily inspired by [NUKE](https://github.com/nuke-build/nuke) and its idea of writing builds as C# code. It aims to keep that idea while targeting modern .NET (10 and above).
