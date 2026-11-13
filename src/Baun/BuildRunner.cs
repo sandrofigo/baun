@@ -153,7 +153,7 @@ internal sealed class BuildRunner
         {
             var step = steps.FirstOrDefault(step => step.IsEntry)
                 ?? throw new BuildConfigurationException(
-                    $"No step was named and {build.GetType().Name} has no [Entry] step. Available steps: {string.Join(", ", steps.Select(step => step.Name))}.");
+                    $"No step was named and {build.GetType().Name} has no entry step. Name a step, or add [Entry(nameof(...))] to the build class. Available steps: {string.Join(", ", steps.Select(step => step.Name))}.");
 
             return [step];
         }

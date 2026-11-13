@@ -23,24 +23,59 @@ public class StepGeneratorTests
         Assert.Equal(["Test"], steps.Where(step => step.IsEntry).Select(step => step.Name));
     }
 
-    [Fact]
-    public void Reports_an_error_for_more_than_one_entry_step()
+    [Theory]
+    [InlineData("nameof(Configuration)", "Configuration")]
+    [InlineData("nameof(Helper)", "Helper")]
+    [InlineData("\"Tset\"", "Tset")]
+    public void Reports_an_error_for_an_entry_that_is_not_a_step(string argument, string name)
     {
-        var (diagnostics, sources) = RunGenerator("""
+        var (diagnostics, sources) = RunGenerator($$"""
+            [Entry({{argument}})]
             partial class Build
             {
-                [Entry]
+                string Configuration = "Release";
+
                 Step Compile() => _ => _;
 
-                [Entry]
-                Step Test() => _ => _;
+                static Step Helper() => _ => _;
             }
             """);
 
         var diagnostic = Assert.Single(diagnostics);
-        Assert.Equal("BAUN003", diagnostic.Id);
-        Assert.Contains("Compile, Test", diagnostic.GetMessage());
-        Assert.Empty(sources);
+        Assert.Equal("BAUN004", diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Contains($"'{name}' is not a step", diagnostic.GetMessage());
+        Assert.Equal(0, diagnostic.Location.GetLineSpan().StartLinePosition.Line); // reported on the [Entry(...)] line
+        Assert.DoesNotContain("IsEntry", Assert.Single(sources)); // still completed, so this is the only error
+    }
+
+    [Fact]
+    public void Leaves_a_misspelled_nameof_entry_to_the_compiler()
+    {
+        var (diagnostics, sources) = RunGenerator("""
+            [Entry(nameof(Tset))]
+            partial class Build
+            {
+                Step Test() => _ => _;
+            }
+            """);
+
+        Assert.Empty(diagnostics);
+        Assert.Single(sources);
+    }
+
+    [Fact]
+    public void Generates_no_entry_step_without_an_entry_attribute()
+    {
+        var (diagnostics, sources) = RunGenerator("""
+            partial class Build
+            {
+                Step Compile() => _ => _;
+            }
+            """);
+
+        Assert.Empty(diagnostics);
+        Assert.DoesNotContain("IsEntry", Assert.Single(sources));
     }
 
     [Fact]
@@ -63,11 +98,11 @@ public class StepGeneratorTests
     public void Generates_the_build_class_in_the_global_namespace()
     {
         var (diagnostics, sources) = RunGenerator("""
+            [Entry(nameof(Test))]
             partial class Build
             {
                 Step Compile() => _ => _;
 
-                [Entry]
                 Step Test() => _ => _;
             }
             """);
