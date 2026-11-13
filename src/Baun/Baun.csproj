@@ -14,13 +14,11 @@
 
   <!-- Ship the source generator inside the Baun package, so that referencing Baun is all a build needs. -->
   <ItemGroup>
-    <ProjectReference Include="..\Baun.SourceGenerators\Baun.SourceGenerators.csproj"
-                      ReferenceOutputAssembly="false"
-                      PrivateAssets="all" />
-    <None Include="..\Baun.SourceGenerators\bin\$(Configuration)\netstandard2.0\Baun.SourceGenerators.dll"
-          Pack="true"
-          PackagePath="analyzers/dotnet/cs"
-          Visible="false" />
+    <ProjectReference Include="..\Baun.SourceGenerators\Baun.SourceGenerators.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+    <None Include="..\Baun.SourceGenerators\bin\$(Configuration)\netstandard2.0\Baun.SourceGenerators.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Spectre.Console" Version="0.57.2" />
   </ItemGroup>
 
 </Project>

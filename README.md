@@ -226,6 +226,8 @@ baun Test
 
 Running `baun` without a step name runs the `[Entry]` step. The tool looks for a `Build.cs` file or a build project in the current folder and its `build` subfolder, and runs it. You don't need to remember whether a repository uses a single-file or a project build, and CI scripts stay short.
 
+baun uses [Spectre.Console](https://spectreconsole.net) for its output. Each step starts with a heading, failures show the exception, and the build ends with a summary table of every step's status and duration.
+
 Once a build exists, the tool passes all arguments to it. This means `baun init` runs a step called `Init` if your build has one. `baun init` only creates a build when there isn't one yet.
 
 ## Development
