@@ -12,6 +12,7 @@
 
 await Baun.RunAsync<Build>();
 
+[Entry(nameof(Test))]
 partial class Build
 {
     // Shared settings live in ordinary fields and properties.
@@ -37,7 +38,6 @@ partial class Build
             Console.WriteLine($"dotnet build --no-restore --configuration {Configuration}");
         });
 
-    [Entry]
     Step Test() => _ => _
         .DependsOn(Compile)
         .Executes(async () =>

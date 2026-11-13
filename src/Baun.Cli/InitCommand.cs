@@ -122,6 +122,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : Co
     private const string BuildFileBody = """
         await Baun.RunAsync<Build>();
 
+        [Entry(nameof(Test))]
         partial class Build
         {
             Step Clean() => _ => _
@@ -137,7 +138,6 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : Co
                     Console.WriteLine("Compiling");
                 });
 
-            [Entry]
             Step Test() => _ => _
                 .DependsOn(Compile)
                 .Executes(() =>

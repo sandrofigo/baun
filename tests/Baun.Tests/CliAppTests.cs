@@ -90,7 +90,7 @@ public sealed class CliAppTests : IDisposable
         var content = File.ReadAllText(buildFile);
         Assert.StartsWith("#!/usr/bin/env dotnet\n#:package Baun@", content);
         Assert.Contains("await Baun.RunAsync<Build>();", content);
-        Assert.Contains("[Entry]", content);
+        Assert.Contains("[Entry(nameof(Test))]", content);
         Assert.Equal(new BuildLocation(buildFile, null), BuildLocator.Find(root));
 
         if (!OperatingSystem.IsWindows())
