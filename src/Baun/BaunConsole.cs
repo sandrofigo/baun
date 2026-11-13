@@ -1,5 +1,7 @@
 using Spectre.Console;
 
+namespace Baun;
+
 /// <summary>
 /// Creates the console baun writes to.
 /// </summary>

@@ -10,8 +10,6 @@
 // Without the tool:    dotnet run Build.cs -- Test
 // On Linux and macOS:  ./Build.cs Test
 
-await Baun.RunAsync<Build>();
-
 [Entry(nameof(Test))]
 partial class Build
 {
