@@ -1,6 +1,6 @@
 using Spectre.Console;
 
-namespace BaunCli;
+namespace Baun.Cli;
 
 /// <summary>
 /// Creates the console the baun tool writes to.

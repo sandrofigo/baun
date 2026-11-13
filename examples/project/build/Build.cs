@@ -8,8 +8,6 @@
 // The deployment steps live in DeploySteps.cs. Both files are parts of the same
 // partial class, so steps can depend on each other across files without a prefix.
 
-await Baun.RunAsync<Build>();
-
 [Entry(nameof(Test))]
 partial class Build
 {

@@ -2,6 +2,8 @@ using System.Diagnostics;
 using System.Reflection;
 using Spectre.Console;
 
+namespace Baun;
+
 /// <summary>
 /// Resolves the steps of a build and runs them in dependency order.
 /// </summary>

@@ -1,3 +1,5 @@
+namespace Baun;
+
 /// <summary>
 /// Defines a step of a build.
 /// </summary>

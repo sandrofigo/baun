@@ -1,4 +1,4 @@
-namespace BaunCli;
+namespace Baun.Cli;
 
 /// <summary>
 /// A baun build found on disk.

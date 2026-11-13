@@ -4,7 +4,7 @@
     <!-- xUnit.net v3 test projects are stand-alone executables. -->
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
-    <RootNamespace>BaunTests</RootNamespace>
+    <RootNamespace>Baun.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="Baun" />
     <Using Include="Xunit" />
   </ItemGroup>
 

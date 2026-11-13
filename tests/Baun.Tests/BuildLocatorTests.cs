@@ -1,6 +1,6 @@
-using BaunCli;
+using Baun.Cli;
 
-namespace BaunTests;
+namespace Baun.Tests;
 
 public sealed class BuildLocatorTests : IDisposable
 {
@@ -28,7 +28,7 @@ public sealed class BuildLocatorTests : IDisposable
     [Fact]
     public void Finds_a_project_build_in_the_build_subfolder()
     {
-        var buildFile = Write("build/Build.cs", "await Baun.RunAsync<Build>();\n");
+        var buildFile = Write("build/Build.cs", "await BaunBuild.RunAsync<Build>();\n");
         var projectFile = Write("build/Build.csproj", "<Project />");
 
         Assert.Equal(new BuildLocation(buildFile, projectFile), BuildLocator.Find(root));
@@ -54,7 +54,7 @@ public sealed class BuildLocatorTests : IDisposable
     [Fact]
     public void Returns_null_for_a_project_build_file_without_a_project()
     {
-        Write("Build.cs", "await Baun.RunAsync<Build>();\n");
+        Write("Build.cs", "await BaunBuild.RunAsync<Build>();\n");
 
         Assert.Null(BuildLocator.Find(root));
     }

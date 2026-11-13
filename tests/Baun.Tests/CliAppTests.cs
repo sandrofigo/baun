@@ -1,8 +1,8 @@
 using System.Diagnostics;
-using BaunCli;
+using Baun.Cli;
 using Spectre.Console.Testing;
 
-namespace BaunTests;
+namespace Baun.Tests;
 
 public sealed class CliAppTests : IDisposable
 {
@@ -32,7 +32,7 @@ public sealed class CliAppTests : IDisposable
     [Fact]
     public async Task Runs_a_project_build_with_its_project_file()
     {
-        Write("build/Build.cs", "await Baun.RunAsync<Build>();\n");
+        Write("build/Build.cs", "await BaunBuild.RunAsync<Build>();\n");
         Write("build/Build.csproj", "<Project />");
 
         await RunAsync();
@@ -89,8 +89,8 @@ public sealed class CliAppTests : IDisposable
         var buildFile = Path.Combine(root, "Build.cs");
         var content = File.ReadAllText(buildFile);
         Assert.StartsWith("#!/usr/bin/env dotnet\n#:package Baun@", content);
-        Assert.Contains("await Baun.RunAsync<Build>();", content);
-        Assert.Contains("[Entry(nameof(Test))]", content);
+        Assert.DoesNotContain("RunAsync", content); // the source generator adds the entry point
+        Assert.Contains("[Entry(nameof(Test))]\npartial class Build", content);
         Assert.Equal(new BuildLocation(buildFile, null), BuildLocator.Find(root));
 
         if (!OperatingSystem.IsWindows())

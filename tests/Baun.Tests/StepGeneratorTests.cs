@@ -1,9 +1,9 @@
 using System.Collections.Immutable;
-using BaunSourceGenerators;
+using Baun.SourceGenerators;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
-namespace BaunTests;
+namespace Baun.Tests;
 
 public class StepGeneratorTests
 {
@@ -110,9 +110,9 @@ public class StepGeneratorTests
         Assert.Empty(diagnostics);
         var source = Assert.Single(sources);
         Assert.DoesNotContain("namespace", source);
-        Assert.Contains("partial class Build : global::IBaunBuild", source);
-        Assert.Contains("new global::BaunStep(\"Compile\", Compile),", source);
-        Assert.Contains("new global::BaunStep(\"Test\", Test, IsEntry: true),", source);
+        Assert.Contains("partial class Build : global::Baun.IBaunBuild", source);
+        Assert.Contains("new global::Baun.BaunStep(\"Compile\", Compile),", source);
+        Assert.Contains("new global::Baun.BaunStep(\"Test\", Test, IsEntry: true),", source);
     }
 
     [Fact]
@@ -183,7 +183,82 @@ public class StepGeneratorTests
         Assert.Empty(sources);
     }
 
-    private static (ImmutableArray<Diagnostic> Diagnostics, string[] Sources) RunGenerator(string source)
+    [Fact]
+    public void Adds_an_entry_point_that_runs_the_build_class()
+    {
+        var (diagnostics, sources) = RunGenerator("""
+            namespace My.Builds;
+
+            [Entry(nameof(Test))]
+            partial class Build
+            {
+                Step Test() => _ => _;
+            }
+            """, OutputKind.ConsoleApplication);
+
+        Assert.Empty(diagnostics);
+        var entryPoint = Assert.Single(sources, source => source.Contains("class BaunEntryPoint"));
+        Assert.Contains("private static global::System.Threading.Tasks.Task Main() =>", entryPoint);
+        Assert.Contains("global::Baun.BaunBuild.RunAsync<global::My.Builds.Build>();", entryPoint);
+    }
+
+    [Theory]
+    [InlineData("await BaunBuild.RunAsync<Build>();")]
+    [InlineData("class Program { static Task Main() => BaunBuild.RunAsync<Build>(); }")]
+    public void Adds_no_entry_point_when_the_build_has_one(string entryPoint)
+    {
+        var (diagnostics, sources) = RunGenerator($$"""
+            using System.Threading.Tasks;
+
+            {{entryPoint}}
+
+            partial class Build
+            {
+                Step Test() => _ => _;
+            }
+            """, OutputKind.ConsoleApplication);
+
+        Assert.Empty(diagnostics);
+        Assert.DoesNotContain(sources, source => source.Contains("class BaunEntryPoint"));
+    }
+
+    [Fact]
+    public void Adds_no_entry_point_to_a_library()
+    {
+        var (_, sources) = RunGenerator("""
+            partial class Build
+            {
+                Step Test() => _ => _;
+            }
+            """);
+
+        Assert.DoesNotContain(sources, source => source.Contains("class BaunEntryPoint"));
+    }
+
+    [Fact]
+    public void Reports_an_error_for_more_than_one_build_class_without_an_entry_point()
+    {
+        var (diagnostics, sources) = RunGenerator("""
+            partial class Build
+            {
+                Step Test() => _ => _;
+            }
+
+            partial class Deploy
+            {
+                Step Release() => _ => _;
+            }
+            """, OutputKind.ConsoleApplication);
+
+        Assert.Equal(2, diagnostics.Length);
+        Assert.All(diagnostics, diagnostic => Assert.Equal("BAUN005", diagnostic.Id));
+        Assert.Contains("Build, Deploy", diagnostics[0].GetMessage());
+        Assert.DoesNotContain(sources, source => source.Contains("class BaunEntryPoint"));
+    }
+
+    private static (ImmutableArray<Diagnostic> Diagnostics, string[] Sources) RunGenerator(
+        string source,
+        OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary)
     {
         var references = AppDomain.CurrentDomain.GetAssemblies()
             .Where(assembly => !assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location))
@@ -192,9 +267,9 @@ public class StepGeneratorTests
 
         var compilation = CSharpCompilation.Create(
             "GeneratorTest",
-            [CSharpSyntaxTree.ParseText(source)],
+            [CSharpSyntaxTree.ParseText("global using Baun;"), CSharpSyntaxTree.ParseText(source)],
             references,
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            new CSharpCompilationOptions(outputKind));
 
         var driver = CSharpGeneratorDriver.Create(new StepGenerator()).RunGenerators(compilation);
         var result = driver.GetRunResult();

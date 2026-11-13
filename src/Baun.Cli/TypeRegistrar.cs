@@ -1,6 +1,6 @@
 using Spectre.Console.Cli;
 
-namespace BaunCli;
+namespace Baun.Cli;
 
 /// <summary>
 /// A minimal dependency container for Spectre.Console.Cli, so commands can receive services in their constructors.

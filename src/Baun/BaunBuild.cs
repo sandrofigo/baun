@@ -1,7 +1,18 @@
+namespace Baun;
+
 /// <summary>
 /// Runs baun builds.
 /// </summary>
-public static class Baun
+/// <remarks>
+/// A build usually doesn't call this itself. When a build has no top-level statements and no <c>Main</c> method,
+/// the baun source generator adds an entry point that calls <see cref="RunAsync{TBuild}"/> for its build class.
+/// Call it yourself to run code before or after the build:
+/// <code>
+/// Console.WriteLine("Starting");
+/// await BaunBuild.RunAsync&lt;Build&gt;();
+/// </code>
+/// </remarks>
+public static class BaunBuild
 {
     /// <summary>
     /// Runs the steps named on the command line, or the step marked with <see cref="EntryAttribute"/> if none are named.

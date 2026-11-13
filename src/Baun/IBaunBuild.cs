@@ -1,5 +1,7 @@
 using System.ComponentModel;
 
+namespace Baun;
+
 /// <summary>
 /// A build class whose steps baun can run.
 /// </summary>

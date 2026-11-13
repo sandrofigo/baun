@@ -3,7 +3,7 @@ using System.Reflection;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-namespace BaunCli;
+namespace Baun.Cli;
 
 /// <summary>
 /// What the CLI's commands need to know about where and how they run.

@@ -2,7 +2,7 @@ using System.ComponentModel;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
-namespace BaunCli;
+namespace Baun.Cli;
 
 /// <summary>
 /// The kind of build <c>baun init</c> creates.
@@ -120,8 +120,6 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : Co
     };
 
     private const string BuildFileBody = """
-        await Baun.RunAsync<Build>();
-
         [Entry(nameof(Test))]
         partial class Build
         {

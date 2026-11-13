@@ -6,7 +6,7 @@
     <IsRoslynComponent>true</IsRoslynComponent>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <IsPackable>false</IsPackable>
-    <RootNamespace>BaunSourceGenerators</RootNamespace>
+    <RootNamespace>Baun.SourceGenerators</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
