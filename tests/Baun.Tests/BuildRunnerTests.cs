@@ -1,3 +1,5 @@
+using Spectre.Console.Testing;
+
 namespace BaunTests;
 
 public class BuildRunnerTests
@@ -11,6 +13,9 @@ public class BuildRunnerTests
 
         Assert.Equal(0, result.ExitCode);
         Assert.Equal(["Clean", "Restore", "Compile", "Test"], build.Executed);
+        Assert.Contains("Running Clean -> Restore -> Compile -> Test", result.Output);
+        Assert.Matches(@"Compile\s+│\s+Succeeded", result.Output);
+        Assert.Contains("Build succeeded", result.Output);
     }
 
     [Fact]
@@ -79,7 +84,7 @@ public class BuildRunnerTests
 
         Assert.Equal(1, result.ExitCode);
         Assert.Empty(build.Executed);
-        Assert.Contains("Unknown step Deploy. Available steps: Clean, Restore, Compile, Test, Pack, All.", result.Error);
+        Assert.Contains("Unknown step Deploy. Available steps: Clean, Restore, Compile, Test, Pack, All.", result.Output);
     }
 
     [Fact]
@@ -90,7 +95,7 @@ public class BuildRunnerTests
         var result = await RunAsync(build);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("No step was named and NoEntryBuild has no [Entry] step. Available steps: Compile.", result.Error);
+        Assert.Contains("No step was named and NoEntryBuild has no [Entry] step. Available steps: Compile.", result.Output);
     }
 
     [Fact]
@@ -111,7 +116,7 @@ public class BuildRunnerTests
         var result = await RunAsync(build, "--verbose");
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("Unknown option --verbose.", result.Error);
+        Assert.Contains("Unknown option --verbose.", result.Output);
     }
 
     [Fact]
@@ -123,7 +128,9 @@ public class BuildRunnerTests
 
         Assert.Equal(1, result.ExitCode);
         Assert.Equal(["First"], build.Executed);
-        Assert.Contains("Step Failing failed", result.Error);
+        Assert.Contains("Step Failing failed", result.Output);
+        Assert.Contains("Boom", result.Output);
+        Assert.Matches(@"Last\s+│\s+Skipped", result.Output);
         Assert.Contains("Build failed", result.Output);
     }
 
@@ -135,7 +142,7 @@ public class BuildRunnerTests
         var result = await RunAsync(build);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("Circular dependency: A -> B -> C -> A.", result.Error);
+        Assert.Contains("Circular dependency: A -> B -> C -> A.", result.Output);
     }
 
     [Fact]
@@ -146,20 +153,19 @@ public class BuildRunnerTests
         var result = await RunAsync(build);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("Step Main depends on Helper, which is not a step of ForeignDependencyBuild.", result.Error);
+        Assert.Contains("Step Main depends on Helper, which is not a step of ForeignDependencyBuild.", result.Output);
     }
 
     private static async Task<RunResult> RunAsync(IBaunBuild build, params string[] arguments)
     {
-        var output = new StringWriter();
-        var error = new StringWriter();
+        var console = new TestConsole().Width(250);
 
-        var exitCode = await new BuildRunner(build, output, error).RunAsync(arguments);
+        var exitCode = await new BuildRunner(build, console).RunAsync(arguments);
 
-        return new RunResult(exitCode, output.ToString(), error.ToString());
+        return new RunResult(exitCode, console.Output);
     }
 
-    private sealed record RunResult(int ExitCode, string Output, string Error);
+    private sealed record RunResult(int ExitCode, string Output);
 }
 
 internal sealed partial class SampleBuild

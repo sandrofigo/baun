@@ -1,13 +1,16 @@
 using System.Diagnostics;
 using System.Reflection;
+using Spectre.Console;
+using Spectre.Console.Cli;
 
 namespace BaunCli;
 
 /// <summary>
-/// The console the CLI reads from and writes to.
+/// What the CLI's commands need to know about where and how they run.
 /// </summary>
-/// <param name="IsInteractive">Whether a person can answer questions on <paramref name="In"/>.</param>
-internal sealed record CliConsole(TextReader In, TextWriter Out, TextWriter Error, bool IsInteractive);
+/// <param name="Directory">The folder the CLI was started in.</param>
+/// <param name="BaunVersion">The version of the Baun package that new builds reference.</param>
+internal sealed record CliContext(string Directory, string BaunVersion);
 
 internal static class CliApp
 {
@@ -15,8 +18,9 @@ internal static class CliApp
     /// Runs the CLI.
     /// </summary>
     /// <remarks>
-    /// If a build is found, all arguments are passed to it, so <c>baun init</c> runs a step called <c>Init</c>
-    /// when the build has one. Only when no build exists does <c>baun init</c> create a new build.
+    /// If a build is found, all arguments are passed to it unchanged, so <c>baun init</c> runs a step called
+    /// <c>Init</c> when the build has one. The CLI's own commands, such as <c>init</c>, are only available when
+    /// no build exists yet.
     /// </remarks>
     /// <param name="arguments">The command-line arguments.</param>
     /// <param name="directory">The folder the CLI was started in.</param>
@@ -26,7 +30,7 @@ internal static class CliApp
     public static async Task<int> RunAsync(
         IReadOnlyList<string> arguments,
         string directory,
-        CliConsole console,
+        IAnsiConsole console,
         Func<ProcessStartInfo, Task<int>> runProcess)
     {
         var build = BuildLocator.Find(directory);
@@ -36,16 +40,27 @@ internal static class CliApp
             return await runProcess(CreateRunCommand(build, arguments));
         }
 
-        if (arguments.Count > 0 && string.Equals(arguments[0], "init", StringComparison.OrdinalIgnoreCase))
-        {
-            return BuildScaffolder.Run(directory, arguments.Skip(1).ToList(), console, GetBaunVersion());
-        }
+        var registrar = new TypeRegistrar();
+        registrar.RegisterInstance(typeof(CliContext), new CliContext(directory, GetBaunVersion()));
+        registrar.RegisterInstance(typeof(IAnsiConsole), console);
 
-        console.Error.WriteLine(
-            "error: No baun build found. Expected a single-file Build.cs, or a Build.cs next to a project file, " +
-            "in the current folder or its 'build' subfolder.");
-        console.Error.WriteLine("Run 'baun init' to create one.");
-        return 1;
+        var app = new CommandApp<NoBuildCommand>(registrar);
+
+        app.Configure(config =>
+        {
+            config.SetApplicationName("baun");
+            config.SetApplicationVersion(GetBaunVersion());
+            config.ConfigureConsole(console);
+            config.UseStrictParsing();
+
+            config.AddCommand<InitCommand>("init")
+                .WithDescription("Creates a new build in the current folder.")
+                .WithExample("init")
+                .WithExample("init", "--single-file")
+                .WithExample("init", "--project");
+        });
+
+        return await app.RunAsync(arguments);
     }
 
     /// <summary>
@@ -79,7 +94,7 @@ internal static class CliApp
     }
 
     /// <summary>
-    /// Gets the version of baun to reference in new builds: the version of this tool.
+    /// Gets the version of this tool, which is also the version of baun new builds reference.
     /// </summary>
     private static string GetBaunVersion()
     {

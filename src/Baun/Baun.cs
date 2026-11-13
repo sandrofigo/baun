@@ -17,7 +17,7 @@ public static class Baun
         var build = new TBuild();
         var arguments = Environment.GetCommandLineArgs()[1..];
 
-        var exitCode = await new BuildRunner(build, Console.Out, Console.Error).RunAsync(arguments);
+        var exitCode = await new BuildRunner(build, BaunConsole.Create()).RunAsync(arguments);
 
         if (exitCode != 0)
         {

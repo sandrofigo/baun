@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Reflection;
+using Spectre.Console;
 
 /// <summary>
 /// Resolves the steps of a build and runs them in dependency order.
@@ -7,14 +8,12 @@ using System.Reflection;
 internal sealed class BuildRunner
 {
     private readonly IBaunBuild build;
-    private readonly TextWriter output;
-    private readonly TextWriter error;
+    private readonly IAnsiConsole console;
 
-    public BuildRunner(IBaunBuild build, TextWriter output, TextWriter error)
+    public BuildRunner(IBaunBuild build, IAnsiConsole console)
     {
         this.build = build;
-        this.output = output;
-        this.error = error;
+        this.console = console;
     }
 
     /// <summary>
@@ -34,18 +33,19 @@ internal sealed class BuildRunner
         }
         catch (BuildConfigurationException exception)
         {
-            error.WriteLine($"error: {exception.Message}");
+            console.MarkupLineInterpolated($"[red bold]error:[/] {exception.Message}");
             return 1;
         }
 
-        output.WriteLine($"Running {string.Join(", ", plan.Select(step => step.Name))}");
+        console.MarkupLineInterpolated($"[bold]Running[/] {string.Join(" -> ", plan.Select(step => step.Name))}");
 
+        var results = new List<StepResult>();
         var total = Stopwatch.StartNew();
 
         foreach (var step in plan)
         {
-            output.WriteLine();
-            output.WriteLine($"> {step.Name}");
+            console.WriteLine();
+            console.Write(new Rule($"[bold]{Markup.Escape(step.Name)}[/]").LeftJustified().RuleStyle("grey"));
 
             var stopwatch = Stopwatch.StartNew();
 
@@ -58,19 +58,53 @@ internal sealed class BuildRunner
             }
             catch (Exception exception)
             {
-                error.WriteLine($"Step {step.Name} failed after {Format(stopwatch.Elapsed)}");
-                error.WriteLine(exception);
-                output.WriteLine();
-                output.WriteLine($"Build failed after {Format(total.Elapsed)}");
+                var failedAfter = stopwatch.Elapsed;
+                console.WriteException(exception, ExceptionFormats.ShortenPaths);
+                console.MarkupLineInterpolated($"[red]Step {step.Name} failed after {Format(failedAfter)}[/]");
+                results.Add(new StepResult(step.Name, StepStatus.Failed, failedAfter));
+                results.AddRange(plan.Skip(results.Count).Select(skipped => new StepResult(skipped.Name, StepStatus.Skipped, null)));
+
+                WriteSummary(results);
+                console.MarkupLineInterpolated($"[red bold]Build failed after {Format(total.Elapsed)}[/]");
                 return 1;
             }
 
-            output.WriteLine($"Step {step.Name} succeeded in {Format(stopwatch.Elapsed)}");
+            var succeededIn = stopwatch.Elapsed;
+            console.MarkupLineInterpolated($"[green]Step {step.Name} succeeded in {Format(succeededIn)}[/]");
+            results.Add(new StepResult(step.Name, StepStatus.Succeeded, succeededIn));
         }
 
-        output.WriteLine();
-        output.WriteLine($"Build succeeded in {Format(total.Elapsed)}");
+        WriteSummary(results);
+        console.MarkupLineInterpolated($"[green bold]Build succeeded in {Format(total.Elapsed)}[/]");
         return 0;
+    }
+
+    private void WriteSummary(List<StepResult> results)
+    {
+        var table = new Table()
+            .Border(TableBorder.Rounded)
+            .BorderColor(Color.Grey)
+            .AddColumn("Step")
+            .AddColumn("Status")
+            .AddColumn(new TableColumn("Duration").RightAligned());
+
+        foreach (var result in results)
+        {
+            var status = result.Status switch
+            {
+                StepStatus.Succeeded => "[green]Succeeded[/]",
+                StepStatus.Failed => "[red]Failed[/]",
+                _ => "[grey]Skipped[/]",
+            };
+
+            table.AddRow(
+                Markup.Escape(result.Name),
+                status,
+                result.Duration is { } duration ? Format(duration) : "[grey]-[/]");
+        }
+
+        console.WriteLine();
+        console.Write(table);
     }
 
     private List<ResolvedStep> ResolveSteps()
@@ -198,4 +232,13 @@ internal sealed class BuildRunner
     }
 
     private sealed class BuildConfigurationException(string message) : Exception(message);
+
+    private enum StepStatus
+    {
+        Succeeded,
+        Failed,
+        Skipped,
+    }
+
+    private sealed record StepResult(string Name, StepStatus Status, TimeSpan? Duration);
 }
