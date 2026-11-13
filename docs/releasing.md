@@ -45,7 +45,7 @@ For example, for version `0.1.0`, `AnalyzerReleases.Shipped.md` becomes:
 
 ```markdown
 ; Shipped analyzer releases
-; https://github.com/dotnet/roslyn-analyzers/blob/main/src/Microsoft.CodeAnalysis.Analyzers/ReleaseTrackingAnalyzers.Help.md
+; https://github.com/dotnet/roslyn/blob/main/src/RoslynAnalyzers/Microsoft.CodeAnalysis.Analyzers/ReleaseTrackingAnalyzers.Help.md
 
 ## Release 0.1.0
 
@@ -62,10 +62,10 @@ And `AnalyzerReleases.Unshipped.md` becomes:
 
 ```markdown
 ; Unshipped analyzer release
-; https://github.com/dotnet/roslyn-analyzers/blob/main/src/Microsoft.CodeAnalysis.Analyzers/ReleaseTrackingAnalyzers.Help.md
+; https://github.com/dotnet/roslyn/blob/main/src/RoslynAnalyzers/Microsoft.CodeAnalysis.Analyzers/ReleaseTrackingAnalyzers.Help.md
 ```
 
-Later releases add their own `## Release x.y.z` section below the earlier ones. Rules that were changed or removed go under `### Changed Rules` or `### Removed Rules` in that section, as described in the [release tracking documentation](https://github.com/dotnet/roslyn-analyzers/blob/main/src/Microsoft.CodeAnalysis.Analyzers/ReleaseTrackingAnalyzers.Help.md).
+Later releases add their own `## Release x.y.z` section below the earlier ones. Rules that were changed or removed go under `### Changed Rules` or `### Removed Rules` in that section, as described in the [release tracking documentation](https://github.com/dotnet/roslyn/blob/main/src/RoslynAnalyzers/Microsoft.CodeAnalysis.Analyzers/ReleaseTrackingAnalyzers.Help.md).
 
 Build the solution afterwards. A rule that is missing from both files causes warning `RS2000`.
 
