@@ -84,14 +84,10 @@ public sealed class CliAppTests : IDisposable
     }
 
     [Fact]
-    public async Task Init_in_an_existing_project_build_updates_changed_bootstrap_scripts()
+    public async Task Init_in_an_existing_project_build_overwrites_the_bootstrap_scripts()
     {
         Write("build/Build.cs", "// my build\n");
         Write("build/Build.csproj", "<Project />");
-        foreach (var (path, content) in BootstrapScripts.Create(root))
-        {
-            File.WriteAllText(path, content);
-        }
         Write("build.sh", "# old script\n");
         Directory.CreateDirectory(Path.Combine(root, ".git"));
 
@@ -100,25 +96,9 @@ public sealed class CliAppTests : IDisposable
         Assert.Equal(0, exitCode);
         Assert.Equal(BootstrapScripts.Create(root)[Path.Combine(root, "build.sh")], File.ReadAllText(Path.Combine(root, "build.sh")));
         Assert.Contains("Updated build.sh", console.Output);
-        Assert.DoesNotContain("build.ps1", console.Output);
+        Assert.Contains("Created build.ps1", console.Output);
         Assert.Equal("// my build\n", File.ReadAllText(Path.Combine(root, "build", "Build.cs")));
         Assert.Equal(["add", "--chmod=+x", "--", "build.sh"], Assert.Single(startedProcesses).ArgumentList);
-    }
-
-    [Fact]
-    public async Task Init_in_an_existing_build_reports_up_to_date_scripts()
-    {
-        Write("Build.cs", "#:package Baun@0.1.0\n");
-        foreach (var (path, content) in BootstrapScripts.Create(root))
-        {
-            File.WriteAllText(path, content.ReplaceLineEndings("\r\n"));
-        }
-
-        var exitCode = await RunAsync("init");
-
-        Assert.Equal(0, exitCode);
-        Assert.DoesNotContain("Updated", console.Output);
-        Assert.Contains("The bootstrap scripts are already up to date.", console.Output);
     }
 
     [Theory]
@@ -146,34 +126,6 @@ public sealed class CliAppTests : IDisposable
         Assert.Equal(1, exitCode);
         Assert.Contains("but the build is " + Path.Combine("build", "Build.cs"), console.Output);
         Assert.False(File.Exists(Path.Combine(root, "build.sh")));
-    }
-
-    [Fact]
-    public async Task Warns_about_outdated_bootstrap_scripts_when_running_a_build()
-    {
-        Write("Build.cs", "#:package Baun@0.1.0\n");
-        Write("build.sh", "#!/usr/bin/env sh\n# baun-bootstrap-version: 0\n");
-        Write("build.cmd", "@powershell -File build.ps1\r\n");
-
-        var exitCode = await RunAsync("Test");
-
-        Assert.Equal(0, exitCode);
-        Assert.Single(startedProcesses);
-        Assert.Contains("warning: build.sh, build.cmd are outdated. Run baun init to update the bootstrap scripts.", console.Output);
-    }
-
-    [Fact]
-    public async Task Does_not_warn_about_current_bootstrap_scripts()
-    {
-        Write("Build.cs", "#:package Baun@0.1.0\n");
-        foreach (var (path, content) in BootstrapScripts.Create(root))
-        {
-            File.WriteAllText(path, content);
-        }
-
-        await RunAsync("Test");
-
-        Assert.DoesNotContain("outdated", console.Output);
     }
 
     [Fact]
@@ -371,15 +323,16 @@ public sealed class CliAppTests : IDisposable
     }
 
     [Fact]
-    public async Task Init_does_not_overwrite_an_existing_bootstrap_script()
+    public async Task Init_overwrites_an_existing_bootstrap_script()
     {
         Write("build.sh", "# my own script\n");
 
         var exitCode = await RunAsync("init", "--single-file");
 
-        Assert.Equal(1, exitCode);
-        Assert.Contains("build.sh already exists", console.Output);
-        Assert.False(File.Exists(Path.Combine(root, "Build.cs")));
+        Assert.Equal(0, exitCode);
+        Assert.Contains("Updated build.sh", console.Output);
+        Assert.Equal(BootstrapScripts.Create(root)[Path.Combine(root, "build.sh")], File.ReadAllText(Path.Combine(root, "build.sh")));
+        Assert.True(File.Exists(Path.Combine(root, "Build.cs")));
     }
 
     [Theory]

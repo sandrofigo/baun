@@ -39,7 +39,6 @@ internal static class CliApp
 
         if (build is not null && !IsCommand(arguments))
         {
-            WarnAboutOutdatedBootstrapScripts(directory, console);
             return await runProcess(CreateRunCommand(build, arguments));
         }
 
@@ -77,19 +76,6 @@ internal static class CliApp
     /// </remarks>
     private static bool IsCommand(IReadOnlyList<string> arguments) =>
         arguments.Count > 0 && string.Equals(arguments[0], InitCommandName, StringComparison.OrdinalIgnoreCase);
-
-    private static void WarnAboutOutdatedBootstrapScripts(string directory, IAnsiConsole console)
-    {
-        var outdated = BootstrapScripts.FindOutdated(directory);
-
-        if (outdated.Count == 0)
-        {
-            return;
-        }
-
-        string list = string.Join(", ", outdated.Select(path => Path.GetRelativePath(directory, path)));
-        console.MarkupLineInterpolated($"[yellow]warning:[/] {list} {(outdated.Count == 1 ? "is" : "are")} outdated. Run [green]baun init[/] to update the bootstrap scripts.");
-    }
 
     /// <summary>
     /// Creates the <c>dotnet run</c> command that runs <paramref name="build"/> with <paramref name="arguments"/>.
