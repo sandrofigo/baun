@@ -17,5 +17,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Single-file builds (`Build.cs` with `#:package`) and project builds (`build/Build.csproj`).
 - Build output with Spectre.Console: a heading per step, formatted exceptions and a summary table.
 - `baun` command-line tool (`Baun.Cli` package) that finds and runs single-file and project builds, and creates new ones with `baun init`.
+- Bootstrap scripts (`build.sh`, `build.ps1`, `build.cmd`) created by `baun init` that install the .NET 10 SDK into a local `.dotnet` folder when it's missing, so builds run without the .NET SDK or the baun tool.
 
 [Unreleased]: https://github.com/sandrofigo/baun/commits/main
