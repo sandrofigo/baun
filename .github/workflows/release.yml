@@ -4,8 +4,8 @@ name: Release
 # https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing
 #
 # Runs when a version tag is pushed, for example v1.2.3, which publishes version 1.2.3.
-# The steps are in the baun build in build/: Pack validates CHANGELOG.md, tests and packs,
-# GitHubRelease pushes the packages and creates the GitHub release with the version's changelog entries.
+# The steps are in the baun build in build/, run with build.sh, which installs the .NET SDK if it's missing.
+# Pack validates CHANGELOG.md, tests and packs; GitHubRelease pushes the packages and creates the GitHub release with the version's changelog entries.
 #
 # The trusted publishing policy on nuget.org must match this workflow:
 #   Repository Owner: sandrofigo
@@ -36,13 +36,8 @@ jobs:
       - name: Check out
         uses: actions/checkout@v4
 
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.0.x
-
       - name: Validate changelog, test and pack
-        run: dotnet run --project build -- Pack
+        run: ./build.sh Pack
 
       - name: Upload packages
         uses: actions/upload-artifact@v4
@@ -73,15 +68,6 @@ jobs:
           name: packages
           path: artifacts
 
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.0.x
-
-      # Compiles the build first, so the temporary API key below is requested right before it's used.
-      - name: Build the build project
-        run: dotnet build build
-
       # Exchanges the OIDC token for a temporary nuget.org API key, valid for one hour,
       # so this runs right before the push.
       - name: NuGet login (OIDC → temporary API key)
@@ -91,7 +77,7 @@ jobs:
           user: ${{ secrets.NUGET_USER }}
 
       - name: Push packages and create GitHub release
-        run: dotnet run --project build --no-build -- GitHubRelease
+        run: ./build.sh GitHubRelease
         env:
           NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

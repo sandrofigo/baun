@@ -2,7 +2,7 @@
 
 This guide describes how to publish a new version of the `Baun` and `Baun.Cli` packages to nuget.org.
 
-A release starts when you push a version tag. The [`Release`](../.github/workflows/release.yml) workflow then runs the baun build in [`build/`](../build/Build.cs): it validates `CHANGELOG.md`, tests and packs both packages with the version from the tag, pushes them to nuget.org with [trusted publishing](https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing), and creates the GitHub release with the version's changelog entries as its notes. No API key is stored in the repository.
+A release starts when you push a version tag. The [`Release`](../.github/workflows/release.yml) workflow then runs the baun build in [`build/`](../build/Build.cs) with `build.sh`, which installs the .NET SDK if it's missing: it validates `CHANGELOG.md`, tests and packs both packages with the version from the tag, pushes them to nuget.org with [trusted publishing](https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing), and creates the GitHub release with the version's changelog entries as its notes. No API key is stored in the repository.
 
 > [!IMPORTANT]
 > Versions published to nuget.org can't be deleted or replaced, only unlisted. Check everything before you push a release tag, and never reuse a version number.
@@ -70,7 +70,7 @@ The build checks the changelog when the tag is pushed and fails before anything 
 - the section's date isn't the day the tag is pushed (in UTC),
 - the section has no entries, or the comparison link for the version is missing.
 
-The GitHub release notes are the entries of that section, grouped under their category headings. Run `baun ValidateChangelog` to check that the file is valid; on pull requests, the `Test` workflow does the same.
+The GitHub release notes are the entries of that section, grouped under their category headings. Run `baun ValidateChangelog` (or `./build.sh ValidateChangelog`, `build ValidateChangelog` on Windows) to check that the file is valid; on pull requests, the `Test` workflow does the same.
 
 ## 3. Mark the analyzer rules as shipped
 
@@ -139,9 +139,9 @@ Pushing the tag starts the `Release` workflow. Don't create the GitHub release y
 ## 6. Approve and follow the workflow
 
 1. Open the **Actions** tab and select the `Release` run for the new tag.
-2. The `build` job runs `baun Pack`: it validates the changelog, tests and packs both packages. If it fails, nothing has been published.
+2. The `build` job runs `./build.sh Pack`: it validates the changelog, tests and packs both packages. If it fails, nothing has been published.
 3. The `publish` job waits for approval if the `release` environment has required reviewers. Click **Review deployments** and approve.
-4. The `publish` job logs in to nuget.org and runs `baun GitHubRelease`, which pushes both packages and then creates the GitHub release for the tag, marked as a pre-release for prerelease versions.
+4. The `publish` job logs in to nuget.org and runs `./build.sh GitHubRelease`, which pushes both packages and then creates the GitHub release for the tag, marked as a pre-release for prerelease versions.
 
 ## 7. Check the published packages
 
