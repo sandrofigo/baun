@@ -289,6 +289,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
                 <TargetFramework>net10.0</TargetFramework>
                 <ImplicitUsings>enable</ImplicitUsings>
                 <Nullable>enable</Nullable>
+                <RootNamespace></RootNamespace>
               </PropertyGroup>
 
               <ItemGroup>

@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `baun init` always overwrites existing bootstrap scripts.
 
+### Fixed
+
+- Project builds created by `baun init` set an empty `RootNamespace`, so IDEs no longer warn that the namespace of the `Build` class doesn't match its folder.
+
 ### Removed
 
 - The version stamp in the bootstrap scripts and the warning about outdated scripts when running a build.

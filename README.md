@@ -161,6 +161,7 @@ A project build is a regular .NET console project, for example in a `build` fold
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace></RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

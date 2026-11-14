@@ -193,6 +193,7 @@ public sealed class CliAppTests : IDisposable
         var projectFile = Path.Combine(root, "build", "Build.csproj");
         Assert.DoesNotContain("#:", File.ReadAllText(buildFile));
         Assert.Contains("<PackageReference Include=\"Baun\" Version=\"", File.ReadAllText(projectFile));
+        Assert.Contains("<RootNamespace></RootNamespace>", File.ReadAllText(projectFile));
         Assert.Equal(new BuildLocation(buildFile, projectFile), BuildLocator.Find(root));
     }
 
