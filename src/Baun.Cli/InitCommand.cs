@@ -228,7 +228,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             #:package Baun@{baunVersion}
 
             {BuildFileBody}
-            """
+            """.ReplaceLineEndings("\n")
     };
 
     private static Dictionary<string, string> CreateProjectBuild(string directory, string baunVersion) => new()
@@ -249,8 +249,8 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
             </Project>
 
-            """,
-        [Path.Combine(directory, "build", "Build.cs")] = BuildFileBody,
+            """.ReplaceLineEndings("\n"),
+        [Path.Combine(directory, "build", "Build.cs")] = BuildFileBody.ReplaceLineEndings("\n"),
     };
 
     private const string BuildFileBody = """

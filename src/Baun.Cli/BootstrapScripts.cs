@@ -21,8 +21,8 @@ internal static class BootstrapScripts
     /// </summary>
     public static Dictionary<string, string> Create(string directory) => new()
     {
-        [Path.Combine(directory, ShellScriptName)] = ShellScript,
-        [Path.Combine(directory, "build.ps1")] = PowerShellScript,
+        [Path.Combine(directory, ShellScriptName)] = ShellScript.ReplaceLineEndings("\n"),
+        [Path.Combine(directory, "build.ps1")] = PowerShellScript.ReplaceLineEndings("\n"),
         [Path.Combine(directory, "build.cmd")] = CmdScript
     };
 
