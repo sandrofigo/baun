@@ -1,10 +1,11 @@
 name: Release
 
-# Publishes the Baun and Baun.Cli packages to nuget.org with trusted publishing:
+# Publishes the Baun and Baun.Cli packages to nuget.org with trusted publishing, then creates the GitHub release:
 # https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing
 #
-# Runs only when a GitHub release is published. The release's tag sets the package version,
-# for example the tag v1.2.3 publishes version 1.2.3.
+# Runs when a version tag is pushed, for example v1.2.3, which publishes version 1.2.3.
+# The steps are in the baun build in build/: Pack validates CHANGELOG.md, tests and packs,
+# GitHubRelease pushes the packages and creates the GitHub release with the version's changelog entries.
 #
 # The trusted publishing policy on nuget.org must match this workflow:
 #   Repository Owner: sandrofigo
@@ -16,8 +17,9 @@ name: Release
 # of the account that owns the policy.
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*'
 
 permissions:
   contents: read
@@ -30,9 +32,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-
     steps:
       - name: Check out
         uses: actions/checkout@v4
@@ -42,28 +41,8 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Get version from release tag
-        id: version
-        env:
-          TAG: ${{ github.event.release.tag_name }}
-        run: |
-          version="${TAG#v}"
-          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
-            echo "::error::Release tag '$TAG' is not a version such as v1.2.3 or v1.2.3-preview.1."
-            exit 1
-          fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-
-      - name: Test
-        run: dotnet test --solution Baun.slnx --configuration Release
-
-      - name: Pack
-        run: >
-          dotnet pack Baun.slnx
-          --configuration Release
-          --output artifacts
-          -p:Version=${{ steps.version.outputs.version }}
-          -p:ContinuousIntegrationBuild=true
+      - name: Validate changelog, test and pack
+        run: dotnet run --project build -- Pack
 
       - name: Upload packages
         uses: actions/upload-artifact@v4
@@ -81,9 +60,13 @@ jobs:
     environment: release
 
     permissions:
+      contents: write # Lets the build create the GitHub release.
       id-token: write # Lets NuGet/login request a GitHub OIDC token for trusted publishing.
 
     steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
       - name: Download packages
         uses: actions/download-artifact@v4
         with:
@@ -95,6 +78,10 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      # Compiles the build first, so the temporary API key below is requested right before it's used.
+      - name: Build the build project
+        run: dotnet build build
+
       # Exchanges the OIDC token for a temporary nuget.org API key, valid for one hour,
       # so this runs right before the push.
       - name: NuGet login (OIDC → temporary API key)
@@ -103,9 +90,8 @@ jobs:
         with:
           user: ${{ secrets.NUGET_USER }}
 
-      - name: Push packages
-        run: >
-          dotnet nuget push "artifacts/*.nupkg"
-          --api-key ${{ steps.login.outputs.NUGET_API_KEY }}
-          --source https://api.nuget.org/v3/index.json
-          --skip-duplicate
+      - name: Push packages and create GitHub release
+        run: dotnet run --project build --no-build -- GitHubRelease
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
