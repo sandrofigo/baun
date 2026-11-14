@@ -21,6 +21,37 @@ Inspired by [NUKE](https://github.com/nuke-build/nuke), baun treats your build a
 
 - [.NET 10](https://dotnet.microsoft.com/download) or later
 
+## Getting started
+
+1. Install the `baun` tool as a global .NET tool:
+
+   ```shell
+   dotnet tool install --global Baun.Cli
+   ```
+
+   To update it later, run `dotnet tool update --global Baun.Cli`.
+
+2. In the root of your repository, create a build:
+
+   ```shell
+   baun init
+   ```
+
+   baun asks whether to create a single-file build (`Build.cs`) or a project build (`build/Build.csproj` and `build/Build.cs`). If you're not sure, start with a single file. You can [convert it to a project](#project-builds) later. `baun init` also adds [bootstrap scripts](#running-without-the-net-sdk), so others can run the build without installing anything first.
+
+3. Run the build:
+
+   ```shell
+   baun          # runs the entry step, Test
+   baun Compile  # runs Compile and the steps it depends on
+   ```
+
+   The new build has three sample steps, `Clean`, `Compile` and `Test`, that each print a message. baun runs them in dependency order and ends with a summary of each step's status and duration.
+
+4. Open `Build.cs` and replace the sample steps with your own work. Add a step by adding a method that returns a `Step`. The [Concept](#concept) section explains how steps work.
+
+5. Commit `Build.cs` (or the `build` folder) and the bootstrap scripts. On a CI server, run the same build with `./build.sh Test` or `build Test`, or install the tool and run `baun Test`.
+
 ## Concept
 
 A baun build is either a single C# file, `Build.cs`, or a small build project that sits next to your code. Inside it you declare **steps**, which are named units of work. You also declare how they depend on each other. baun works out the execution order and runs only the steps that are needed.
