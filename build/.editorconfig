@@ -1,0 +1,4 @@
+[*.cs]
+dotnet_style_require_accessibility_modifiers = omit_if_default
+csharp_default_private_modifier = implicit
+resharper_all_underscore_local_parameter_name_highlighting = none
