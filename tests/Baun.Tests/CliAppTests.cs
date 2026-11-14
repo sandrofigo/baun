@@ -100,6 +100,17 @@ public sealed class CliAppTests : IDisposable
         }
     }
 
+    [Theory]
+    [InlineData("Init", "--project")]
+    [InlineData("INIT", "--Project")]
+    public async Task Init_command_and_options_are_case_insensitive(string command, string option)
+    {
+        var exitCode = await RunAsync(command, option, "--no-bootstrap");
+
+        Assert.Equal(0, exitCode);
+        Assert.True(File.Exists(Path.Combine(root, "build", "Build.csproj")));
+    }
+
     [Fact]
     public async Task Init_creates_a_project_build()
     {

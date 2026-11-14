@@ -29,12 +29,15 @@ public class BuildRunnerTests
         Assert.Equal(["Clean", "Restore", "Compile"], build.Executed);
     }
 
-    [Fact]
-    public async Task Matches_step_names_case_insensitively()
+    [Theory]
+    [InlineData("clean")]
+    [InlineData("CLEAN")]
+    [InlineData("cLeAn")]
+    public async Task Matches_step_names_case_insensitively(string name)
     {
         var build = new SampleBuild();
 
-        var result = await RunAsync(build, "clean");
+        var result = await RunAsync(build, name);
 
         Assert.Equal(0, result.ExitCode);
         Assert.Equal(["Clean"], build.Executed);
