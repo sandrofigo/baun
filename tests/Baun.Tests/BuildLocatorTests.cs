@@ -61,7 +61,7 @@ public sealed class BuildLocatorTests : IDisposable
 
     private string Write(string relativePath, string content)
     {
-        var path = Path.Combine(root, relativePath);
+        var path = Path.GetFullPath(Path.Combine(root, relativePath));
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path, content);
         return path;
