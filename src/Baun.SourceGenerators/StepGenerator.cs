@@ -52,6 +52,14 @@ public sealed class StepGenerator : IIncrementalGenerator
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor StepNamesDifferOnlyInCase = new(
+        id: "BAUN006",
+        title: "Step names differ only in case",
+        messageFormat: "The build class '{0}' has steps whose names differ only in case: {1}. Step names are case-insensitive on the command line, so rename one of them.",
+        category: "Baun",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var steps = context.SyntaxProvider
@@ -182,6 +190,15 @@ public sealed class StepGenerator : IIncrementalGenerator
             }
 
             var stepNames = type.Select(step => step.MethodName).Distinct().ToList();
+
+            foreach (var clash in stepNames.GroupBy(name => name, System.StringComparer.OrdinalIgnoreCase).Where(group => group.Count() > 1))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    StepNamesDifferOnlyInCase,
+                    first.TypeLocation?.ToLocation(),
+                    first.TypeName,
+                    string.Join(", ", clash)));
+            }
 
             // The class is still completed, so a wrong entry is the only error.
             if (first.Entry is { StepName: { } entryName } entry && !stepNames.Contains(entryName))

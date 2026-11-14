@@ -53,6 +53,7 @@ internal static class CliApp
             config.SetApplicationVersion(GetBaunVersion());
             config.ConfigureConsole(console);
             config.UseStrictParsing();
+            config.CaseSensitivity(CaseSensitivity.None); // baun Init works like baun init, as step names do
 
             config.AddCommand<InitCommand>("init")
                 .WithDescription("Creates a new build in the current folder.")

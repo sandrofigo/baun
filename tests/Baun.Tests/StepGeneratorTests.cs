@@ -184,6 +184,26 @@ public class StepGeneratorTests
     }
 
     [Fact]
+    public void Reports_an_error_for_step_names_that_differ_only_in_case()
+    {
+        var (diagnostics, _) = RunGenerator("""
+            partial class Build
+            {
+                Step Test() => _ => _;
+
+                Step test() => _ => _;
+
+                Step Compile() => _ => _;
+            }
+            """);
+
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.Equal("BAUN006", diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Contains("differ only in case: Test, test.", diagnostic.GetMessage());
+    }
+
+    [Fact]
     public void Adds_an_entry_point_that_runs_the_build_class()
     {
         var (diagnostics, sources) = RunGenerator("""
