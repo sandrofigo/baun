@@ -11,7 +11,7 @@ internal static class BuildLocator
 {
     private const string BuildFileName = "Build.cs";
 
-    private static readonly string[] SearchFolders = [".", "build"];
+    private static readonly string[] _searchFolders = [".", "build"];
 
     /// <summary>
     /// Looks for a build in <paramref name="directory"/> and its <c>build</c> subfolder.
@@ -22,10 +22,10 @@ internal static class BuildLocator
     /// </remarks>
     public static BuildLocation? Find(string directory)
     {
-        foreach (var folder in SearchFolders)
+        foreach (string folder in _searchFolders)
         {
-            var path = Path.GetFullPath(Path.Combine(directory, folder));
-            var buildFile = Path.Combine(path, BuildFileName);
+            string path = Path.GetFullPath(Path.Combine(directory, folder));
+            string buildFile = Path.Combine(path, BuildFileName);
 
             if (!File.Exists(buildFile))
             {

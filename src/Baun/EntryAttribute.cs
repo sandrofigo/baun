@@ -16,7 +16,7 @@ namespace Baun;
 /// baun reports a compiler error if the name doesn't belong to a step of the class.
 /// </remarks>
 /// <param name="step">The name of the entry step, for example <c>nameof(Test)</c>.</param>
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+[AttributeUsage(AttributeTargets.Class, Inherited = false)]
 public sealed class EntryAttribute(string step) : Attribute
 {
     /// <summary>

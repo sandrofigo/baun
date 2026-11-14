@@ -34,7 +34,7 @@ internal static class CliApp
         IAnsiConsole console,
         Func<ProcessStartInfo, Task<int>> runProcess)
     {
-        var build = BuildLocator.Find(directory);
+        BuildLocation? build = BuildLocator.Find(directory);
 
         if (build is not null)
         {
@@ -87,7 +87,7 @@ internal static class CliApp
 
         startInfo.ArgumentList.Add("--");
 
-        foreach (var argument in arguments)
+        foreach (string argument in arguments)
         {
             startInfo.ArgumentList.Add(argument);
         }
@@ -100,12 +100,12 @@ internal static class CliApp
     /// </summary>
     private static string GetBaunVersion()
     {
-        var version = typeof(CliApp).Assembly
+        string version = typeof(CliApp).Assembly
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
             .InformationalVersion ?? "0.1.0";
 
         // Drop build metadata such as "+3a69508".
-        var metadata = version.IndexOf('+');
+        int metadata = version.IndexOf('+');
         return metadata >= 0 ? version[..metadata] : version;
     }
 }
@@ -114,8 +114,7 @@ internal static class ProcessRunner
 {
     public static async Task<int> RunAsync(ProcessStartInfo startInfo)
     {
-        using var process = Process.Start(startInfo)
-            ?? throw new InvalidOperationException($"Could not start '{startInfo.FileName}'.");
+        using Process process = Process.Start(startInfo) ?? throw new InvalidOperationException($"Could not start '{startInfo.FileName}'.");
 
         await process.WaitForExitAsync();
 
