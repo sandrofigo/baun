@@ -2,10 +2,10 @@
 
 This guide describes how to publish a new version of the `Baun` and `Baun.Cli` packages to nuget.org.
 
-Publishing is done by the [`Release`](../.github/workflows/release.yml) workflow. It runs when a GitHub release is published, tests and packs both packages with the version from the release's tag, and pushes them to nuget.org with [trusted publishing](https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing). No API key is stored in the repository.
+A release starts when you push a version tag. The [`Release`](../.github/workflows/release.yml) workflow then runs the baun build in [`build/`](../build/Build.cs): it validates `CHANGELOG.md`, tests and packs both packages with the version from the tag, pushes them to nuget.org with [trusted publishing](https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing), and creates the GitHub release with the version's changelog entries as its notes. No API key is stored in the repository.
 
 > [!IMPORTANT]
-> Versions published to nuget.org can't be deleted or replaced, only unlisted. Check everything before you publish a release, and never reuse a version number.
+> Versions published to nuget.org can't be deleted or replaced, only unlisted. Check everything before you push a release tag, and never reuse a version number.
 
 ## One-time setup
 
@@ -30,7 +30,7 @@ baun uses [semantic versioning](https://semver.org). The release tag is the vers
 | Stable | `v1.2.3` | `1.2.3` |
 | Prerelease | `v1.2.3-preview.1` | `1.2.3-preview.1` |
 
-The workflow rejects any other tag format. The `<Version>` in [`Directory.Build.props`](../Directory.Build.props) is only used for local builds; the tag always decides the published version. You can update it to the released version to keep local builds in step, but it isn't required.
+The build rejects any other tag format. The `<Version>` in [`Directory.Build.props`](../Directory.Build.props) is only used for local builds; the tag always decides the published version. You can update it to the released version to keep local builds in step, but it isn't required.
 
 ## 2. Update the changelog
 
@@ -63,7 +63,14 @@ The workflow rejects any other tag format. The `<Version>` in [`Directory.Build.
    [0.1.0]: https://github.com/sandrofigo/baun/releases/tag/v0.1.0
    ```
 
-You can copy the version's section into the GitHub release description in step 5.
+The build checks the changelog when the tag is pushed and fails before anything is published if:
+
+- the file isn't valid Keep a Changelog (the error names the line),
+- there is no section for the tag's version, or it isn't the latest release,
+- the section's date isn't the day the tag is pushed (in UTC),
+- the section has no entries, or the comparison link for the version is missing.
+
+The GitHub release notes are the entries of that section, grouped under their category headings. Run `baun ValidateChangelog` to check that the file is valid; on pull requests, the `Test` workflow does the same.
 
 ## 3. Mark the analyzer rules as shipped
 
@@ -106,35 +113,35 @@ Build the solution afterwards. A rule that is missing from both files causes war
 
 ## 4. Prepare `main`
 
-The workflow runs from the commit the release tag points to, so everything that should be released must be on `main`.
+The release runs from the commit the tag points to, so everything that should be released must be on `main`.
 
 1. Merge the changes from steps 1 to 3 into `main` with a pull request.
 2. Make sure the `Test` workflow passed on that pull request.
-3. Optionally, check the release locally from an up-to-date `main`:
+3. Optionally, check the release locally from an up-to-date `main`. This runs the same checks as the release, including the changelog section for the version:
 
    ```shell
-   dotnet test --solution Baun.slnx --configuration Release
-   dotnet pack Baun.slnx --configuration Release --output artifacts -p:Version=1.2.3
+   GITHUB_REF_TYPE=tag GITHUB_REF_NAME=v1.2.3 baun Pack
    ```
 
-## 5. Publish the GitHub release
+## 5. Push the release tag
 
-1. Open **Releases → Draft a new release** on GitHub.
-2. **Choose a tag:** type the new tag, for example `v1.2.3`, and choose **Create new tag on publish**.
-3. **Target:** `main`.
-4. **Title:** the version, for example `v1.2.3`.
-5. **Description:** paste the version's section from `CHANGELOG.md`, or click **Generate release notes** and edit them as needed.
-6. For a prerelease version, check **Set as a pre-release**.
-7. Click **Publish release**.
+On the day of the date in the changelog, tag the up-to-date `main` and push the tag:
 
-Publishing the release starts the `Release` workflow. Saving a draft doesn't.
+```shell
+git switch main
+git pull
+git tag v1.2.3
+git push origin v1.2.3
+```
+
+Pushing the tag starts the `Release` workflow. Don't create the GitHub release yourself; the build creates it after the packages are published.
 
 ## 6. Approve and follow the workflow
 
 1. Open the **Actions** tab and select the `Release` run for the new tag.
-2. The `build` job tests and packs both packages. If it fails, nothing has been published.
+2. The `build` job runs `baun Pack`: it validates the changelog, tests and packs both packages. If it fails, nothing has been published.
 3. The `publish` job waits for approval if the `release` environment has required reviewers. Click **Review deployments** and approve.
-4. The `publish` job logs in to nuget.org and pushes both packages.
+4. The `publish` job logs in to nuget.org and runs `baun GitHubRelease`, which pushes both packages and then creates the GitHub release for the tag, marked as a pre-release for prerelease versions.
 
 ## 7. Check the published packages
 
@@ -150,10 +157,11 @@ Publishing the release starts the `Release` workflow. Saving a draft doesn't.
    ```
 
    `baun init` references the Baun package with the same version as the tool, so this checks both packages together.
+3. Optionally, update the `Baun` package in [`build/Build.csproj`](../build/Build.csproj) to the new version, so baun's own build uses it.
 
 ## If something goes wrong
 
-- **The `build` job failed:** nothing was published. Fix the problem on `main`, delete the GitHub release and its tag, and publish the release again.
+- **The `build` job failed:** nothing was published. Fix the problem on `main`, delete the tag (`git tag -d v1.2.3` and `git push origin :refs/tags/v1.2.3`), and tag again.
 - **The `publish` job failed before pushing,** for example at the nuget.org login: check the one-time setup above, then click **Re-run failed jobs**. The temporary API key is requested again on every run.
-- **Only one package was pushed:** re-run the failed jobs. The push uses `--skip-duplicate`, so the package that was already pushed is skipped.
+- **Only one package was pushed, or the GitHub release is missing:** re-run the failed jobs. The push uses `--skip-duplicate`, so packages that were already pushed are skipped, and an existing GitHub release for the tag is updated instead of created again.
 - **A published version is broken:** unlist it on nuget.org (package page → Manage package → Listing) and release a new version with the fix. The version number can't be used again.
