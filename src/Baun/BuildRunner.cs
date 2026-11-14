@@ -135,14 +135,33 @@ internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console)
 
     private List<ResolvedStep> SelectRequestedSteps(List<ResolvedStep> steps, IReadOnlyList<string> arguments)
     {
-        var options = arguments.Where(argument => argument.StartsWith('-')).ToList();
+        var names = new List<string>();
 
-        if (options.Count > 0)
+        for (int i = 0; i < arguments.Count; i++)
         {
-            throw new BuildConfigurationException($"Unknown option {options[0]}.");
+            string argument = arguments[i];
+
+            if (string.Equals(argument, "--step", StringComparison.OrdinalIgnoreCase))
+            {
+                // --step runs a step whose name is also a command of the baun tool, such as --step Init.
+                if (i + 1 >= arguments.Count || arguments[i + 1].StartsWith('-'))
+                {
+                    throw new BuildConfigurationException("Option --step requires a step name.");
+                }
+
+                names.Add(arguments[++i]);
+            }
+            else if (argument.StartsWith('-'))
+            {
+                throw new BuildConfigurationException($"Unknown option {argument}.");
+            }
+            else
+            {
+                names.Add(argument);
+            }
         }
 
-        if (arguments.Count == 0)
+        if (names.Count == 0)
         {
             ResolvedStep step = steps.FirstOrDefault(step => step.IsEntry)
                                 ?? throw new BuildConfigurationException(
@@ -153,7 +172,7 @@ internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console)
 
         var requested = new List<ResolvedStep>();
 
-        foreach (string name in arguments)
+        foreach (string name in names)
         {
             ResolvedStep step = steps.FirstOrDefault(step => string.Equals(step.Name, name, StringComparison.OrdinalIgnoreCase))
                                 ?? throw new BuildConfigurationException(

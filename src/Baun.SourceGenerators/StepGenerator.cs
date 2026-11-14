@@ -60,6 +60,17 @@ public sealed class StepGenerator : IIncrementalGenerator
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor StepNameIsCliCommand = new(
+        id: "BAUN007",
+        title: "Step name is a baun tool command",
+        messageFormat: "The step '{0}' has the same name as the baun tool's '{1}' command, so 'baun {1}' runs the command. Run the step with 'baun --step {0}'.",
+        category: "Baun",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    /// <summary>The baun tool's commands, which take precedence over steps with the same name.</summary>
+    private static readonly string[] CliCommands = new[] { "init" };
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var steps = context.SyntaxProvider
@@ -132,6 +143,7 @@ public sealed class StepGenerator : IIncrementalGenerator
             Namespace: type.ContainingNamespace.IsGlobalNamespace ? null : type.ContainingNamespace.ToDisplayString(),
             TypeName: type.Name,
             MethodName: method.Name,
+            MethodLocation: LocationInfo.From(method.Locations.FirstOrDefault()),
             Entry: entry,
             IsPartial: isPartial,
             IsSupported: isSupported,
@@ -198,6 +210,20 @@ public sealed class StepGenerator : IIncrementalGenerator
                     first.TypeLocation?.ToLocation(),
                     first.TypeName,
                     string.Join(", ", clash)));
+            }
+
+            foreach (var step in type.GroupBy(step => step.MethodName).Select(group => group.First()))
+            {
+                var command = CliCommands.FirstOrDefault(command => string.Equals(command, step.MethodName, System.StringComparison.OrdinalIgnoreCase));
+
+                if (command is not null)
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        StepNameIsCliCommand,
+                        step.MethodLocation?.ToLocation() ?? first.TypeLocation?.ToLocation(),
+                        step.MethodName,
+                        command));
+                }
             }
 
             // The class is still completed, so a wrong entry is the only error.
@@ -292,6 +318,7 @@ public sealed class StepGenerator : IIncrementalGenerator
         string? Namespace,
         string TypeName,
         string MethodName,
+        LocationInfo? MethodLocation,
         EntryInfo? Entry,
         bool IsPartial,
         bool IsSupported,

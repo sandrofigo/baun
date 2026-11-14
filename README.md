@@ -223,7 +223,7 @@ baun init --single-file  # creates Build.cs
 baun init --project      # creates build/Build.csproj and build/Build.cs
 ```
 
-The new build has a few sample steps and references the same version of baun as the tool. When `baun init` can't ask, for example in a script, it creates a single-file build. It never overwrites existing files.
+The new build has a few sample steps and references the same version of baun as the tool. When `baun init` can't ask, for example in a script, it creates a single-file build. Creating a build never overwrites existing files.
 
 ### Running without the .NET SDK
 
@@ -238,6 +238,8 @@ The scripts use an installed .NET 10 (or later) SDK when there is one. Otherwise
 
 `baun init` adds `.dotnet/` to `.gitignore`. Inside a git repository, it also stages `build.sh` (and a single-file `Build.cs`) as executable, so they stay executable when committed from Windows. Use `baun init --no-bootstrap` to create only the build.
 
+The scripts carry a version number. When a newer baun tool has changed them, running a build prints a warning. Run `baun init` again in a folder that already has a build to update the scripts and create any that are missing. This leaves the build itself alone.
+
 ### Running a build
 
 Run a step from your repository:
@@ -250,7 +252,13 @@ Step names are case-insensitive, so `baun test` runs the `Test` step. Running `b
 
 baun uses [Spectre.Console](https://spectreconsole.net) for its output. Each step starts with a heading, failures show the exception, and the build ends with a summary table of every step's status and duration.
 
-Once a build exists, the tool passes all arguments to it. This means `baun init` runs a step called `Init` if your build has one. `baun init` only creates a build when there isn't one yet.
+The tool passes all arguments to the build, except for its own commands such as `init`, which always run as commands. To run a step with the same name as a command, use `--step`, which works for any step:
+
+```shell
+baun --step Init
+```
+
+The source generator warns about such steps (`BAUN007`).
 
 ## Development
 
