@@ -11,18 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Build pipelines written in C#, with all types in the `Baun` namespace, which the package imports automatically: steps are methods on a `partial` build class that return a `Step`, configured with `DependsOn` and synchronous or asynchronous `Executes`.
-- Builds run the steps named on the command line, each at most once and in dependency order, and stop at the first failing step.
-- The source generator adds the entry point. `BaunBuild.RunAsync<TBuild>()` runs a build from a hand-written entry point instead.
-- `[Entry(nameof(...))]` attribute on the build class to choose the step that runs when no step is named.
-- Source generator that registers steps at compile time and reports mistakes as compiler errors (`BAUN001`, `BAUN002`, `BAUN004`, `BAUN005`, `BAUN006`), and warns about steps named like a tool command (`BAUN007`).
-- `--step <name>` option that runs a step by name, including steps named like a tool command, such as `baun --step Init`.
-- Step names and the tool's commands are case-insensitive on the command line: `baun test` runs the `Test` step.
-- Single-file builds (`Build.cs` with `#:package`) and project builds (`build/Build.csproj`).
-- Build output with Spectre.Console: a heading per step, formatted exceptions and a summary table.
-- `baun` command-line tool (`Baun.Cli` package) that finds and runs single-file and project builds, and creates new ones with `baun init`.
-- Bootstrap scripts (`build.sh`, `build.ps1`, `build.cmd`) created by `baun init` that install the .NET 10 SDK into a local `.dotnet` folder when it's missing, so builds run without the .NET SDK or the baun tool.
-- `baun init` in an existing build updates its bootstrap scripts. The tool's commands take precedence over steps with the same name. Running a build warns when its bootstrap scripts are outdated.
+- Build pipelines in C#: steps are methods on a `partial` build class that return a `Step`, with `DependsOn`, sync or async `Executes`, and an `[Entry]` default step.
+- Steps run in dependency order, each at most once, stopping at the first failure. Step names are case-insensitive, and `--step <name>` runs any step by name.
+- Source generator that registers steps, adds the entry point and reports mistakes as compiler diagnostics (`BAUN001`, `BAUN002`, `BAUN004`–`BAUN007`). `BaunBuild.RunAsync<TBuild>()` supports a hand-written entry point.
+- Single-file (`Build.cs`) and project (`build/Build.csproj`) builds, with Spectre.Console output.
+- `baun` tool (`Baun.Cli`) that runs builds and creates or updates them with `baun init`, including bootstrap scripts that install the .NET SDK locally when it's missing.
 
 [Unreleased]: https://github.com/sandrofigo/baun/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/sandrofigo/baun/releases/tag/v0.1.0
