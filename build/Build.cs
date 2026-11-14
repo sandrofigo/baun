@@ -2,7 +2,8 @@
 //
 // Run the tests:            baun
 // Check the changelog:      baun ValidateChangelog
-// Without the tool:         dotnet run --project build -- ValidateChangelog
+// Without the tool:         ./build.sh ValidateChangelog (Linux, macOS) or build ValidateChangelog (Windows),
+//                           which install the .NET SDK into .dotnet if it's missing
 //
 // Releases run in the Release workflow when a tag such as v1.2.3 is pushed (see docs/releasing.md):
 // the build job runs Pack, the publish job runs GitHubRelease.
