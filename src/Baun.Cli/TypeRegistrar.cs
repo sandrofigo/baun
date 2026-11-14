@@ -1,3 +1,4 @@
+using System.Reflection;
 using Spectre.Console.Cli;
 
 namespace Baun.Cli;
@@ -63,13 +64,12 @@ internal sealed class TypeRegistrar : ITypeRegistrar
 
         public object Create(Type type)
         {
-            var constructor = type.GetConstructors()
+            ConstructorInfo constructor = type.GetConstructors()
                 .OrderByDescending(constructor => constructor.GetParameters().Length)
                 .First();
 
-            var arguments = constructor.GetParameters()
-                .Select(parameter => Resolve(parameter.ParameterType)
-                    ?? throw new InvalidOperationException($"Cannot create {type.Name}: no service registered for {parameter.ParameterType.Name}."))
+            object[] arguments = constructor.GetParameters()
+                .Select(parameter => Resolve(parameter.ParameterType) ?? throw new InvalidOperationException($"Cannot create {type.Name}: no service registered for {parameter.ParameterType.Name}."))
                 .ToArray();
 
             return constructor.Invoke(arguments);

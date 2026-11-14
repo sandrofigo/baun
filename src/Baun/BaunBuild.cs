@@ -22,8 +22,7 @@ public static class BaunBuild
     /// If the build fails, <see cref="Environment.ExitCode"/> is set to a non-zero value.
     /// </remarks>
     /// <typeparam name="TBuild">The build class. It must be <c>partial</c> so baun can complete it.</typeparam>
-    public static async Task RunAsync<TBuild>()
-        where TBuild : IBaunBuild, new()
+    public static async Task RunAsync<TBuild>() where TBuild : IBaunBuild, new()
     {
         var build = new TBuild();
         var arguments = Environment.GetCommandLineArgs()[1..];

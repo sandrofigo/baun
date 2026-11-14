@@ -23,7 +23,7 @@ internal static class BootstrapScripts
     {
         [Path.Combine(directory, ShellScriptName)] = ShellScript,
         [Path.Combine(directory, "build.ps1")] = PowerShellScript,
-        [Path.Combine(directory, "build.cmd")] = CmdScript,
+        [Path.Combine(directory, "build.cmd")] = CmdScript
     };
 
     private const string ShellScript = """

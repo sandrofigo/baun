@@ -7,17 +7,8 @@ namespace Baun;
 /// <summary>
 /// Resolves the steps of a build and runs them in dependency order.
 /// </summary>
-internal sealed class BuildRunner
+internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console)
 {
-    private readonly IBaunBuild build;
-    private readonly IAnsiConsole console;
-
-    public BuildRunner(IBaunBuild build, IAnsiConsole console)
-    {
-        this.build = build;
-        this.console = console;
-    }
-
     /// <summary>
     /// Runs the build.
     /// </summary>
@@ -35,7 +26,7 @@ internal sealed class BuildRunner
         }
         catch (BuildConfigurationException exception)
         {
-            console.MarkupLineInterpolated($"[red bold]error:[/] {exception.Message}");
+            console.WriteException(exception);
             return 1;
         }
 
@@ -44,7 +35,7 @@ internal sealed class BuildRunner
         var results = new List<StepResult>();
         var total = Stopwatch.StartNew();
 
-        foreach (var step in plan)
+        foreach (ResolvedStep step in plan)
         {
             console.WriteLine();
             console.Write(new Rule($"[bold]{Markup.Escape(step.Name)}[/]").LeftJustified().RuleStyle("grey"));
@@ -60,7 +51,7 @@ internal sealed class BuildRunner
             }
             catch (Exception exception)
             {
-                var failedAfter = stopwatch.Elapsed;
+                TimeSpan failedAfter = stopwatch.Elapsed;
                 console.WriteException(exception, ExceptionFormats.ShortenPaths);
                 console.MarkupLineInterpolated($"[red]Step {step.Name} failed after {Format(failedAfter)}[/]");
                 results.Add(new StepResult(step.Name, StepStatus.Failed, failedAfter));
@@ -71,7 +62,7 @@ internal sealed class BuildRunner
                 return 1;
             }
 
-            var succeededIn = stopwatch.Elapsed;
+            TimeSpan succeededIn = stopwatch.Elapsed;
             console.MarkupLineInterpolated($"[green]Step {step.Name} succeeded in {Format(succeededIn)}[/]");
             results.Add(new StepResult(step.Name, StepStatus.Succeeded, succeededIn));
         }
@@ -83,20 +74,20 @@ internal sealed class BuildRunner
 
     private void WriteSummary(List<StepResult> results)
     {
-        var table = new Table()
+        Table table = new Table()
             .Border(TableBorder.Rounded)
             .BorderColor(Color.Grey)
             .AddColumn("Step")
             .AddColumn("Status")
             .AddColumn(new TableColumn("Duration").RightAligned());
 
-        foreach (var result in results)
+        foreach (StepResult result in results)
         {
-            var status = result.Status switch
+            string status = result.Status switch
             {
                 StepStatus.Succeeded => "[green]Succeeded[/]",
                 StepStatus.Failed => "[red]Failed[/]",
-                _ => "[grey]Skipped[/]",
+                _ => "[grey]Skipped[/]"
             };
 
             table.AddRow(
@@ -113,20 +104,20 @@ internal sealed class BuildRunner
     {
         var steps = new List<ResolvedStep>();
 
-        foreach (var registration in build.GetSteps())
+        foreach (BaunStep registration in build.GetSteps())
         {
             var builder = new StepBuilder();
-            var configured = registration.Definition()(builder) ?? builder;
+            StepBuilder configured = registration.Definition()(builder);
             steps.Add(new ResolvedStep(registration.Name, registration.Definition.Method, registration.IsEntry, configured));
         }
 
         var byMethod = steps.ToDictionary(step => step.Method);
 
-        foreach (var step in steps)
+        foreach (ResolvedStep step in steps)
         {
             foreach (var dependency in step.Builder.Dependencies)
             {
-                if (!byMethod.TryGetValue(dependency.Method, out var resolved))
+                if (!byMethod.TryGetValue(dependency.Method, out ResolvedStep? resolved))
                 {
                     throw new BuildConfigurationException(
                         $"Step {step.Name} depends on {dependency.Method.Name}, which is not a step of {build.GetType().Name}.");
@@ -153,20 +144,20 @@ internal sealed class BuildRunner
 
         if (arguments.Count == 0)
         {
-            var step = steps.FirstOrDefault(step => step.IsEntry)
-                ?? throw new BuildConfigurationException(
-                    $"No step was named and {build.GetType().Name} has no entry step. Name a step, or add [Entry(nameof(...))] to the build class. Available steps: {string.Join(", ", steps.Select(step => step.Name))}.");
+            ResolvedStep step = steps.FirstOrDefault(step => step.IsEntry)
+                                ?? throw new BuildConfigurationException(
+                                    $"No step was named and {build.GetType().Name} has no entry step. Name a step, or add [Entry(nameof(...))] to the build class. Available steps: {string.Join(", ", steps.Select(step => step.Name))}.");
 
             return [step];
         }
 
         var requested = new List<ResolvedStep>();
 
-        foreach (var name in arguments)
+        foreach (string name in arguments)
         {
-            var step = steps.FirstOrDefault(step => string.Equals(step.Name, name, StringComparison.OrdinalIgnoreCase))
-                ?? throw new BuildConfigurationException(
-                    $"Unknown step {name}. Available steps: {string.Join(", ", steps.Select(step => step.Name))}.");
+            ResolvedStep step = steps.FirstOrDefault(step => string.Equals(step.Name, name, StringComparison.OrdinalIgnoreCase))
+                                ?? throw new BuildConfigurationException(
+                                    $"Unknown step {name}. Available steps: {string.Join(", ", steps.Select(step => step.Name))}.");
 
             requested.Add(step);
         }
@@ -180,7 +171,7 @@ internal sealed class BuildRunner
         var visited = new HashSet<ResolvedStep>();
         var path = new List<ResolvedStep>();
 
-        foreach (var step in requested)
+        foreach (ResolvedStep step in requested)
         {
             Visit(step);
         }
@@ -194,7 +185,7 @@ internal sealed class BuildRunner
                 return;
             }
 
-            var index = path.IndexOf(step);
+            int index = path.IndexOf(step);
 
             if (index >= 0)
             {
@@ -204,7 +195,7 @@ internal sealed class BuildRunner
 
             path.Add(step);
 
-            foreach (var dependency in step.Dependencies)
+            foreach (ResolvedStep dependency in step.Dependencies)
             {
                 Visit(dependency);
             }
@@ -239,7 +230,7 @@ internal sealed class BuildRunner
     {
         Succeeded,
         Failed,
-        Skipped,
+        Skipped
     }
 
     private sealed record StepResult(string Name, StepStatus Status, TimeSpan? Duration);

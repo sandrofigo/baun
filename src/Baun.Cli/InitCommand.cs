@@ -45,12 +45,12 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
     public override async Task<int> ExecuteAsync(CommandContext commandContext, Settings settings, CancellationToken cancellationToken)
     {
-        var kind = settings switch
+        BuildKind kind = settings switch
         {
             { SingleFile: true } => BuildKind.SingleFile,
             { Project: true } => BuildKind.Project,
             _ when console.Profile.Capabilities.Interactive => AskForKind(),
-            _ => BuildKind.SingleFile,
+            _ => BuildKind.SingleFile
         };
 
         var files = kind == BuildKind.SingleFile
@@ -75,7 +75,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             executables.Add(Path.Combine(context.Directory, BootstrapScripts.ShellScriptName));
         }
 
-        var existing = files.Keys.FirstOrDefault(File.Exists);
+        string? existing = files.Keys.FirstOrDefault(File.Exists);
 
         if (existing is not null)
         {
@@ -83,10 +83,10 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             return 1;
         }
 
-        foreach (var (path, content) in files)
+        foreach ((string path, string content) in files)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            File.WriteAllText(path, content);
+            await File.WriteAllTextAsync(path, content, cancellationToken);
             console.MarkupLineInterpolated($"[green]Created[/] {Relative(path)}");
         }
 
@@ -113,7 +113,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
     /// </summary>
     private void AddToGitIgnore(string entry)
     {
-        var path = Path.Combine(context.Directory, ".gitignore");
+        string path = Path.Combine(context.Directory, ".gitignore");
 
         if (!File.Exists(path))
         {
@@ -122,9 +122,9 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             return;
         }
 
-        var content = File.ReadAllText(path);
-        var name = entry.Trim('/');
-        var alreadyIgnored = content
+        string content = File.ReadAllText(path);
+        string name = entry.Trim('/');
+        bool alreadyIgnored = content
             .Split('\n')
             .Select(line => line.Trim().Trim('/'))
             .Contains(name);
@@ -134,7 +134,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             return;
         }
 
-        var separator = content.Length == 0 || content.EndsWith('\n') ? string.Empty : "\n";
+        string separator = content.Length == 0 || content.EndsWith('\n') ? string.Empty : "\n";
         File.AppendAllText(path, separator + entry + "\n");
         console.MarkupLineInterpolated($"[green]Updated[/] .gitignore");
     }
@@ -152,7 +152,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
         if (!OperatingSystem.IsWindows())
         {
-            foreach (var path in paths)
+            foreach (string path in paths)
             {
                 File.SetUnixFileMode(path, File.GetUnixFileMode(path) | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute);
             }
@@ -166,7 +166,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         var relativePaths = paths.Select(Relative).ToList();
         var git = new ProcessStartInfo("git") { WorkingDirectory = context.Directory };
 
-        foreach (var argument in (string[])["add", "--chmod=+x", "--", .. relativePaths])
+        foreach (string argument in (string[])["add", "--chmod=+x", "--", .. relativePaths])
         {
             git.ArgumentList.Add(argument);
         }
@@ -177,12 +177,12 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         {
             exitCode = await context.RunProcess(git);
         }
-        catch (System.ComponentModel.Win32Exception)
+        catch (Win32Exception)
         {
             exitCode = -1; // git isn't installed
         }
 
-        var list = string.Join(", ", relativePaths);
+        string list = string.Join(", ", relativePaths);
 
         if (exitCode == 0)
         {
@@ -190,7 +190,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         }
         else
         {
-            var command = $"git add --chmod=+x -- {string.Join(' ', relativePaths)}";
+            string command = $"git add --chmod=+x -- {string.Join(' ', relativePaths)}";
             console.MarkupLineInterpolated($"[yellow]warning:[/] Couldn't mark {list} as executable in git. Run [green]{command}[/] before committing.");
         }
     }
@@ -199,7 +199,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
     {
         for (var current = new DirectoryInfo(directory); current is not null; current = current.Parent)
         {
-            var git = Path.Combine(current.FullName, ".git");
+            string git = Path.Combine(current.FullName, ".git");
 
             if (Directory.Exists(git) || File.Exists(git))
             {
@@ -228,7 +228,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             #:package Baun@{baunVersion}
 
             {BuildFileBody}
-            """,
+            """
     };
 
     private static Dictionary<string, string> CreateProjectBuild(string directory, string baunVersion) => new()
