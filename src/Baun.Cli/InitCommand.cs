@@ -49,7 +49,8 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             : CreateBuildAsync(settings, cancellationToken);
 
     /// <summary>
-    /// Writes the bootstrap scripts of an existing build, overwriting existing ones. The build itself is left alone.
+    /// Writes the bootstrap scripts of an existing build, and the <c>.editorconfig</c> of a project build, overwriting
+    /// existing ones. The build itself is left alone.
     /// </summary>
     private async Task<int> UpdateBootstrapScriptsAsync(BuildLocation build, Settings settings, CancellationToken cancellationToken)
     {
@@ -70,6 +71,11 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         {
             console.MarkupLineInterpolated($"[red bold]error:[/] The bootstrap scripts run a single-file Build.cs or build/Build.csproj in the folder they're in, but the build is {buildPath}.");
             return 1;
+        }
+
+        if (build.ProjectFile is not null)
+        {
+            await WriteEditorConfigAsync(cancellationToken);
         }
 
         await WriteBootstrapScriptsAsync(cancellationToken);
@@ -97,7 +103,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
     /// <summary>
     /// Creates a new build, and by default its bootstrap scripts. Existing build files are never overwritten, but
-    /// existing bootstrap scripts are.
+    /// existing bootstrap scripts and the <c>.editorconfig</c> of a project build are.
     /// </summary>
     private async Task<int> CreateBuildAsync(Settings settings, CancellationToken cancellationToken)
     {
@@ -134,6 +140,11 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             await File.WriteAllTextAsync(path, content, cancellationToken);
             console.MarkupLineInterpolated($"[green]Created[/] {Relative(path)}");
+        }
+
+        if (kind == BuildKind.Project)
+        {
+            await WriteEditorConfigAsync(cancellationToken);
         }
 
         if (!settings.NoBootstrap)
@@ -301,6 +312,29 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             """.ReplaceLineEndings("\n"),
         [Path.Combine(directory, "build", "Build.cs")] = BuildFileBody.ReplaceLineEndings("\n"),
     };
+
+    /// <summary>
+    /// Writes the <c>.editorconfig</c> of a project build, overwriting an existing one.
+    /// </summary>
+    private async Task WriteEditorConfigAsync(CancellationToken cancellationToken)
+    {
+        string path = Path.Combine(context.Directory, "build", ".editorconfig");
+        bool exists = File.Exists(path);
+        await File.WriteAllTextAsync(path, EditorConfig.ReplaceLineEndings("\n"), cancellationToken);
+        console.MarkupLineInterpolated($"[green]{(exists ? "Updated" : "Created")}[/] {Relative(path)}");
+    }
+
+    /// <summary>
+    /// Steps are written without the default <c>private</c> modifier and as <c>_ => _</c> lambdas, so IDEs shouldn't
+    /// ask for the modifier or warn about using the <c>_</c> parameter.
+    /// </summary>
+    private const string EditorConfig = """
+        [*.cs]
+        dotnet_style_require_accessibility_modifiers = omit_if_default
+        csharp_default_private_modifier = implicit
+        resharper_all_underscore_local_parameter_name_highlighting = none
+
+        """;
 
     private const string BuildFileBody = """
         [Entry(nameof(Test))]

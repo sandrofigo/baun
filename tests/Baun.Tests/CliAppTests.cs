@@ -98,6 +98,7 @@ public sealed class CliAppTests : IDisposable
         Assert.Contains("Updated build.sh", console.Output);
         Assert.Contains("Created build.ps1", console.Output);
         Assert.Equal("// my build\n", File.ReadAllText(Path.Combine(root, "build", "Build.cs")));
+        Assert.Contains("csharp_default_private_modifier = implicit", File.ReadAllText(Path.Combine(root, "build", ".editorconfig")));
         Assert.Equal(["add", "--chmod=+x", "--", "build.sh"], Assert.Single(startedProcesses).ArgumentList);
     }
 
@@ -194,6 +195,7 @@ public sealed class CliAppTests : IDisposable
         Assert.DoesNotContain("#:", File.ReadAllText(buildFile));
         Assert.Contains("<PackageReference Include=\"Baun\" Version=\"", File.ReadAllText(projectFile));
         Assert.Contains("<RootNamespace></RootNamespace>", File.ReadAllText(projectFile));
+        Assert.Contains("csharp_default_private_modifier = implicit", File.ReadAllText(Path.Combine(root, "build", ".editorconfig")));
         Assert.Equal(new BuildLocation(buildFile, projectFile), BuildLocator.Find(root));
     }
 
@@ -334,6 +336,18 @@ public sealed class CliAppTests : IDisposable
         Assert.Contains("Updated build.sh", console.Output);
         Assert.Equal(BootstrapScripts.Create(root)[Path.Combine(root, "build.sh")], File.ReadAllText(Path.Combine(root, "build.sh")));
         Assert.True(File.Exists(Path.Combine(root, "Build.cs")));
+    }
+
+    [Fact]
+    public async Task Init_overwrites_an_existing_editorconfig_of_a_project_build()
+    {
+        Write("build/.editorconfig", "# my own config\n");
+
+        var exitCode = await RunAsync("init", "--project");
+
+        Assert.Equal(0, exitCode);
+        Assert.Contains("Updated build" + Path.DirectorySeparatorChar + ".editorconfig", console.Output);
+        Assert.Contains("csharp_default_private_modifier = implicit", File.ReadAllText(Path.Combine(root, "build", ".editorconfig")));
     }
 
     [Theory]
