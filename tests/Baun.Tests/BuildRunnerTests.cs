@@ -123,6 +123,43 @@ public class BuildRunnerTests
     }
 
     [Fact]
+    public async Task Runs_a_step_named_with_the_step_option()
+    {
+        var build = new SampleBuild();
+
+        var result = await RunAsync(build, "--step", "Compile");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(["Clean", "Restore", "Compile"], build.Executed);
+    }
+
+    [Fact]
+    public async Task Mixes_the_step_option_with_step_names()
+    {
+        var build = new SampleBuild();
+
+        var result = await RunAsync(build, "Clean", "--STEP", "compile", "Restore");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(["Clean", "Restore", "Compile"], build.Executed);
+        Assert.Contains("Running Clean -> Restore -> Compile", result.Output);
+    }
+
+    [Theory]
+    [InlineData("--step")]
+    [InlineData("--step", "--step", "Compile")]
+    public async Task Fails_for_the_step_option_without_a_step_name(params string[] arguments)
+    {
+        var build = new SampleBuild();
+
+        var result = await RunAsync(build, arguments);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Empty(build.Executed);
+        Assert.Contains("Option --step requires a step name.", result.Output);
+    }
+
+    [Fact]
     public async Task Stops_at_the_first_failing_step()
     {
         var build = new FailingBuild();

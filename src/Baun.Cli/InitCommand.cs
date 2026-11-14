@@ -43,7 +43,72 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
                 : ValidationResult.Success();
     }
 
-    public override async Task<int> ExecuteAsync(CommandContext commandContext, Settings settings, CancellationToken cancellationToken)
+    public override Task<int> ExecuteAsync(CommandContext commandContext, Settings settings, CancellationToken cancellationToken) =>
+        context.Build is { } build
+            ? UpdateBootstrapScriptsAsync(build, settings, cancellationToken)
+            : CreateBuildAsync(settings, cancellationToken);
+
+    /// <summary>
+    /// Updates the bootstrap scripts of an existing build to the current version, creating missing ones. The build
+    /// itself is left alone.
+    /// </summary>
+    private async Task<int> UpdateBootstrapScriptsAsync(BuildLocation build, Settings settings, CancellationToken cancellationToken)
+    {
+        string buildPath = Relative(build.ProjectFile ?? build.BuildFile);
+
+        if (settings.SingleFile || settings.Project || settings.NoBootstrap)
+        {
+            console.MarkupLineInterpolated($"[red bold]error:[/] A build already exists ({buildPath}). In an existing build, baun init only updates the bootstrap scripts, so it doesn't take --single-file, --project or --no-bootstrap.");
+            return 1;
+        }
+
+        // The scripts run Build.cs or build/Build.csproj next to them.
+        bool scriptsFindBuild = build.ProjectFile is null
+            ? IsSamePath(build.BuildFile, Path.Combine(context.Directory, "Build.cs"))
+            : IsSamePath(build.ProjectFile, Path.Combine(context.Directory, "build", "Build.csproj"));
+
+        if (!scriptsFindBuild)
+        {
+            console.MarkupLineInterpolated($"[red bold]error:[/] The bootstrap scripts run a single-file Build.cs or build/Build.csproj in the folder they're in, but the build is {buildPath}.");
+            return 1;
+        }
+
+        var changed = false;
+
+        foreach ((string path, string content) in BootstrapScripts.Create(context.Directory))
+        {
+            bool exists = File.Exists(path);
+
+            // Ignore line endings, which git may have converted on checkout.
+            if (exists && (await File.ReadAllTextAsync(path, cancellationToken)).ReplaceLineEndings("\n") == content.ReplaceLineEndings("\n"))
+            {
+                continue;
+            }
+
+            await File.WriteAllTextAsync(path, content, cancellationToken);
+            console.MarkupLineInterpolated($"[green]{(exists ? "Updated" : "Created")}[/] {Relative(path)}");
+            changed = true;
+        }
+
+        AddToGitIgnore(BootstrapScripts.DotnetFolder);
+
+        if (changed)
+        {
+            await MarkExecutableAsync([Path.Combine(context.Directory, BootstrapScripts.ShellScriptName)]);
+        }
+
+        console.MarkupLine(changed ? "The bootstrap scripts are up to date now." : "The bootstrap scripts are already up to date.");
+
+        return 0;
+    }
+
+    private static bool IsSamePath(string first, string second) =>
+        string.Equals(Path.GetFullPath(first), Path.GetFullPath(second), StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Creates a new build, and by default its bootstrap scripts, without overwriting any existing file.
+    /// </summary>
+    private async Task<int> CreateBuildAsync(Settings settings, CancellationToken cancellationToken)
     {
         BuildKind kind = settings switch
         {

@@ -203,6 +203,25 @@ public class StepGeneratorTests
         Assert.Contains("differ only in case: Test, test.", diagnostic.GetMessage());
     }
 
+    [Theory]
+    [InlineData("Init")]
+    [InlineData("init")]
+    public void Warns_about_a_step_with_the_name_of_a_tool_command(string name)
+    {
+        var (diagnostics, sources) = RunGenerator($$"""
+            partial class Build
+            {
+                Step {{name}}() => _ => _;
+            }
+            """);
+
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.Equal("BAUN007", diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
+        Assert.Equal($"The step '{name}' has the same name as the baun tool's 'init' command, so 'baun init' runs the command. Run the step with 'baun --step {name}'.", diagnostic.GetMessage());
+        Assert.Contains(sources, source => source.Contains($"new global::Baun.BaunStep(\"{name}\", {name}),"));
+    }
+
     [Fact]
     public void Adds_an_entry_point_that_runs_the_build_class()
     {

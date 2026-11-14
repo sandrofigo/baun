@@ -26,10 +26,48 @@ internal static class BootstrapScripts
         [Path.Combine(directory, "build.cmd")] = CmdScript
     };
 
-    private const string ShellScript = """
+    /// <summary>
+    /// The version of the scripts, stamped into each of them. Increase it whenever a script changes, so the tool can
+    /// tell users to update older scripts with <c>baun init</c>.
+    /// </summary>
+    public const int Version = 1;
+
+    private const string VersionMarker = "baun-bootstrap-version:";
+
+    /// <summary>
+    /// Gets the bootstrap scripts in <paramref name="directory"/> that are older than <see cref="Version"/>.
+    /// Scripts from before the version stamp count as version 0. Missing scripts are ignored.
+    /// </summary>
+    public static IReadOnlyList<string> FindOutdated(string directory) =>
+        Create(directory).Keys
+            .Where(path => File.Exists(path) && ReadVersion(path) < Version)
+            .ToList();
+
+    private static int ReadVersion(string path)
+    {
+        foreach (string line in File.ReadLines(path).Take(5))
+        {
+            int index = line.IndexOf(VersionMarker, StringComparison.Ordinal);
+
+            if (index < 0)
+            {
+                continue;
+            }
+
+            string rest = line[(index + VersionMarker.Length)..].TrimStart();
+            string digits = new(rest.TakeWhile(char.IsAsciiDigit).ToArray());
+
+            return int.TryParse(digits, out int version) ? version : 0;
+        }
+
+        return 0;
+    }
+
+    private static readonly string ShellScript = $$"""
         #!/usr/bin/env sh
         # Runs the baun build. Installs the .NET SDK into .dotnet if it isn't installed.
         # Usage: ./build.sh [steps]
+        # {{VersionMarker}} {{Version}} (run baun init to update this script)
         set -eu
 
         SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
@@ -60,10 +98,11 @@ internal static class BootstrapScripts
 
         """;
 
-    private const string PowerShellScript = """
+    private static readonly string PowerShellScript = $$"""
         #Requires -Version 5.1
         # Runs the baun build. Installs the .NET SDK into .dotnet if it isn't installed.
         # Usage: ./build.ps1 [steps]
+        # {{VersionMarker}} {{Version}} (run baun init to update this script)
         $ErrorActionPreference = 'Stop'
 
         $DotnetChannel = '10.0'
@@ -99,5 +138,7 @@ internal static class BootstrapScripts
         """;
 
     // Lets Windows users run "build Test" without calling PowerShell themselves.
-    private const string CmdScript = "@powershell -NoProfile -ExecutionPolicy Bypass -File \"%~dp0build.ps1\" %*\r\n";
+    private static readonly string CmdScript =
+        $"@rem {VersionMarker} {Version} (run baun init to update this script)\r\n" +
+        "@powershell -NoProfile -ExecutionPolicy Bypass -File \"%~dp0build.ps1\" %*\r\n";
 }
