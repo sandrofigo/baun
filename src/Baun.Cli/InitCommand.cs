@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -17,9 +18,10 @@ internal enum BuildKind
 }
 
 /// <summary>
-/// Implements <c>baun init</c>, which creates a new build.
+/// Implements <c>baun init</c>, which creates a new build, and by default bootstrap scripts that run it on machines
+/// without the .NET SDK.
 /// </summary>
-internal sealed class InitCommand(IAnsiConsole console, CliContext context) : Command<InitCommand.Settings>
+internal sealed class InitCommand(IAnsiConsole console, CliContext context) : AsyncCommand<InitCommand.Settings>
 {
     public sealed class Settings : CommandSettings
     {
@@ -31,13 +33,17 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : Co
         [Description("Create a build project in a 'build' subfolder.")]
         public bool Project { get; init; }
 
+        [CommandOption("--no-bootstrap")]
+        [Description("Don't create the build.sh, build.ps1 and build.cmd scripts that install the .NET SDK when it's missing.")]
+        public bool NoBootstrap { get; init; }
+
         public override ValidationResult Validate() =>
             SingleFile && Project
                 ? ValidationResult.Error("Use either --single-file or --project, not both.")
                 : ValidationResult.Success();
     }
 
-    public override int Execute(CommandContext commandContext, Settings settings, CancellationToken cancellationToken)
+    public override async Task<int> ExecuteAsync(CommandContext commandContext, Settings settings, CancellationToken cancellationToken)
     {
         var kind = settings switch
         {
@@ -51,11 +57,29 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : Co
             ? CreateSingleFileBuild(context.Directory, context.BaunVersion)
             : CreateProjectBuild(context.Directory, context.BaunVersion);
 
+        // Files that must be executable: the single-file build for its shebang, and the shell script.
+        var executables = new List<string>();
+
+        if (kind == BuildKind.SingleFile)
+        {
+            executables.Add(Path.Combine(context.Directory, "Build.cs"));
+        }
+
+        if (!settings.NoBootstrap)
+        {
+            foreach (var (path, content) in BootstrapScripts.Create(context.Directory))
+            {
+                files[path] = content;
+            }
+
+            executables.Add(Path.Combine(context.Directory, BootstrapScripts.ShellScriptName));
+        }
+
         var existing = files.Keys.FirstOrDefault(File.Exists);
 
         if (existing is not null)
         {
-            console.MarkupLineInterpolated($"[red bold]error:[/] {Path.GetRelativePath(context.Directory, existing)} already exists.");
+            console.MarkupLineInterpolated($"[red bold]error:[/] {Relative(existing)} already exists.");
             return 1;
         }
 
@@ -63,20 +87,130 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : Co
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.WriteAllText(path, content);
-            console.MarkupLineInterpolated($"[green]Created[/] {Path.GetRelativePath(context.Directory, path)}");
+            console.MarkupLineInterpolated($"[green]Created[/] {Relative(path)}");
         }
 
-        if (kind == BuildKind.SingleFile && !OperatingSystem.IsWindows())
+        if (!settings.NoBootstrap)
         {
-            // Lets the build run directly through its shebang, for example "./Build.cs Test".
-            var buildFile = files.Keys.Single();
-            File.SetUnixFileMode(buildFile, File.GetUnixFileMode(buildFile) | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute);
+            AddToGitIgnore(BootstrapScripts.DotnetFolder);
         }
+
+        await MarkExecutableAsync(executables);
 
         console.WriteLine();
         console.MarkupLine("Run [green]baun[/] to run the entry step, or [green]baun Compile[/] to run a specific step.");
+
+        if (!settings.NoBootstrap)
+        {
+            console.MarkupLine("Without the baun tool or the .NET SDK, run [green]./build.sh[/] on Linux and macOS, or [green]build[/] on Windows.");
+        }
+
         return 0;
     }
+
+    /// <summary>
+    /// Adds <paramref name="entry"/> to the <c>.gitignore</c> in the build's folder, creating the file if needed.
+    /// </summary>
+    private void AddToGitIgnore(string entry)
+    {
+        var path = Path.Combine(context.Directory, ".gitignore");
+
+        if (!File.Exists(path))
+        {
+            File.WriteAllText(path, entry + "\n");
+            console.MarkupLineInterpolated($"[green]Created[/] .gitignore");
+            return;
+        }
+
+        var content = File.ReadAllText(path);
+        var name = entry.Trim('/');
+        var alreadyIgnored = content
+            .Split('\n')
+            .Select(line => line.Trim().Trim('/'))
+            .Contains(name);
+
+        if (alreadyIgnored)
+        {
+            return;
+        }
+
+        var separator = content.Length == 0 || content.EndsWith('\n') ? string.Empty : "\n";
+        File.AppendAllText(path, separator + entry + "\n");
+        console.MarkupLineInterpolated($"[green]Updated[/] .gitignore");
+    }
+
+    /// <summary>
+    /// Makes <paramref name="paths"/> executable on disk and, inside a git repository, in git's index, so they stay
+    /// executable when committed from any operating system, including Windows.
+    /// </summary>
+    private async Task MarkExecutableAsync(IReadOnlyList<string> paths)
+    {
+        if (paths.Count == 0)
+        {
+            return;
+        }
+
+        if (!OperatingSystem.IsWindows())
+        {
+            foreach (var path in paths)
+            {
+                File.SetUnixFileMode(path, File.GetUnixFileMode(path) | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute);
+            }
+        }
+
+        if (!IsInGitRepository(context.Directory))
+        {
+            return;
+        }
+
+        var relativePaths = paths.Select(Relative).ToList();
+        var git = new ProcessStartInfo("git") { WorkingDirectory = context.Directory };
+
+        foreach (var argument in (string[])["add", "--chmod=+x", "--", .. relativePaths])
+        {
+            git.ArgumentList.Add(argument);
+        }
+
+        int exitCode;
+
+        try
+        {
+            exitCode = await context.RunProcess(git);
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            exitCode = -1; // git isn't installed
+        }
+
+        var list = string.Join(", ", relativePaths);
+
+        if (exitCode == 0)
+        {
+            console.MarkupLineInterpolated($"[green]Staged[/] {list} as executable in git");
+        }
+        else
+        {
+            var command = $"git add --chmod=+x -- {string.Join(' ', relativePaths)}";
+            console.MarkupLineInterpolated($"[yellow]warning:[/] Couldn't mark {list} as executable in git. Run [green]{command}[/] before committing.");
+        }
+    }
+
+    private static bool IsInGitRepository(string directory)
+    {
+        for (var current = new DirectoryInfo(directory); current is not null; current = current.Parent)
+        {
+            var git = Path.Combine(current.FullName, ".git");
+
+            if (Directory.Exists(git) || File.Exists(git))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private string Relative(string path) => Path.GetRelativePath(context.Directory, path);
 
     private BuildKind AskForKind() =>
         console.Prompt(

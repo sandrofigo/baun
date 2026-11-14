@@ -225,6 +225,19 @@ baun init --project      # creates build/Build.csproj and build/Build.cs
 
 The new build has a few sample steps and references the same version of baun as the tool. When `baun init` can't ask, for example in a script, it creates a single-file build. It never overwrites existing files.
 
+### Running without the .NET SDK
+
+`baun init` also creates bootstrap scripts next to the build, so anyone can run it without installing the .NET SDK or the baun tool first:
+
+```shell
+./build.sh Test   # Linux and macOS
+build Test        # Windows (build.cmd, which runs build.ps1)
+```
+
+The scripts use an installed .NET 10 (or later) SDK when there is one. Otherwise they install the latest .NET 10 SDK into a `.dotnet` folder next to them with Microsoft's [`dotnet-install`](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-install-script) script, and reuse it on later runs. Nothing is installed system-wide.
+
+`baun init` adds `.dotnet/` to `.gitignore`. Inside a git repository, it also stages `build.sh` (and a single-file `Build.cs`) as executable, so they stay executable when committed from Windows. Use `baun init --no-bootstrap` to create only the build.
+
 ### Running a build
 
 Run a step from your repository:

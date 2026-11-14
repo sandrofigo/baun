@@ -10,7 +10,8 @@ namespace Baun.Cli;
 /// </summary>
 /// <param name="Directory">The folder the CLI was started in.</param>
 /// <param name="BaunVersion">The version of the Baun package that new builds reference.</param>
-internal sealed record CliContext(string Directory, string BaunVersion);
+/// <param name="RunProcess">Starts a process and returns its exit code.</param>
+internal sealed record CliContext(string Directory, string BaunVersion, Func<ProcessStartInfo, Task<int>> RunProcess);
 
 internal static class CliApp
 {
@@ -41,7 +42,7 @@ internal static class CliApp
         }
 
         var registrar = new TypeRegistrar();
-        registrar.RegisterInstance(typeof(CliContext), new CliContext(directory, GetBaunVersion()));
+        registrar.RegisterInstance(typeof(CliContext), new CliContext(directory, GetBaunVersion(), runProcess));
         registrar.RegisterInstance(typeof(IAnsiConsole), console);
 
         var app = new CommandApp<NoBuildCommand>(registrar);
