@@ -9,3 +9,4 @@ BAUN001 | Baun | Error | StepGenerator
 BAUN002 | Baun | Error | StepGenerator
 BAUN004 | Baun | Error | StepGenerator
 BAUN005 | Baun | Error | StepGenerator
+BAUN006 | Baun | Error | StepGenerator
