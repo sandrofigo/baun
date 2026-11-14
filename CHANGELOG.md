@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-14
+
 ### Added
 
 - Build pipelines written in C#, with all types in the `Baun` namespace, which the package imports automatically: steps are methods on a `partial` build class that return a `Step`, configured with `DependsOn` and synchronous or asynchronous `Executes`.
@@ -22,4 +24,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bootstrap scripts (`build.sh`, `build.ps1`, `build.cmd`) created by `baun init` that install the .NET 10 SDK into a local `.dotnet` folder when it's missing, so builds run without the .NET SDK or the baun tool.
 - `baun init` in an existing build updates its bootstrap scripts. The tool's commands take precedence over steps with the same name. Running a build warns when its bootstrap scripts are outdated.
 
-[Unreleased]: https://github.com/sandrofigo/baun/commits/main
+[Unreleased]: https://github.com/sandrofigo/baun/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/sandrofigo/baun/releases/tag/v0.1.0
