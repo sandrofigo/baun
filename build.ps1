@@ -26,7 +26,7 @@ if (-not (Test-Sdk)) {
     $env:PATH = "$dotnetDir$([IO.Path]::PathSeparator)$env:PATH"
 }
 
-if (Test-Path (Join-Path $PSScriptRoot 'build/Build.csproj')) {
+if (Test-Path (Join-Path $PSScriptRoot 'build/_build.csproj')) {
     dotnet run --project (Join-Path $PSScriptRoot 'build') -- @args
 } else {
     dotnet run --file (Join-Path $PSScriptRoot 'Build.cs') -- @args

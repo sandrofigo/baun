@@ -34,12 +34,12 @@ public sealed class CliAppTests : IDisposable
     public async Task Runs_a_project_build_with_its_project_file()
     {
         Write("build/Build.cs", "await BaunBuild.RunAsync<Build>();\n");
-        Write("build/Build.csproj", "<Project />");
+        Write("build/_build.csproj", "<Project />");
 
         await RunAsync();
 
         var process = Assert.Single(startedProcesses);
-        Assert.Equal(["run", "--project", Path.Combine(root, "build", "Build.csproj"), "--"], process.ArgumentList);
+        Assert.Equal(["run", "--project", Path.Combine(root, "build", "_build.csproj"), "--"], process.ArgumentList);
     }
 
     [Theory]
@@ -87,7 +87,7 @@ public sealed class CliAppTests : IDisposable
     public async Task Init_in_an_existing_project_build_overwrites_the_bootstrap_scripts()
     {
         Write("build/Build.cs", "// my build\n");
-        Write("build/Build.csproj", "<Project />");
+        Write("build/_build.csproj", "<Project />");
         Write("build.sh", "# old script\n");
         Directory.CreateDirectory(Path.Combine(root, ".git"));
 
@@ -180,7 +180,7 @@ public sealed class CliAppTests : IDisposable
         var exitCode = await RunAsync(command, option, "--no-bootstrap");
 
         Assert.Equal(0, exitCode);
-        Assert.True(File.Exists(Path.Combine(root, "build", "Build.csproj")));
+        Assert.True(File.Exists(Path.Combine(root, "build", "_build.csproj")));
     }
 
     [Fact]
@@ -191,7 +191,7 @@ public sealed class CliAppTests : IDisposable
         Assert.Equal(0, exitCode);
 
         var buildFile = Path.Combine(root, "build", "Build.cs");
-        var projectFile = Path.Combine(root, "build", "Build.csproj");
+        var projectFile = Path.Combine(root, "build", "_build.csproj");
         Assert.DoesNotContain("#:", File.ReadAllText(buildFile));
         Assert.Contains("<PackageReference Include=\"Baun\" Version=\"", File.ReadAllText(projectFile));
         Assert.Contains("<RootNamespace></RootNamespace>", File.ReadAllText(projectFile));
@@ -201,7 +201,7 @@ public sealed class CliAppTests : IDisposable
 
     [Theory]
     [InlineData(0, "Build.cs")]
-    [InlineData(1, "build/Build.csproj")]
+    [InlineData(1, "build/_build.csproj")]
     public async Task Init_asks_which_kind_of_build_to_create(int downArrows, string expectedFile)
     {
         console.Interactive();
@@ -240,7 +240,7 @@ public sealed class CliAppTests : IDisposable
         Assert.Equal(1, exitCode);
         Assert.Contains("already exists", console.Output);
         Assert.Equal("// my own file\n", File.ReadAllText(Path.Combine(root, "build", "Build.cs")));
-        Assert.False(File.Exists(Path.Combine(root, "build", "Build.csproj")));
+        Assert.False(File.Exists(Path.Combine(root, "build", "_build.csproj")));
     }
 
     [Fact]

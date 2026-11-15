@@ -29,7 +29,7 @@ public sealed class BuildLocatorTests : IDisposable
     public void Finds_a_project_build_in_the_build_subfolder()
     {
         var buildFile = Write("build/Build.cs", "await BaunBuild.RunAsync<Build>();\n");
-        var projectFile = Write("build/Build.csproj", "<Project />");
+        var projectFile = Write("build/_build.csproj", "<Project />");
 
         Assert.Equal(new BuildLocation(buildFile, projectFile), BuildLocator.Find(root));
     }

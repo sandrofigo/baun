@@ -62,14 +62,14 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             return 1;
         }
 
-        // The scripts run Build.cs or build/Build.csproj next to them.
+        // The scripts run Build.cs or build/_build.csproj next to them.
         bool scriptsFindBuild = build.ProjectFile is null
             ? IsSamePath(build.BuildFile, Path.Combine(context.Directory, "Build.cs"))
-            : IsSamePath(build.ProjectFile, Path.Combine(context.Directory, "build", "Build.csproj"));
+            : IsSamePath(build.ProjectFile, Path.Combine(context.Directory, "build", "_build.csproj"));
 
         if (!scriptsFindBuild)
         {
-            console.MarkupLineInterpolated($"[red bold]error:[/] The bootstrap scripts run a single-file Build.cs or build/Build.csproj in the folder they're in, but the build is {buildPath}.");
+            console.MarkupLineInterpolated($"[red bold]error:[/] The bootstrap scripts run a single-file Build.cs or build/_build.csproj in the folder they're in, but the build is {buildPath}.");
             return 1;
         }
 
@@ -278,7 +278,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
                 .AddChoices(BuildKind.SingleFile, BuildKind.Project)
                 .UseConverter(kind => kind == BuildKind.SingleFile
                     ? "Single file [grey](Build.cs in this folder)[/]"
-                    : "Project [grey](build/Build.csproj and build/Build.cs)[/]"));
+                    : "Project [grey](build/_build.csproj and build/Build.cs)[/]"));
 
     private static Dictionary<string, string> CreateSingleFileBuild(string directory, string baunVersion) => new()
     {
@@ -292,7 +292,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
     private static Dictionary<string, string> CreateProjectBuild(string directory, string baunVersion) => new()
     {
-        [Path.Combine(directory, "build", "Build.csproj")] = $"""
+        [Path.Combine(directory, "build", "_build.csproj")] = $"""
             <Project Sdk="Microsoft.NET.Sdk">
 
               <PropertyGroup>

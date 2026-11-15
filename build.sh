@@ -23,7 +23,7 @@ if ! has_sdk; then
     export DOTNET_ROOT="$DOTNET_DIR" PATH="$DOTNET_DIR:$PATH"
 fi
 
-if [ -f "$SCRIPT_DIR/build/Build.csproj" ]; then
+if [ -f "$SCRIPT_DIR/build/_build.csproj" ]; then
     exec dotnet run --project "$SCRIPT_DIR/build" -- "$@"
 else
     exec dotnet run --file "$SCRIPT_DIR/Build.cs" -- "$@"

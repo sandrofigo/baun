@@ -37,7 +37,7 @@ Inspired by [NUKE](https://github.com/nuke-build/nuke), baun treats your build a
    baun init
    ```
 
-   baun asks whether to create a single-file build (`Build.cs`) or a project build (`build/Build.csproj` and `build/Build.cs`). If you're not sure, start with a single file. You can [convert it to a project](#project-builds) later. `baun init` also adds [bootstrap scripts](#running-without-the-net-sdk), so others can run the build without installing anything first.
+   baun asks whether to create a single-file build (`Build.cs`) or a project build (`build/_build.csproj` and `build/Build.cs`). If you're not sure, start with a single file. You can [convert it to a project](#project-builds) later. `baun init` also adds [bootstrap scripts](#running-without-the-net-sdk), so others can run the build without installing anything first.
 
 3. Run the build:
 
@@ -155,7 +155,7 @@ chmod +x Build.cs
 A project build is a regular .NET console project, for example in a `build` folder, that references baun as a NuGet package:
 
 ```xml
-<!-- build/Build.csproj -->
+<!-- build/_build.csproj -->
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
@@ -254,7 +254,7 @@ Run `baun init` in your repository to create a new build:
 ```shell
 baun init                # asks which kind of build to create
 baun init --single-file  # creates Build.cs
-baun init --project      # creates build/Build.csproj and build/Build.cs
+baun init --project      # creates build/_build.csproj and build/Build.cs
 ```
 
 The new build has a few sample steps and references the same version of baun as the tool. When `baun init` can't ask, for example in a script, it creates a single-file build. Creating a build never overwrites existing build files.
