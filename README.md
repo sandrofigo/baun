@@ -1,6 +1,6 @@
 # baun
 
-[![NuGet](https://img.shields.io/nuget/v/Baun.svg)](https://www.nuget.org/packages/Baun)
+[![NuGet](https://img.shields.io/nuget/v/Baun.svg)](https://www.nuget.org/packages/Baun) [![NuGet downloads](https://img.shields.io/nuget/dt/Baun.svg)](https://www.nuget.org/packages/Baun)
 
 **baun** is a build pipeline system for .NET that lets you write any kind of workflow, such as CI/CD, releases, or local automation, in plain C#.
 
