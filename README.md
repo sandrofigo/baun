@@ -203,7 +203,7 @@ Step Pack() => _ => _
 | `IsRefProtected` | `GITHUB_REF_PROTECTED` | `true` |
 | `HeadRef`, `BaseRef` | `GITHUB_HEAD_REF`, `GITHUB_BASE_REF` | `feature-branch-1`, `main` |
 | `Sha` | `GITHUB_SHA` | `ffac537e6cbbf934b08745a378932722df287a53` |
-| `Repository`, `RepositoryId` | `GITHUB_REPOSITORY`, `GITHUB_REPOSITORY_ID` | `octocat/Hello-World`, `123456789` |
+| `Repository`, `RepositoryId` | `GITHUB_REPOSITORY`, `GITHUB_REPOSITORY_ID` | `GitHubRepository` with `Owner` `octocat` and `Name` `Hello-World`, `123456789` |
 | `RepositoryOwner`, `RepositoryOwnerId` | `GITHUB_REPOSITORY_OWNER`, `GITHUB_REPOSITORY_OWNER_ID` | `octocat`, `1234567` |
 | `EventName`, `EventPath` | `GITHUB_EVENT_NAME`, `GITHUB_EVENT_PATH` | `workflow_dispatch`, `/github/workflow/event.json` |
 | `Workflow`, `WorkflowRef`, `WorkflowSha` | `GITHUB_WORKFLOW`, `GITHUB_WORKFLOW_REF`, `GITHUB_WORKFLOW_SHA` | `My test workflow` |
@@ -218,12 +218,36 @@ Step Pack() => _ => _
 | `RunnerName`, `RunnerEnvironment` | `RUNNER_NAME`, `RUNNER_ENVIRONMENT` | `Hosted Agent`, `github-hosted` |
 | `RunnerTemp`, `RunnerToolCache` | `RUNNER_TEMP`, `RUNNER_TOOL_CACHE` | `D:\a\_temp` |
 | `IsDebug` | `RUNNER_DEBUG` | `true` when debug logging is enabled |
+| `Token` | `GITHUB_TOKEN`, which the workflow has to set (see below) | `ghs_...` |
 
 A property is `null` (or `false`) when its variable isn't set or is empty, such as outside GitHub Actions. The variables are read each time a property is used, so you can set them yourself to try a run locally: `GITHUB_REF_TYPE=tag GITHUB_REF_NAME=v1.2.3 baun Pack`. To also accept a value on the command line, use the property as a parameter's initial value:
 
 ```csharp
 [Parameter("Tag to release")]
 string? Tag = GitHub.Tag;
+```
+
+`GitHub.CreateOrUpdateRelease` creates the GitHub release for a tag, or updates its title, notes and prerelease flag if it already exists, so the step can be run again. The repository defaults to `GitHub.Repository`, the token to `GitHub.Token`, the title to the tag, and the API URL to `GitHub.ApiUrl`. Pass `token:` to use another token. To release to another repository, pass `repository: new GitHubRepository("octocat", "Hello-World")` or `GitHubRepository.Parse("octocat/Hello-World")`:
+
+```csharp
+Step Release() => _ => _
+    .Executes(async () =>
+    {
+        GitHubRelease release = await GitHub.CreateOrUpdateRelease(GitHub.Tag!, notes: "- Fixed a bug");
+        Console.WriteLine(release.Url);
+    });
+```
+
+The token needs permission to write releases. GitHub Actions doesn't set `GITHUB_TOKEN` as an environment variable by itself, so pass the token of the run to the step that runs the build:
+
+```yaml
+permissions:
+  contents: write
+
+steps:
+  - run: ./build.sh Release
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ## Single file or project

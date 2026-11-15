@@ -28,6 +28,7 @@
     <None Include="..\Baun.SourceGenerators\bin\$(Configuration)\netstandard2.0\Baun.SourceGenerators.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Octokit" Version="14.0.0" />
     <PackageReference Include="Spectre.Console" Version="0.57.2" />
   </ItemGroup>
 

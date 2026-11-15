@@ -14,7 +14,7 @@ public sealed class GitHubTests : IDisposable
     private static readonly string[] Variables =
     [
         "GITHUB_ACTIONS", "GITHUB_REF", "GITHUB_REF_NAME", "GITHUB_REF_TYPE", "GITHUB_REF_PROTECTED", "GITHUB_REPOSITORY",
-        "GITHUB_RUN_ID", "RUNNER_DEBUG",
+        "GITHUB_RUN_ID", "RUNNER_DEBUG", "GITHUB_TOKEN",
     ];
 
     private readonly Dictionary<string, string?> original = Variables.ToDictionary(name => name, System.Environment.GetEnvironmentVariable);
@@ -48,6 +48,7 @@ public sealed class GitHubTests : IDisposable
         Assert.Null(GitHub.RunId);
         Assert.False(GitHub.IsRefProtected);
         Assert.False(GitHub.IsDebug);
+        Assert.Null(GitHub.Token);
     }
 
     [Fact]
@@ -107,6 +108,22 @@ public sealed class GitHubTests : IDisposable
         Assert.Null(GitHub.Repository);
     }
 
+    [Fact]
+    public void Reads_the_repository()
+    {
+        System.Environment.SetEnvironmentVariable("GITHUB_REPOSITORY", "octocat/Hello-World");
+
+        Assert.Equal(new GitHubRepository("octocat", "Hello-World"), GitHub.Repository);
+    }
+
+    [Fact]
+    public void Has_no_repository_for_an_invalid_value()
+    {
+        System.Environment.SetEnvironmentVariable("GITHUB_REPOSITORY", "noslash");
+
+        Assert.Null(GitHub.Repository);
+    }
+
     [Theory]
     [InlineData("1234567890", 1234567890L)]
     [InlineData("abc", null)]
@@ -116,5 +133,42 @@ public sealed class GitHubTests : IDisposable
         System.Environment.SetEnvironmentVariable("GITHUB_RUN_ID", value);
 
         Assert.Equal(expected, GitHub.RunId);
+    }
+
+    [Fact]
+    public async Task Release_needs_a_repository()
+    {
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => GitHub.CreateOrUpdateRelease("v1.2.3", token: "token", cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Contains("GITHUB_REPOSITORY", exception.Message);
+    }
+
+    [Fact]
+    public async Task Release_needs_a_valid_repository()
+    {
+        System.Environment.SetEnvironmentVariable("GITHUB_REPOSITORY", "noslash");
+        System.Environment.SetEnvironmentVariable("GITHUB_TOKEN", "token");
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => GitHub.CreateOrUpdateRelease("v1.2.3", cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Contains("GITHUB_REPOSITORY", exception.Message);
+    }
+
+    [Fact]
+    public async Task Release_needs_a_token()
+    {
+        System.Environment.SetEnvironmentVariable("GITHUB_REPOSITORY", "octocat/Hello-World");
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => GitHub.CreateOrUpdateRelease("v1.2.3", cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Contains("GITHUB_TOKEN", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("v1.2.3", "")]
+    [InlineData("", "token")]
+    public async Task Release_throws_for_an_empty_tag_or_token(string tag, string token)
+    {
+        await Assert.ThrowsAsync<ArgumentException>(() => GitHub.CreateOrUpdateRelease(tag, repository: new GitHubRepository("octocat", "Hello-World"), token: token, cancellationToken: TestContext.Current.CancellationToken));
     }
 }

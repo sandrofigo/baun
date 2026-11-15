@@ -94,9 +94,10 @@ public static class GitHub
     public static string? Sha => Get("GITHUB_SHA");
 
     /// <summary>
-    /// Gets the owner and name of the repository, such as <c>octocat/Hello-World</c>, from <c>GITHUB_REPOSITORY</c>.
+    /// Gets the repository, such as <c>octocat/Hello-World</c>, from <c>GITHUB_REPOSITORY</c>, or <see langword="null"/>
+    /// if it's not set or not in the form <c>owner/name</c>.
     /// </summary>
-    public static string? Repository => Get("GITHUB_REPOSITORY");
+    public static GitHubRepository? Repository => GitHubRepository.TryParse(Get("GITHUB_REPOSITORY"), out GitHubRepository? repository) ? repository : null;
 
     /// <summary>
     /// Gets the ID of the repository, from <c>GITHUB_REPOSITORY_ID</c>.
@@ -241,6 +242,63 @@ public static class GitHub
     /// Gets whether debug logging is enabled for the run: <c>RUNNER_DEBUG</c> is <c>1</c>.
     /// </summary>
     public static bool IsDebug => Get("RUNNER_DEBUG") == "1";
+
+    /// <summary>
+    /// Gets the token for the GitHub API, from <c>GITHUB_TOKEN</c>.
+    /// </summary>
+    /// <remarks>
+    /// GitHub Actions doesn't set this variable by itself. Pass the token of the run to the step that runs the build
+    /// with <c>env: GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}</c>.
+    /// </remarks>
+    public static string? Token => Get("GITHUB_TOKEN");
+
+    /// <summary>
+    /// Creates the GitHub release for <paramref name="tag"/>, or updates its title, notes and prerelease flag if it
+    /// already exists, so a step that calls it can be run again.
+    /// </summary>
+    /// <param name="tag">The tag of the release, such as <c>v1.2.3</c>. GitHub creates the tag if it doesn't exist.</param>
+    /// <param name="notes">The release notes, in Markdown.</param>
+    /// <param name="prerelease">Whether to mark the release as a prerelease.</param>
+    /// <param name="name">The title of the release. Defaults to <paramref name="tag"/>.</param>
+    /// <param name="repository">The repository of the release. Defaults to <see cref="Repository"/>.</param>
+    /// <param name="token">
+    /// A token that may write releases of the repository, such as <c>secrets.GITHUB_TOKEN</c> of a workflow with
+    /// <c>contents: write</c>. Defaults to <see cref="Token"/>.
+    /// </param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The created or updated release.</returns>
+    /// <exception cref="ArgumentException"><paramref name="tag"/> or <paramref name="token"/> is empty.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// <paramref name="repository"/> isn't passed and <see cref="Repository"/> is <see langword="null"/>, or
+    /// <paramref name="token"/> isn't passed and <see cref="Token"/> is <see langword="null"/>.
+    /// </exception>
+    public static async Task<GitHubRelease> CreateOrUpdateRelease(
+        string tag,
+        string? notes = null,
+        bool prerelease = false,
+        string? name = null,
+        GitHubRepository? repository = null,
+        string? token = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(tag);
+
+        if (token is not null)
+        {
+            ArgumentException.ThrowIfNullOrEmpty(token);
+        }
+
+        token ??= Token
+            ?? throw new InvalidOperationException("The token isn't passed and GITHUB_TOKEN isn't set. In a workflow, set it with env: GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}.");
+
+        repository ??= Repository
+            ?? throw new InvalidOperationException("The repository isn't passed and GITHUB_REPOSITORY isn't set to owner/name.");
+
+        Uri? apiUrl = ApiUrl is { } url ? new Uri(url) : null;
+        var data = new GitHubReleaseData(tag, name is { Length: > 0 } ? name : tag, notes, prerelease);
+
+        return await GitHubReleases.CreateOrUpdate(new OctokitGitHubApi(token, apiUrl), repository, data, cancellationToken);
+    }
 
     private static bool IsTrue(string name) => string.Equals(Get(name), "true", StringComparison.OrdinalIgnoreCase);
 
