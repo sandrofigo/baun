@@ -113,8 +113,8 @@ internal static class CliApp
     private static string GetBaunVersion()
     {
         string version = typeof(CliApp).Assembly
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-            .InformationalVersion ?? "0.1.0";
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()!
+            .InformationalVersion;
 
         // Drop build metadata such as "+3a69508".
         int metadata = version.IndexOf('+');

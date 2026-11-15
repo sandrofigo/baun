@@ -4,7 +4,8 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Version>0.1.0</Version>
+    <!-- Placeholder for local builds. Releases get the version from the tag, see docs/releasing.md. -->
+    <Version>0.0.0-dev</Version>
     <Authors>Sandro Figo</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/sandrofigo/baun</PackageProjectUrl>

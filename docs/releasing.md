@@ -30,7 +30,7 @@ baun uses [semantic versioning](https://semver.org). The release tag is the vers
 | Stable | `v1.2.3` | `1.2.3` |
 | Prerelease | `v1.2.3-preview.1` | `1.2.3-preview.1` |
 
-The build rejects any other tag format. The `<Version>` in [`Directory.Build.props`](../Directory.Build.props) is only used for local builds; the tag always decides the published version. You can update it to the released version to keep local builds in step, but it isn't required.
+The build rejects any other tag format. The tag is the only place the version is set: the build passes it to `dotnet pack`. Builds that don't run for a tag use the placeholder version `0.0.0-dev` from [`Directory.Build.props`](../Directory.Build.props), which never needs updating.
 
 ## 2. Update the changelog
 
