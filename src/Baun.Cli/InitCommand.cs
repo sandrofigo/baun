@@ -49,7 +49,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             : CreateBuildAsync(settings, cancellationToken);
 
     /// <summary>
-    /// Writes the bootstrap scripts of an existing build, and the <c>.editorconfig</c> of a project build, overwriting
+    /// Writes the bootstrap scripts of an existing build, and the IDE settings of a project build, overwriting
     /// existing ones, and creates <c>.baun/parameters.json</c> if it's missing. The build itself is left alone.
     /// </summary>
     private async Task<int> UpdateBootstrapScriptsAsync(BuildLocation build, Settings settings, CancellationToken cancellationToken)
@@ -75,7 +75,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
         if (build.ProjectFile is not null)
         {
-            await WriteEditorConfigAsync(cancellationToken);
+            await WriteIdeSettingsAsync(cancellationToken);
         }
 
         await WriteBootstrapScriptsAsync(cancellationToken);
@@ -124,7 +124,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
     /// <summary>
     /// Creates a new build, <c>.baun/parameters.json</c> and by default its bootstrap scripts. Existing build files and
-    /// parameters are never overwritten, but existing bootstrap scripts and the <c>.editorconfig</c> of a project
+    /// parameters are never overwritten, but existing bootstrap scripts and the IDE settings of a project
     /// build are.
     /// </summary>
     private async Task<int> CreateBuildAsync(Settings settings, CancellationToken cancellationToken)
@@ -166,7 +166,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
         if (kind == BuildKind.Project)
         {
-            await WriteEditorConfigAsync(cancellationToken);
+            await WriteIdeSettingsAsync(cancellationToken);
             await AddToSolutionAsync(files.Keys.Single(path => path.EndsWith(".csproj", StringComparison.Ordinal)));
         }
 
@@ -479,25 +479,45 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
     };
 
     /// <summary>
-    /// Writes the <c>.editorconfig</c> of a project build, overwriting an existing one.
+    /// Writes the <c>.editorconfig</c> and <c>_build.csproj.DotSettings</c> of a project build, overwriting existing ones.
     /// </summary>
-    private async Task WriteEditorConfigAsync(CancellationToken cancellationToken)
+    private async Task WriteIdeSettingsAsync(CancellationToken cancellationToken)
     {
-        string path = Path.Combine(context.Directory, "build", ".editorconfig");
-        bool exists = File.Exists(path);
-        await File.WriteAllTextAsync(path, EditorConfig.ReplaceLineEndings("\n"), cancellationToken);
-        console.WriteSuccess($"{(exists ? "Updated" : "Created")} {Markup.Escape(Relative(path))}");
+        foreach ((string name, string content) in new[] { (".editorconfig", EditorConfig), ("_build.csproj.DotSettings", DotSettings) })
+        {
+            string path = Path.Combine(context.Directory, "build", name);
+            bool exists = File.Exists(path);
+            await File.WriteAllTextAsync(path, content.ReplaceLineEndings("\n"), cancellationToken);
+            console.WriteSuccess($"{(exists ? "Updated" : "Created")} {Markup.Escape(Relative(path))}");
+        }
     }
 
     /// <summary>
-    /// Steps are written without the default <c>private</c> modifier and as <c>_ => _</c> lambdas, so IDEs shouldn't
-    /// ask for the modifier or warn about using the <c>_</c> parameter.
+    /// Steps are written without the default <c>private</c> modifier and as <c>_ => _</c> lambdas, and parameters as
+    /// PascalCase fields, so IDEs shouldn't ask for the modifier or warn about the <c>_</c> parameter or the parameter
+    /// names.
     /// </summary>
     private const string EditorConfig = """
         [*.cs]
         dotnet_style_require_accessibility_modifiers = omit_if_default
         csharp_default_private_modifier = implicit
         resharper_all_underscore_local_parameter_name_highlighting = none
+        resharper_csharp_naming_rule.private_instance_fields = AaBb, _+aaBb, aaBb
+
+        """;
+
+    /// <summary>
+    /// The settings of <see cref="EditorConfig"/> for ReSharper and Rider, which don't read <c>.editorconfig</c> when
+    /// it's turned off in their options.
+    /// </summary>
+    private const string DotSettings = """
+        <wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        	<s:String x:Key="/Default/CodeInspection/Highlighting/InspectionSeverities/=AllUnderscoreLocalParameterName/@EntryIndexedValue">DO_NOT_SHOW</s:String>
+        	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpCodeStyle/DEFAULT_INTERNAL_MODIFIER/@EntryValue">Implicit</s:String>
+        	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpCodeStyle/DEFAULT_PRIVATE_MODIFIER/@EntryValue">Implicit</s:String>
+        	<s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/PredefinedNamingRules/=PrivateInstanceFields/@EntryIndexedValue">&lt;Policy Inspect="True" Prefix="" Suffix="" Style="AaBb"&gt;&lt;ExtraRule Prefix="_" Suffix="" Style="aaBb" /&gt;&lt;ExtraRule Prefix="" Suffix="" Style="aaBb" /&gt;&lt;/Policy&gt;</s:String>
+        	<s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/UserRules/=4a98fdf6_002D7d98_002D4f5a_002Dafeb_002Dea44ad98c70c/@EntryIndexedValue">&lt;Policy&gt;&lt;Descriptor Staticness="Instance" AccessRightKinds="Private" Description="Instance fields (private)"&gt;&lt;ElementKinds&gt;&lt;Kind Name="FIELD" /&gt;&lt;Kind Name="READONLY_FIELD" /&gt;&lt;/ElementKinds&gt;&lt;/Descriptor&gt;&lt;Policy Inspect="True" Prefix="" Suffix="" Style="AaBb"&gt;&lt;ExtraRule Prefix="_" Suffix="" Style="aaBb" /&gt;&lt;ExtraRule Prefix="" Suffix="" Style="aaBb" /&gt;&lt;/Policy&gt;&lt;/Policy&gt;</s:String>
+        </wpf:ResourceDictionary>
 
         """;
 

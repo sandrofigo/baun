@@ -101,6 +101,7 @@ public sealed class CliAppTests : IDisposable
         Assert.Contains("Created build.ps1", console.Output);
         Assert.Equal("// my build\n", File.ReadAllText(Path.Combine(root, "build", "Build.cs")));
         Assert.Contains("csharp_default_private_modifier = implicit", File.ReadAllText(Path.Combine(root, "build", ".editorconfig")));
+        Assert.Contains("DEFAULT_PRIVATE_MODIFIER", File.ReadAllText(Path.Combine(root, "build", "_build.csproj.DotSettings")));
         Assert.Equal(["add", "--chmod=+x", "--", "build.sh"], Assert.Single(startedProcesses).ArgumentList);
     }
 
@@ -210,6 +211,7 @@ public sealed class CliAppTests : IDisposable
         Assert.Contains("<PackageReference Include=\"Baun\" Version=\"", File.ReadAllText(projectFile));
         Assert.Contains("<RootNamespace></RootNamespace>", File.ReadAllText(projectFile));
         Assert.Contains("csharp_default_private_modifier = implicit", File.ReadAllText(Path.Combine(root, "build", ".editorconfig")));
+        Assert.Contains("Instance fields (private)", File.ReadAllText(Path.Combine(root, "build", "_build.csproj.DotSettings")));
         Assert.Equal(new BuildLocation(buildFile, projectFile), BuildLocator.Find(root));
     }
 
