@@ -11,7 +11,7 @@ namespace Baun;
 /// <see cref="Directory"/> and <see cref="Path"/> methods. A string converts to an absolute path with an explicit cast:
 /// <c>(AbsolutePath)"/tmp/output"</c>. Paths are compared case-insensitively on Windows and macOS.
 /// </remarks>
-[DebuggerDisplay("{_path}")]
+[DebuggerDisplay($"{{{nameof(_path)}}}")]
 #if BAUN_CLI
 internal
 #else
