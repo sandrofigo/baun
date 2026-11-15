@@ -30,6 +30,8 @@ internal sealed class ThemedHelpProvider(ICommandAppSettings settings, IAnsiCons
             Out = new AnsiConsoleOutput(writer),
         });
 
+        // Spectre.Console turns ANSI back on in some environments, such as GitHub Actions, despite AnsiSupport.No.
+        plain.Profile.Capabilities.Ansi = false;
         plain.Profile.Width = console.Profile.Width;
         plain.Profile.Capabilities.Unicode = console.Profile.Capabilities.Unicode;
 
