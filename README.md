@@ -102,11 +102,20 @@ Every build class has a `RootDirectory` property with the root directory of the 
 Step Clean() => _ => _
     .Executes(() =>
     {
-        Directory.Delete(Path.Combine(RootDirectory, "artifacts"), recursive: true);
+        Directory.Delete(RootDirectory / "artifacts", recursive: true);
     });
 ```
 
 The root directory is the nearest folder that contains a `.baun` folder, searched from the current folder up through its parents. Without a `.baun` folder, it's the current folder. `baun init` creates `.baun` (see [Parameters](#parameters)). The source generator adds the property, unless the build class already has a member named `RootDirectory`. Outside the build class, use `BaunBuild.RootDirectory`.
+
+`RootDirectory` is an `AbsolutePath`, baun's type for absolute paths of files and directories. The `/` operator combines it with a relative path, which may have several segments and `..`:
+
+```csharp
+AbsolutePath ArtifactsDirectory => RootDirectory / "artifacts";
+AbsolutePath Package => ArtifactsDirectory / "packages" / "App.1.0.0.nupkg";
+```
+
+An `AbsolutePath` converts to a `string` implicitly, so you can pass it to `File`, `Directory`, `Path` and process arguments. To turn a string into an `AbsolutePath`, cast it: `(AbsolutePath)"/tmp/output"`. The cast throws for a relative path, and `/` throws for a rooted one. `Name`, `Extension` and `Parent` return the parts of a path. Two paths are equal when they name the same file, ignoring case on Windows and macOS, and a trailing separator doesn't count.
 
 baun includes a source generator that completes the `partial class Build` at compile time. It finds every method that returns a `Step`, takes each step's name from its method name, and registers it with the build. This avoids scanning the build with reflection, and you don't need to register anything by hand. It also reports mistakes as compiler errors, such as a build class that isn't `partial` or an `[Entry]` that doesn't name a step. baun checks for circular dependencies before it runs any step.
 
@@ -168,7 +177,7 @@ Names are case-insensitive and ignore `-` and `_`, so `NuGetApiKey` is set by `-
 
 On the command line, a value follows the option, as in `--configuration Release` or `--configuration=Release`. A `bool` parameter given alone, such as `--verbose`, is `true`.
 
-Parameters can be `string`, `bool`, `char`, any number type, an enum, `Guid`, `Uri`, `TimeSpan`, a nullable of these, or an array of them. Enum values are case-insensitive. An array takes its values from the first source that has any, without merging sources:
+Parameters can be `string`, `bool`, `char`, any number type, an enum, `Guid`, `Uri`, `TimeSpan`, `AbsolutePath`, a nullable of these, or an array of them. Enum values are case-insensitive. A relative path for an `AbsolutePath` parameter is relative to `RootDirectory`, so `--output artifacts` means the same from any folder. An array takes its values from the first source that has any, without merging sources:
 
 - On the command line, repeat the option: `--projects src/App --projects src/Lib`
 - In an environment variable, separate them with commas: `PROJECTS=src/App,src/Lib`
@@ -193,7 +202,7 @@ Step Pack() => _ => _
     });
 ```
 
-A property is `null` (or `false`) when its variable isn't set or is empty, such as outside GitHub Actions. The variables are read each time a property is used, so you can set them yourself to try a run locally: `GITHUB_REF_TYPE=tag GITHUB_REF_NAME=v1.2.3 baun Pack`. To also accept a value on the command line, use the property as a parameter's initial value:
+Properties with a path, such as `GitHub.Workspace`, `GitHub.StepSummary` and `GitHub.RunnerTemp`, return an `AbsolutePath`. A property is `null` (or `false`) when its variable isn't set or is empty, such as outside GitHub Actions. The variables are read each time a property is used, so you can set them yourself to try a run locally: `GITHUB_REF_TYPE=tag GITHUB_REF_NAME=v1.2.3 baun Pack`. To also accept a value on the command line, use the property as a parameter's initial value:
 
 ```csharp
 [Parameter("Tag to release")]
@@ -225,7 +234,7 @@ steps:
 
 ### Changelog
 
-`Changelog` reads a changelog in the [Keep a Changelog](https://keepachangelog.com/) format. `Changelog.Read()` reads `CHANGELOG.md` in `RootDirectory`. Pass a path to read another file, or use `Changelog.Parse(text)` for text. An invalid file throws a `ChangelogFormatException` that names the line.
+`Changelog` reads a changelog in the [Keep a Changelog](https://keepachangelog.com/) format. `Changelog.Read()` reads `CHANGELOG.md` in `RootDirectory`. Pass an `AbsolutePath` to read another file, such as `Changelog.Read(RootDirectory / "docs" / "CHANGES.md")`, or use `Changelog.Parse(text)` for text. An invalid file throws a `ChangelogFormatException` that names the line.
 
 A changelog has the `Unreleased` section, its `Releases` in the order of the file, and the `LatestRelease` (the one with the highest version). `GetRelease("1.2.3")` returns a release and throws if there's none, while `TryGetRelease` doesn't throw. Each `ChangelogRelease` has its `Version`, `Date`, `IsYanked`, its `Link` from the end of the file (such as `[1.2.3]: https://github.com/...`) and `Categories`, such as `Added` and `Fixed`, with their `Entries`. `GetReleaseNotes("1.2.3")` (or a release's `Notes`) returns the categories with entries as Markdown, in the order of Keep a Changelog and without the release heading, so they work as the notes of a GitHub release:
 

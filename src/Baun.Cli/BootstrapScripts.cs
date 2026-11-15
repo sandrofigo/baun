@@ -19,11 +19,11 @@ internal static class BootstrapScripts
     /// <summary>
     /// Gets the scripts to create in <paramref name="directory"/>, keyed by path.
     /// </summary>
-    public static Dictionary<string, string> Create(string directory) => new()
+    public static Dictionary<AbsolutePath, string> Create(AbsolutePath directory) => new()
     {
-        [Path.Combine(directory, ShellScriptName)] = ShellScript.ReplaceLineEndings("\n"),
-        [Path.Combine(directory, "build.ps1")] = PowerShellScript.ReplaceLineEndings("\n"),
-        [Path.Combine(directory, "build.cmd")] = CmdScript
+        [directory / ShellScriptName] = ShellScript.ReplaceLineEndings("\n"),
+        [directory / "build.ps1"] = PowerShellScript.ReplaceLineEndings("\n"),
+        [directory / "build.cmd"] = CmdScript
     };
 
     private const string ShellScript = """

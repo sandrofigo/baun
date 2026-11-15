@@ -12,7 +12,7 @@ namespace Baun.Cli;
 /// <param name="BaunVersion">The version of the Baun package that new builds reference.</param>
 /// <param name="RunProcess">Starts a process and returns its exit code.</param>
 /// <param name="Build">The existing build, or <see langword="null"/> when there is none yet.</param>
-internal sealed record CliContext(string Directory, string BaunVersion, Func<ProcessStartInfo, Task<int>> RunProcess, BuildLocation? Build);
+internal sealed record CliContext(AbsolutePath Directory, string BaunVersion, Func<ProcessStartInfo, Task<int>> RunProcess, BuildLocation? Build);
 
 internal static class CliApp
 {
@@ -31,7 +31,7 @@ internal static class CliApp
     /// <returns>The process exit code.</returns>
     public static async Task<int> RunAsync(
         IReadOnlyList<string> arguments,
-        string directory,
+        AbsolutePath directory,
         IAnsiConsole console,
         Func<ProcessStartInfo, Task<int>> runProcess)
     {

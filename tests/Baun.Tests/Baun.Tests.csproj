@@ -25,7 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Baun\Baun.csproj" />
-    <ProjectReference Include="..\..\src\Baun.Cli\Baun.Cli.csproj" />
+    <ProjectReference Include="..\..\src\Baun.Cli\Baun.Cli.csproj" Aliases="cli" />
     <!-- Referenced both as an analyzer, so the test builds get their steps generated, and as a library for generator tests. -->
     <ProjectReference Include="..\..\src\Baun.SourceGenerators\Baun.SourceGenerators.csproj" OutputItemType="Analyzer" />
   </ItemGroup>

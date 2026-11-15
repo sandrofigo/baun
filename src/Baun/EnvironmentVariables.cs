@@ -23,4 +23,10 @@ internal static class EnvironmentVariables
     /// set or not a number.
     /// </summary>
     public static long? GetNumber(string name) => long.TryParse(Get(name), NumberStyles.None, CultureInfo.InvariantCulture, out long number) ? number : null;
+
+    /// <summary>
+    /// Returns the variable <paramref name="name"/> as an absolute path, or <see langword="null"/> if it's not set or not an
+    /// absolute path.
+    /// </summary>
+    public static AbsolutePath? GetPath(string name) => Get(name) is { } value && Path.IsPathFullyQualified(value) ? (AbsolutePath)value : null;
 }

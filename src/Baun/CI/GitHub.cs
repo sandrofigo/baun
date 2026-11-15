@@ -122,7 +122,7 @@ public static class GitHub
     /// <summary>
     /// Gets the path of the file on the runner with the full webhook payload of the event, from <c>GITHUB_EVENT_PATH</c>.
     /// </summary>
-    public static string? EventPath => Get("GITHUB_EVENT_PATH");
+    public static AbsolutePath? EventPath => GetPath("GITHUB_EVENT_PATH");
 
     /// <summary>
     /// Gets the name of the workflow, from <c>GITHUB_WORKFLOW</c>. If the workflow file doesn't name the workflow, it's
@@ -180,13 +180,13 @@ public static class GitHub
     /// <summary>
     /// Gets the default working directory of the job on the runner, from <c>GITHUB_WORKSPACE</c>.
     /// </summary>
-    public static string? Workspace => Get("GITHUB_WORKSPACE");
+    public static AbsolutePath? Workspace => GetPath("GITHUB_WORKSPACE");
 
     /// <summary>
     /// Gets the path of the file on the runner that holds the job summary of the current step, from <c>GITHUB_STEP_SUMMARY</c>.
     /// Markdown appended to it is shown on the summary page of the run.
     /// </summary>
-    public static string? StepSummary => Get("GITHUB_STEP_SUMMARY");
+    public static AbsolutePath? StepSummary => GetPath("GITHUB_STEP_SUMMARY");
 
     /// <summary>
     /// Gets the number of days the logs and artifacts of the run are kept, from <c>GITHUB_RETENTION_DAYS</c>.
@@ -231,12 +231,12 @@ public static class GitHub
     /// <summary>
     /// Gets the temporary directory of the runner, which is emptied at the beginning and end of each job, from <c>RUNNER_TEMP</c>.
     /// </summary>
-    public static string? RunnerTemp => Get("RUNNER_TEMP");
+    public static AbsolutePath? RunnerTemp => GetPath("RUNNER_TEMP");
 
     /// <summary>
     /// Gets the directory with the preinstalled tools of GitHub-hosted runners, from <c>RUNNER_TOOL_CACHE</c>.
     /// </summary>
-    public static string? RunnerToolCache => Get("RUNNER_TOOL_CACHE");
+    public static AbsolutePath? RunnerToolCache => GetPath("RUNNER_TOOL_CACHE");
 
     /// <summary>
     /// Gets whether debug logging is enabled for the run: <c>RUNNER_DEBUG</c> is <c>1</c>.

@@ -42,9 +42,9 @@ public sealed class Changelog
     /// <param name="path">The path of the file. Defaults to <c>CHANGELOG.md</c> in <see cref="BaunBuild.RootDirectory"/>.</param>
     /// <exception cref="FileNotFoundException">The file doesn't exist.</exception>
     /// <exception cref="ChangelogFormatException">The file isn't in the Keep a Changelog format.</exception>
-    public static Changelog Read(string? path = null)
+    public static Changelog Read(AbsolutePath? path = null)
     {
-        path ??= Path.Combine(BaunBuild.RootDirectory, DefaultFileName);
+        path ??= BaunBuild.RootDirectory / DefaultFileName;
 
         if (!File.Exists(path))
         {

@@ -6,7 +6,7 @@ namespace Baun.Tests;
 
 public sealed class ParameterTests : IDisposable
 {
-    private readonly string root = Directory.CreateTempSubdirectory("baun-parameter-tests-").FullName;
+    private readonly AbsolutePath root = (AbsolutePath)Directory.CreateTempSubdirectory("baun-parameter-tests-").FullName;
 
     public void Dispose() => Directory.Delete(root, recursive: true);
 
@@ -264,45 +264,48 @@ public sealed class ParameterTests : IDisposable
     [Fact]
     public void Finds_the_parameters_file_in_the_nearest_baun_folder_of_a_parent()
     {
-        var repository = Directory.CreateDirectory(Path.Combine(root, "repo"));
-        Directory.CreateDirectory(Path.Combine(repository.FullName, ".baun"));
-        Directory.CreateDirectory(Path.Combine(repository.FullName, ".git")); // ignored, only .baun counts
-        var subfolder = Directory.CreateDirectory(Path.Combine(repository.FullName, "src", "app"));
+        var repository = root / "repo";
+        Directory.CreateDirectory(repository / ".baun");
+        Directory.CreateDirectory(repository / ".git"); // ignored, only .baun counts
+        var subfolder = repository / "src" / "app";
+        Directory.CreateDirectory(subfolder);
 
-        Assert.Equal(Path.Combine(repository.FullName, ".baun", "parameters.json"), ParameterSources.ForDirectory(subfolder.FullName).ParametersFile);
+        Assert.Equal(repository / ".baun" / "parameters.json", ParameterSources.ForDirectory(subfolder).ParametersFile);
     }
 
     [Fact]
     public void Prefers_the_nearest_baun_folder()
     {
-        Directory.CreateDirectory(Path.Combine(root, ".baun"));
-        var nested = Directory.CreateDirectory(Path.Combine(root, "nested"));
-        Directory.CreateDirectory(Path.Combine(nested.FullName, ".baun"));
+        Directory.CreateDirectory(root / ".baun");
+        var nested = root / "nested";
+        Directory.CreateDirectory(nested / ".baun");
 
-        Assert.Equal(Path.Combine(nested.FullName, ".baun", "parameters.json"), ParameterSources.ForDirectory(nested.FullName).ParametersFile);
+        Assert.Equal(nested / ".baun" / "parameters.json", ParameterSources.ForDirectory(nested).ParametersFile);
     }
 
     [Fact]
     public void Finds_the_root_directory_by_the_nearest_baun_folder()
     {
-        Directory.CreateDirectory(Path.Combine(root, ".baun"));
-        var subfolder = Directory.CreateDirectory(Path.Combine(root, "src", "app"));
+        Directory.CreateDirectory(root / ".baun");
+        var subfolder = root / "src" / "app";
+        Directory.CreateDirectory(subfolder);
 
-        Assert.Equal(root, BaunBuild.FindRootDirectory(subfolder.FullName));
+        Assert.Equal(root, BaunBuild.FindRootDirectory(subfolder));
     }
 
     [Fact]
     public void Uses_the_directory_itself_as_the_root_directory_without_a_baun_folder()
     {
-        var subfolder = Directory.CreateDirectory(Path.Combine(root, "src"));
+        var subfolder = root / "src";
+        Directory.CreateDirectory(subfolder);
 
-        Assert.Equal(subfolder.FullName, BaunBuild.FindRootDirectory(subfolder.FullName));
+        Assert.Equal(subfolder, BaunBuild.FindRootDirectory(subfolder));
     }
 
     [Fact]
     public void Has_no_parameters_file_without_a_baun_folder()
     {
-        Directory.CreateDirectory(Path.Combine(root, ".git"));
+        Directory.CreateDirectory(root / ".git");
 
         Assert.Null(ParameterSources.ForDirectory(root).ParametersFile);
     }
@@ -336,12 +339,33 @@ public sealed class ParameterTests : IDisposable
     }
 
     [Fact]
+    public async Task Resolves_relative_paths_against_the_root_directory()
+    {
+        var absolute = root / "out";
+
+        var (result, build) = await RunAsync(["--output", "artifacts/packages", "--inputs", absolute, "--inputs", "src"]);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(BaunBuild.RootDirectory / "artifacts" / "packages", build.Output);
+        Assert.Equal([absolute, BaunBuild.RootDirectory / "src"], build.Inputs);
+    }
+
+    [Fact]
+    public async Task Reads_paths_from_the_parameters_file()
+    {
+        var (result, build) = await RunAsync([], json: """{ "Output": "artifacts" }""");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(BaunBuild.RootDirectory / "artifacts", build.Output);
+    }
+
+    [Fact]
     public void Registers_parameters_in_declaration_order()
     {
         var parameters = ((IBaunBuild)new ParameterBuild()).GetParameters();
 
         Assert.Equal(
-            ["Configuration", "NuGetApiKey", "Verbose", "Retries", "Target", "Projects", "Platforms", "nuget-source"],
+            ["Configuration", "NuGetApiKey", "Verbose", "Retries", "Target", "Projects", "Platforms", "nuget-source", "Output", "Inputs"],
             parameters.Select(parameter => parameter.Name));
         Assert.Equal(typeof(Platform?), parameters[4].Type);
         Assert.Equal("Configuration to build", parameters[0].Description);
@@ -362,10 +386,10 @@ public sealed class ParameterTests : IDisposable
         return (new RunResult(exitCode, console.Output), build);
     }
 
-    private string WriteParametersFile(string json)
+    private AbsolutePath WriteParametersFile(string json)
     {
-        var path = Path.Combine(root, ".baun", "parameters.json");
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var path = root / ".baun" / "parameters.json";
+        Directory.CreateDirectory(path.Parent!);
         File.WriteAllText(path, json);
         return path;
     }
@@ -405,6 +429,12 @@ internal sealed partial class ParameterBuild
 
     [Parameter(Name = "nuget-source")]
     public Uri Source = new("https://api.nuget.org/v3/index.json");
+
+    [Parameter]
+    public AbsolutePath? Output;
+
+    [Parameter]
+    public AbsolutePath[] Inputs = [];
 
     public List<string> Executed { get; } = [];
 
