@@ -112,6 +112,26 @@ public sealed class ChangelogTests
     }
 
     [Fact]
+    public void Reads_the_links_of_releases()
+    {
+        Changelog changelog = Changelog.Parse(
+            Text.Replace("[1.1.0]: ", "[Unreleased]: https://github.com/octocat/Hello-World/compare/v1.1.0...HEAD\n[1.1.0]: "));
+
+        Assert.Equal("https://github.com/octocat/Hello-World/compare/v1.1.0...HEAD", changelog.Unreleased?.Link);
+        Assert.Equal("https://github.com/octocat/Hello-World/compare/v1.0.0...v1.1.0", changelog.GetRelease("1.1.0").Link);
+        Assert.Equal("https://github.com/octocat/Hello-World/releases/tag/v1.0.0", changelog.GetRelease("1.0.0").Link);
+    }
+
+    [Fact]
+    public void A_release_without_a_link_has_no_link()
+    {
+        Changelog changelog = Changelog.Parse(Text.Replace("[1.0.0]: https://github.com/octocat/Hello-World/releases/tag/v1.0.0", ""));
+
+        Assert.Null(changelog.Unreleased?.Link);
+        Assert.Null(changelog.GetRelease("1.0.0").Link);
+    }
+
+    [Fact]
     public void GetRelease_throws_for_a_missing_version()
     {
         Changelog changelog = Changelog.Parse(Text);

@@ -12,6 +12,14 @@ namespace Baun.CI;
 public sealed record ChangelogRelease(string Version, DateOnly? Date, bool IsYanked, IReadOnlyList<ChangelogCategory> Categories)
 {
     /// <summary>
+    /// Gets the URL of the release's link at the end of the changelog, such as
+    /// <c>https://github.com/octocat/Hello-World/compare/v1.0.0...v1.1.0</c> from
+    /// <c>[1.1.0]: https://github.com/octocat/Hello-World/compare/v1.0.0...v1.1.0</c>, or <see langword="null"/> if
+    /// the changelog has no link for the release.
+    /// </summary>
+    public string? Link { get; init; }
+
+    /// <summary>
     /// Gets the categories and entries of the release as Markdown, without its <c>## [version] - date</c> heading, for
     /// example as the notes of a GitHub release, which shows its title instead. Categories without entries are left out,
     /// and lines end with <c>\n</c>.

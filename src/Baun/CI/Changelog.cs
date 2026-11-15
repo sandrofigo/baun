@@ -85,10 +85,10 @@ public sealed class Changelog
         Release? latest = parsed.GetLatestRelease();
 
         List<Release> released = parsed.Releases.Where(release => release != unreleased).ToList();
-        ChangelogRelease[] releases = released.Select(Map).ToArray();
+        ChangelogRelease[] releases = released.Select(release => Map(release, parsed.VersionLinks)).ToArray();
 
         return new Changelog(
-            unreleased is null ? null : Map(unreleased),
+            unreleased is null ? null : Map(unreleased, parsed.VersionLinks),
             releases,
             latest is null ? null : releases[released.IndexOf(latest)]);
     }
@@ -126,7 +126,7 @@ public sealed class Changelog
         return release is not null;
     }
 
-    private static ChangelogRelease Map(Release release) =>
+    private static ChangelogRelease Map(Release release, List<VersionLink> links) =>
         new(
             release.Version,
             release.ReleaseDate?.ToDateOnly(),
@@ -135,5 +135,8 @@ public sealed class Changelog
                 .OrderBy(category => category.Type)
                 .Select(category => new ChangelogCategory(
                     category.Type.ToString(), category.Entries.Select(entry => entry.Text.ReplaceLineEndings("\n")).ToArray()))
-                .ToArray());
+                .ToArray())
+        {
+            Link = links.FirstOrDefault(link => string.Equals(link.Version, release.Version, StringComparison.OrdinalIgnoreCase))?.Url,
+        };
 }

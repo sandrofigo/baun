@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `ChangelogRelease.Link` returns the link of a release at the end of the changelog, such as `[1.2.3]: https://github.com/sandrofigo/baun/compare/v1.2.2...v1.2.3`, or `null` if it has none.
+
 ## [0.4.0] - 2026-11-15
 
 ### Added
