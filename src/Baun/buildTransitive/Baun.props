@@ -1,8 +1,9 @@
 <Project>
 
-  <!-- Imports the Baun namespace in every build, so builds don't need a using directive for baun's types. -->
+  <!-- Imports baun's namespaces in every build, so builds don't need using directives for baun's types. -->
   <ItemGroup>
     <Using Include="Baun" />
+    <Using Include="Baun.CI" />
   </ItemGroup>
 
 </Project>

@@ -110,7 +110,7 @@ The root directory is the nearest folder that contains a `.baun` folder, searche
 
 baun includes a source generator that completes the `partial class Build` at compile time. It finds every method that returns a `Step`, takes each step's name from its method name, and registers it with the build. This avoids scanning the build with reflection, and you don't need to register anything by hand. It also reports mistakes as compiler errors, such as a build class that isn't `partial` or an `[Entry]` that doesn't name a step. baun checks for circular dependencies before it runs any step.
 
-baun's types, such as `Step`, `Entry` and `BaunBuild`, are in the `Baun` namespace. The Baun package imports it automatically, so a build never needs `using` lines for baun itself.
+baun's types, such as `Step`, `Entry` and `BaunBuild`, are in the `Baun` namespace, and the types for CI servers, such as `GitHub`, are in `Baun.CI`. The Baun package imports both automatically, so a build never needs `using` lines for baun itself.
 
 The entry point comes from baun's source generator: when a build has no top-level statements and no `Main` method, the generator adds one that runs the build class. To run code before or after the build, write the entry point yourself with `BaunBuild.RunAsync`:
 
@@ -175,6 +175,56 @@ Parameters can be `string`, `bool`, `char`, any number type, an enum, `Guid`, `U
 - In `parameters.json`, use a JSON array, or a single value for an array with one item
 
 `baun --help` lists the parameters. baun reports an invalid value, such as `--retries many` for an `int`, as an error before it runs any step. An unknown key in `parameters.json` is also an error, so typos don't go unnoticed. The source generator reports parameters it can't set as compiler errors, such as a `readonly` field, a property without a setter or an unsupported type (`BAUN008` to `BAUN011`).
+
+## CI
+
+### GitHub Actions
+
+`GitHub` reads the [default environment variables](https://docs.github.com/en/actions/reference/variables-reference#default-environment-variables) of the GitHub Actions workflow run the build runs in:
+
+```csharp
+Step Pack() => _ => _
+    .Executes(async () =>
+    {
+        if (GitHub.Tag is { } tag)
+        {
+            // runs for a tag, such as v1.2.3
+        }
+    });
+```
+
+| Property | Variable | Example |
+| --- | --- | --- |
+| `IsActions` | `GITHUB_ACTIONS` | `true` in GitHub Actions |
+| `Ref` | `GITHUB_REF` | `refs/tags/v1.2.3` |
+| `RefName` | `GITHUB_REF_NAME` | `v1.2.3` |
+| `RefType`, `IsBranch`, `IsTag` | `GITHUB_REF_TYPE` | `GitHubRefType.Tag` |
+| `Tag` | `GITHUB_REF_NAME` when the ref is a tag | `v1.2.3` |
+| `IsRefProtected` | `GITHUB_REF_PROTECTED` | `true` |
+| `HeadRef`, `BaseRef` | `GITHUB_HEAD_REF`, `GITHUB_BASE_REF` | `feature-branch-1`, `main` |
+| `Sha` | `GITHUB_SHA` | `ffac537e6cbbf934b08745a378932722df287a53` |
+| `Repository`, `RepositoryId` | `GITHUB_REPOSITORY`, `GITHUB_REPOSITORY_ID` | `octocat/Hello-World`, `123456789` |
+| `RepositoryOwner`, `RepositoryOwnerId` | `GITHUB_REPOSITORY_OWNER`, `GITHUB_REPOSITORY_OWNER_ID` | `octocat`, `1234567` |
+| `EventName`, `EventPath` | `GITHUB_EVENT_NAME`, `GITHUB_EVENT_PATH` | `workflow_dispatch`, `/github/workflow/event.json` |
+| `Workflow`, `WorkflowRef`, `WorkflowSha` | `GITHUB_WORKFLOW`, `GITHUB_WORKFLOW_REF`, `GITHUB_WORKFLOW_SHA` | `My test workflow` |
+| `Job` | `GITHUB_JOB` | `greeting_job` |
+| `Actor`, `ActorId`, `TriggeringActor` | `GITHUB_ACTOR`, `GITHUB_ACTOR_ID`, `GITHUB_TRIGGERING_ACTOR` | `octocat`, `1234567` |
+| `ServerUrl`, `ApiUrl`, `GraphQLUrl` | `GITHUB_SERVER_URL`, `GITHUB_API_URL`, `GITHUB_GRAPHQL_URL` | `https://github.com` |
+| `Workspace` | `GITHUB_WORKSPACE` | `/home/runner/work/my-repo-name/my-repo-name` |
+| `StepSummary` | `GITHUB_STEP_SUMMARY` | path of the job summary file |
+| `RetentionDays` | `GITHUB_RETENTION_DAYS` | `90` |
+| `RunId`, `RunNumber`, `RunAttempt` | `GITHUB_RUN_ID`, `GITHUB_RUN_NUMBER`, `GITHUB_RUN_ATTEMPT` | `1658821493`, `3`, `1` |
+| `RunnerOs`, `RunnerArch` | `RUNNER_OS`, `RUNNER_ARCH` | `Linux`, `X64` |
+| `RunnerName`, `RunnerEnvironment` | `RUNNER_NAME`, `RUNNER_ENVIRONMENT` | `Hosted Agent`, `github-hosted` |
+| `RunnerTemp`, `RunnerToolCache` | `RUNNER_TEMP`, `RUNNER_TOOL_CACHE` | `D:\a\_temp` |
+| `IsDebug` | `RUNNER_DEBUG` | `true` when debug logging is enabled |
+
+A property is `null` (or `false`) when its variable isn't set or is empty, such as outside GitHub Actions. The variables are read each time a property is used, so you can set them yourself to try a run locally: `GITHUB_REF_TYPE=tag GITHUB_REF_NAME=v1.2.3 baun Pack`. To also accept a value on the command line, use the property as a parameter's initial value:
+
+```csharp
+[Parameter("Tag to release")]
+string? Tag = GitHub.Tag;
+```
 
 ## Single file or project
 
