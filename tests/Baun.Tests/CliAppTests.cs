@@ -216,7 +216,7 @@ public sealed class CliAppTests : IDisposable
         var exitCode = await RunAsync("init");
 
         Assert.Equal(0, exitCode);
-        Assert.Contains($"✓ Which kind of build do you want to create? {expectedAnswer}", console.Output);
+        Assert.Contains($"✓ Which kind of build do you want to create? › {expectedAnswer}", console.Output);
         Assert.True(File.Exists(Path.Combine(root, expectedFile)));
     }
 
