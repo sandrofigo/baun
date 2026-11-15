@@ -27,10 +27,13 @@ partial class Build
         }
     }
 
-    static string GetRequiredEnvironmentVariable(string name) =>
-        Environment.GetEnvironmentVariable(name) is { Length: > 0 } value
+    /// <summary>
+    /// Returns the value of a parameter that a step needs, and throws if it isn't set.
+    /// </summary>
+    static string Required(string? value, string option) =>
+        value is { Length: > 0 }
             ? value
-            : throw new InvalidOperationException($"The environment variable {name} isn't set.");
+            : throw new InvalidOperationException($"The parameter --{option} isn't set. Pass it on the command line or as the environment variable {option.Replace('-', '_').ToUpperInvariant()}.");
 
     /// <summary>
     /// Gets the categories and entries of <paramref name="release"/> without its heading, which the GitHub release
@@ -45,14 +48,13 @@ partial class Build
                 .Select(category => category.ToString()));
 
     /// <summary>
-    /// Creates the GitHub release for <paramref name="tag"/>, or updates its notes if it already exists, so the step
-    /// can be run again.
+    /// Creates the GitHub release for <paramref name="tag"/> in <paramref name="repository"/> (owner/name), or updates
+    /// its notes if it already exists, so the step can be run again.
     /// </summary>
-    static async Task CreateOrUpdateGitHubRelease(string tag, string notes, bool prerelease)
+    static async Task CreateOrUpdateGitHubRelease(string token, string repository, string tag, string notes, bool prerelease)
     {
-        string token = GetRequiredEnvironmentVariable("GITHUB_TOKEN");
-        string[] repository = GetRequiredEnvironmentVariable("GITHUB_REPOSITORY").Split('/');
-        (string owner, string name) = (repository[0], repository[1]);
+        string[] parts = repository.Split('/');
+        (string owner, string name) = (parts[0], parts[1]);
 
         var client = new GitHub.GitHubClient(new GitHub.ProductHeaderValue("baun-build"))
         {
