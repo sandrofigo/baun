@@ -93,7 +93,7 @@ internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console)
             table.AddRow(
                 Markup.Escape(result.Name),
                 status,
-                result.Duration is { } duration ? Format(duration) : "[grey]-[/]");
+                result.Duration is { } duration ? FormatSummaryDuration(duration) : "[grey]-[/]");
         }
 
         console.WriteLine();
@@ -227,8 +227,11 @@ internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console)
 
     private static string Format(TimeSpan duration) =>
         duration.TotalSeconds < 1
-            ? $"{duration.TotalMilliseconds:0} ms"
-            : $"{duration.TotalSeconds:0.0} s";
+            ? $"{duration.TotalMilliseconds:0}ms"
+            : $"{duration.TotalSeconds:0.0}s";
+
+    private static string FormatSummaryDuration(TimeSpan duration) =>
+        duration.TotalSeconds < 1 ? "<1s" : Format(duration);
 
     private sealed class ResolvedStep(string name, MethodInfo method, bool isEntry, StepBuilder builder)
     {

@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `baun init --project` names the build project `build/_build.csproj` instead of `build/Build.csproj`, and the bootstrap scripts run `build/_build.csproj`.
+- The build summary shows step durations under one second as `<1s` instead of milliseconds.
+- Durations are written without a space before the unit, such as `1.2s` and `350ms`.
 
 ## [0.2.0] - 2026-11-15
 
