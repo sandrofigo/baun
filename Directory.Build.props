@@ -11,6 +11,9 @@
     <PackageProjectUrl>https://github.com/sandrofigo/baun</PackageProjectUrl>
     <RepositoryUrl>https://github.com/sandrofigo/baun</RepositoryUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- Symbol packages (.snupkg) for the nuget.org symbol server. dotnet nuget push pushes them with the packages. -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>

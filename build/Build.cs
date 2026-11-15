@@ -86,7 +86,7 @@ partial class Build
         });
 
     /// <summary>
-    /// Pushes the packages in the artifacts folder to nuget.org.
+    /// Pushes the packages in the artifacts folder to nuget.org, along with their symbol packages (.snupkg).
     /// </summary>
     /// <remarks>
     /// Doesn't depend on <see cref="ValidateChangelog"/>: the publish job can be approved on a later day than the

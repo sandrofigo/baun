@@ -141,7 +141,7 @@ Pushing the tag starts the `Release` workflow. Don't create the GitHub release y
 1. Open the **Actions** tab and select the `Release` run for the new tag.
 2. The `build` job runs `./build.sh Pack`: it validates the changelog, tests and packs both packages. If it fails, nothing has been published.
 3. The `publish` job waits for approval if the `release` environment has required reviewers. Click **Review deployments** and approve.
-4. The `publish` job logs in to nuget.org and runs `./build.sh GitHubRelease`, which pushes both packages and then creates the GitHub release for the tag, marked as a pre-release for prerelease versions.
+4. The `publish` job logs in to nuget.org and runs `./build.sh GitHubRelease`, which pushes both packages with their symbol packages (`.snupkg`) and then creates the GitHub release for the tag, marked as a pre-release for prerelease versions.
 
 ## 7. Check the published packages
 
