@@ -50,7 +50,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
     /// <summary>
     /// Writes the bootstrap scripts of an existing build, and the <c>.editorconfig</c> of a project build, overwriting
-    /// existing ones. The build itself is left alone.
+    /// existing ones, and creates <c>.baun/parameters.json</c> if it's missing. The build itself is left alone.
     /// </summary>
     private async Task<int> UpdateBootstrapScriptsAsync(BuildLocation build, Settings settings, CancellationToken cancellationToken)
     {
@@ -80,9 +80,28 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
         await WriteBootstrapScriptsAsync(cancellationToken);
         AddToGitIgnore(BootstrapScripts.DotnetFolder);
+        await CreateParametersFileAsync(cancellationToken);
         await MarkExecutableAsync([Path.Combine(context.Directory, BootstrapScripts.ShellScriptName)]);
 
         return 0;
+    }
+
+    /// <summary>
+    /// Creates an empty <c>.baun/parameters.json</c> in the root of the repository, where the build reads it, unless it
+    /// already exists. It holds the user's parameter values, so it's never overwritten.
+    /// </summary>
+    private async Task CreateParametersFileAsync(CancellationToken cancellationToken)
+    {
+        string path = RepositoryRoot.GetParametersFile(context.Directory);
+
+        if (File.Exists(path))
+        {
+            return;
+        }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await File.WriteAllTextAsync(path, "{}\n", cancellationToken);
+        console.WriteSuccess($"Created {Markup.Escape(Relative(path))}");
     }
 
     /// <summary>
@@ -102,8 +121,9 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         string.Equals(Path.GetFullPath(first), Path.GetFullPath(second), StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Creates a new build, and by default its bootstrap scripts. Existing build files are never overwritten, but
-    /// existing bootstrap scripts and the <c>.editorconfig</c> of a project build are.
+    /// Creates a new build, <c>.baun/parameters.json</c> and by default its bootstrap scripts. Existing build files and
+    /// parameters are never overwritten, but existing bootstrap scripts and the <c>.editorconfig</c> of a project
+    /// build are.
     /// </summary>
     private async Task<int> CreateBuildAsync(Settings settings, CancellationToken cancellationToken)
     {
@@ -155,6 +175,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             executables.Add(Path.Combine(context.Directory, BootstrapScripts.ShellScriptName));
         }
 
+        await CreateParametersFileAsync(cancellationToken);
         await MarkExecutableAsync(executables);
 
         WriteNextSteps(bootstrap: !settings.NoBootstrap);
@@ -397,20 +418,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         }
     }
 
-    private static bool IsInGitRepository(string directory)
-    {
-        for (var current = new DirectoryInfo(directory); current is not null; current = current.Parent)
-        {
-            string git = Path.Combine(current.FullName, ".git");
-
-            if (Directory.Exists(git) || File.Exists(git))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    private static bool IsInGitRepository(string directory) => RepositoryRoot.TryFind(directory) is not null;
 
     private string Relative(string path) => Path.GetRelativePath(context.Directory, path);
 

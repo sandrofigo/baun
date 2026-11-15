@@ -68,6 +68,41 @@ public sealed class StepGenerator : IIncrementalGenerator
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor ParameterMustBeWritable = new(
+        id: "BAUN008",
+        title: "Parameter must be writable",
+        messageFormat: "The parameter '{0}' must be a non-static field that isn't readonly or const, or a non-static property with a set accessor, so baun can set it",
+        category: "Baun",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor ParameterTypeNotSupported = new(
+        id: "BAUN009",
+        title: "Parameter type is not supported",
+        messageFormat: "The parameter '{0}' has the type '{1}', which baun can't set. Use string, bool, char, a number type, an enum, Guid, Uri, TimeSpan, a nullable of these, or an array of them.",
+        category: "Baun",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor ParameterNotInBuildClass = new(
+        id: "BAUN010",
+        title: "Parameter is not in a build class",
+        messageFormat: "The parameter '{0}' is in '{1}', which has no steps, so baun never sets it. Move it to the build class.",
+        category: "Baun",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor ParameterNameConflicts = new(
+        id: "BAUN011",
+        title: "Parameter name conflicts",
+        messageFormat: "The parameter '{0}' conflicts with {1}. Names match case-insensitively and ignore '-' and '_', so rename it or set another name with [Parameter(Name = \"...\")].",
+        category: "Baun",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    /// <summary>The built-in options of a build, which parameters can't be named after, normalized.</summary>
+    private static readonly string[] ReservedParameterNames = new[] { "HELP", "H", "VERSION", "V", "STEP" };
+
     /// <summary>The baun tool's commands, which take precedence over steps with the same name.</summary>
     private static readonly string[] CliCommands = new[] { "init" };
 
@@ -96,9 +131,102 @@ public sealed class StepGenerator : IIncrementalGenerator
             .Combine(isExecutable)
             .Select(static (pair, _) => !pair.Left && pair.Right);
 
+        var parameters = context.SyntaxProvider
+            .ForAttributeWithMetadataName(
+                "Baun.ParameterAttribute",
+                predicate: static (node, _) => node is VariableDeclaratorSyntax or PropertyDeclarationSyntax,
+                transform: static (context, _) => GetParameterMember(context))
+            .Where(static parameter => parameter is not null)
+            .Select(static (parameter, _) => parameter!)
+            .Collect();
+
         context.RegisterSourceOutput(
-            steps.Combine(needsEntryPoint),
-            static (context, pair) => Generate(context, pair.Left, needsEntryPoint: pair.Right));
+            steps.Combine(parameters).Combine(needsEntryPoint),
+            static (context, pair) => Generate(context, pair.Left.Left, pair.Left.Right, needsEntryPoint: pair.Right));
+    }
+
+    private static ParameterMember? GetParameterMember(GeneratorAttributeSyntaxContext context)
+    {
+        var attribute = context.Attributes.FirstOrDefault(item => item.AttributeClass is { } type && IsInBaunNamespace(type));
+
+        if (attribute is null || context.TargetSymbol.ContainingType is not { } containingType)
+        {
+            return null;
+        }
+
+        var (type, isWritable) = context.TargetSymbol switch
+        {
+            IFieldSymbol field => (field.Type, !field.IsStatic && !field.IsReadOnly && !field.IsConst),
+            IPropertySymbol property => (property.Type, !property.IsStatic && property.SetMethod is { IsInitOnly: false }),
+            _ => (null, false),
+        };
+
+        if (type is null)
+        {
+            return null;
+        }
+
+        var description = attribute.ConstructorArguments.FirstOrDefault().Value as string;
+        var name = attribute.NamedArguments.FirstOrDefault(argument => argument.Key == "Name").Value.Value as string;
+
+        return new ParameterMember(
+            TypeKey: containingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            TypeName: containingType.Name,
+            MemberName: context.TargetSymbol.Name,
+            Name: string.IsNullOrWhiteSpace(name) ? context.TargetSymbol.Name : name!,
+            Description: description,
+            Type: type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            TypeDisplayName: type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
+            IsWritable: isWritable,
+            IsTypeSupported: IsSupportedParameterType(type),
+            Location: LocationInfo.From(context.TargetSymbol.Locations.FirstOrDefault()));
+    }
+
+    /// <summary>
+    /// Returns whether baun can convert text to <paramref name="type"/>: a supported scalar, or a one-dimensional array
+    /// of a supported scalar that isn't nullable.
+    /// </summary>
+    private static bool IsSupportedParameterType(ITypeSymbol type) =>
+        type is IArrayTypeSymbol { Rank: 1 } array
+            ? !IsNullableValueType(array.ElementType) && IsSupportedScalar(array.ElementType)
+            : IsSupportedScalar(type);
+
+    private static bool IsNullableValueType(ITypeSymbol type) =>
+        type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T };
+
+    private static bool IsSupportedScalar(ITypeSymbol type)
+    {
+        if (type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable)
+        {
+            type = nullable.TypeArguments[0];
+        }
+
+        if (type.TypeKind == TypeKind.Enum)
+        {
+            return true;
+        }
+
+        switch (type.SpecialType)
+        {
+            case SpecialType.System_String:
+            case SpecialType.System_Boolean:
+            case SpecialType.System_Char:
+            case SpecialType.System_SByte:
+            case SpecialType.System_Byte:
+            case SpecialType.System_Int16:
+            case SpecialType.System_UInt16:
+            case SpecialType.System_Int32:
+            case SpecialType.System_UInt32:
+            case SpecialType.System_Int64:
+            case SpecialType.System_UInt64:
+            case SpecialType.System_Single:
+            case SpecialType.System_Double:
+            case SpecialType.System_Decimal:
+                return true;
+        }
+
+        return type is INamedTypeSymbol { ContainingNamespace: { Name: "System", ContainingNamespace.IsGlobalNamespace: true } } named
+               && named.Name is "Guid" or "Uri" or "TimeSpan";
     }
 
     private static bool IsEntryPoint(SyntaxNode node) =>
@@ -181,9 +309,16 @@ public sealed class StepGenerator : IIncrementalGenerator
         type.ContainingNamespace is { Name: "Baun", ContainingNamespace.IsGlobalNamespace: true }
         && type.ContainingAssembly?.Name == "Baun";
 
-    private static void Generate(SourceProductionContext context, IEnumerable<StepMethod> steps, bool needsEntryPoint)
+    private static void Generate(SourceProductionContext context, IEnumerable<StepMethod> steps, IEnumerable<ParameterMember> parameters, bool needsEntryPoint)
     {
         var buildClasses = new List<StepMethod>();
+        var stepTypes = new HashSet<string>(steps.Select(step => step.TypeKey));
+        var parametersByType = parameters.GroupBy(parameter => parameter.TypeKey).ToDictionary(group => group.Key, group => group.ToList());
+
+        foreach (var parameter in parameters.Where(parameter => !stepTypes.Contains(parameter.TypeKey)))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(ParameterNotInBuildClass, parameter.Location?.ToLocation(), parameter.MemberName, parameter.TypeName));
+        }
 
         foreach (var type in steps.GroupBy(step => step.TypeKey))
         {
@@ -240,7 +375,11 @@ public sealed class StepGenerator : IIncrementalGenerator
 
             var hintName = type.Key.Replace("global::", string.Empty).Replace('<', '_').Replace('>', '_') + ".Steps.g.cs";
 
-            context.AddSource(hintName, SourceText.From(GenerateSource(first, methods), Encoding.UTF8));
+            var validParameters = GetValidParameters(
+                context,
+                parametersByType.TryGetValue(type.Key, out var typeParameters) ? typeParameters : new List<ParameterMember>());
+
+            context.AddSource(hintName, SourceText.From(GenerateSource(first, methods, validParameters), Encoding.UTF8));
             buildClasses.Add(first);
         }
 
@@ -266,6 +405,69 @@ public sealed class StepGenerator : IIncrementalGenerator
         context.AddSource("BaunEntryPoint.g.cs", SourceText.From(GenerateEntryPoint(buildClasses[0]), Encoding.UTF8));
     }
 
+    /// <summary>
+    /// Reports parameters baun can't set or whose names conflict, and returns the others in declaration order.
+    /// </summary>
+    private static List<ParameterMember> GetValidParameters(SourceProductionContext context, List<ParameterMember> parameters)
+    {
+        var valid = new List<ParameterMember>();
+        var names = new Dictionary<string, ParameterMember>();
+
+        foreach (var parameter in parameters)
+        {
+            var location = parameter.Location?.ToLocation();
+
+            if (!parameter.IsWritable)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(ParameterMustBeWritable, location, parameter.MemberName));
+                continue;
+            }
+
+            if (!parameter.IsTypeSupported)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(ParameterTypeNotSupported, location, parameter.MemberName, parameter.TypeDisplayName));
+                continue;
+            }
+
+            var normalized = Normalize(parameter.Name);
+
+            if (System.Array.IndexOf(ReservedParameterNames, normalized) >= 0)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(ParameterNameConflicts, location, parameter.MemberName, $"the built-in option '--{parameter.Name.ToLowerInvariant()}'"));
+                continue;
+            }
+
+            if (names.TryGetValue(normalized, out var other))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(ParameterNameConflicts, location, parameter.MemberName, $"the parameter '{other.MemberName}'"));
+                continue;
+            }
+
+            names.Add(normalized, parameter);
+            valid.Add(parameter);
+        }
+
+        return valid;
+    }
+
+    /// <summary>
+    /// Returns <paramref name="name"/> without '-' and '_', in upper case, as baun matches parameter names at run time.
+    /// </summary>
+    private static string Normalize(string name)
+    {
+        var builder = new StringBuilder(name.Length);
+
+        foreach (var c in name)
+        {
+            if (c != '-' && c != '_')
+            {
+                builder.Append(char.ToUpperInvariant(c));
+            }
+        }
+
+        return builder.ToString();
+    }
+
     private static string GenerateEntryPoint(StepMethod buildClass) => $$"""
         // <auto-generated/>
         #nullable enable
@@ -281,7 +483,7 @@ public sealed class StepGenerator : IIncrementalGenerator
 
         """;
 
-    private static string GenerateSource(StepMethod type, IReadOnlyList<(string Name, bool IsEntry)> methods)
+    private static string GenerateSource(StepMethod type, IReadOnlyList<(string Name, bool IsEntry)> methods, IReadOnlyList<ParameterMember> parameters)
     {
         var source = new StringBuilder();
 
@@ -308,6 +510,19 @@ public sealed class StepGenerator : IIncrementalGenerator
         }
 
         source.AppendLine("        };");
+        source.AppendLine();
+        source.AppendLine("    global::System.Collections.Generic.IReadOnlyList<global::Baun.BaunParameter> global::Baun.IBaunBuild.GetParameters() =>");
+        source.AppendLine("        new global::Baun.BaunParameter[]");
+        source.AppendLine("        {");
+
+        foreach (var parameter in parameters)
+        {
+            var name = SymbolDisplay.FormatLiteral(parameter.Name, quote: true);
+            var description = parameter.Description is null ? "null" : SymbolDisplay.FormatLiteral(parameter.Description, quote: true);
+            source.AppendLine($"            new global::Baun.BaunParameter({name}, typeof({parameter.Type}), {description}, value => this.{parameter.MemberName} = ({parameter.Type})value!),");
+        }
+
+        source.AppendLine("        };");
         source.AppendLine("}");
 
         return source.ToString();
@@ -323,6 +538,18 @@ public sealed class StepGenerator : IIncrementalGenerator
         bool IsPartial,
         bool IsSupported,
         LocationInfo? TypeLocation);
+
+    private sealed record ParameterMember(
+        string TypeKey,
+        string TypeName,
+        string MemberName,
+        string Name,
+        string? Description,
+        string Type,
+        string TypeDisplayName,
+        bool IsWritable,
+        bool IsTypeSupported,
+        LocationInfo? Location);
 
     private sealed record EntryInfo(string? StepName, LocationInfo? Location);
 

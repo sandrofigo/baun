@@ -244,7 +244,7 @@ public class BuildRunnerTests
     {
         var console = new TestConsole().Width(250);
 
-        var exitCode = await new BuildRunner(build, console).RunAsync(arguments);
+        var exitCode = await new BuildRunner(build, console, ParameterSources.None).RunAsync(arguments);
 
         return new RunResult(exitCode, console.Output);
     }

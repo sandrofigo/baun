@@ -295,6 +295,175 @@ public class StepGeneratorTests
         Assert.DoesNotContain(sources, source => source.Contains("class BaunEntryPoint"));
     }
 
+    [Fact]
+    public void Registers_parameters_with_their_names_types_and_descriptions()
+    {
+        var (diagnostics, sources) = RunGenerator("""
+            partial class Build
+            {
+                [Parameter("Configuration to build")]
+                string Configuration = "Debug";
+
+                [Parameter(Name = "api-key")]
+                string? ApiKey { get; set; }
+
+                [Parameter]
+                int? Retries { get; private set; }
+
+                [Parameter("Say \"hi\"")]
+                string[] Projects = [];
+
+                Step Compile() => _ => _;
+            }
+            """);
+
+        Assert.Empty(diagnostics);
+        var source = Assert.Single(sources);
+        Assert.Contains("new global::Baun.BaunParameter(\"Configuration\", typeof(string), \"Configuration to build\", value => this.Configuration = (string)value!),", source);
+        Assert.Contains("new global::Baun.BaunParameter(\"api-key\", typeof(string), null, value => this.ApiKey = (string)value!),", source);
+        Assert.Contains("new global::Baun.BaunParameter(\"Retries\", typeof(int?), null, value => this.Retries = (int?)value!),", source);
+        Assert.Contains("new global::Baun.BaunParameter(\"Projects\", typeof(string[]), \"Say \\\"hi\\\"\", value => this.Projects = (string[])value!),", source);
+    }
+
+    [Fact]
+    public void Generates_no_parameters_for_a_build_without_them()
+    {
+        var (_, sources) = RunGenerator("""
+            partial class Build
+            {
+                Step Compile() => _ => _;
+            }
+            """);
+
+        Assert.Contains("GetParameters() =>\n        new global::Baun.BaunParameter[]\n        {\n        };", Assert.Single(sources).ReplaceLineEndings("\n"));
+    }
+
+    [Theory]
+    [InlineData("[Parameter] readonly string Configuration = \"\";")]
+    [InlineData("[Parameter] const string Configuration = \"\";")]
+    [InlineData("[Parameter] static string Configuration = \"\";")]
+    [InlineData("[Parameter] string Configuration => \"\";")]
+    [InlineData("[Parameter] string Configuration { get; init; } = \"\";")]
+    public void Reports_an_error_for_a_parameter_that_is_not_writable(string member)
+    {
+        var (diagnostics, sources) = RunGenerator($$"""
+            partial class Build
+            {
+                {{member}}
+
+                Step Compile() => _ => _;
+            }
+            """);
+
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.Equal("BAUN008", diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Equal(2, diagnostic.Location.GetLineSpan().StartLinePosition.Line);
+        Assert.DoesNotContain("this.Configuration", Assert.Single(sources));
+    }
+
+    [Theory]
+    [InlineData("System.Collections.Generic.List<string>")]
+    [InlineData("int?[]")]
+    [InlineData("string[][]")]
+    [InlineData("int[,]")]
+    [InlineData("object")]
+    [InlineData("System.DateTime")]
+    public void Reports_an_error_for_a_parameter_of_an_unsupported_type(string type)
+    {
+        var (diagnostics, _) = RunGenerator($$"""
+            partial class Build
+            {
+                [Parameter] {{type}} Value = default!;
+
+                Step Compile() => _ => _;
+            }
+            """);
+
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.Equal("BAUN009", diagnostic.Id);
+        Assert.Contains("The parameter 'Value' has the type", diagnostic.GetMessage());
+    }
+
+    [Theory]
+    [InlineData("string")]
+    [InlineData("bool")]
+    [InlineData("char")]
+    [InlineData("byte")]
+    [InlineData("ulong")]
+    [InlineData("decimal")]
+    [InlineData("double?")]
+    [InlineData("System.Guid")]
+    [InlineData("System.Uri")]
+    [InlineData("System.TimeSpan?")]
+    [InlineData("System.DayOfWeek")]
+    [InlineData("System.DayOfWeek[]")]
+    [InlineData("int[]")]
+    public void Accepts_parameters_of_supported_types(string type)
+    {
+        var (diagnostics, _) = RunGenerator($$"""
+            partial class Build
+            {
+                [Parameter] {{type}} Value = default!;
+
+                Step Compile() => _ => _;
+            }
+            """);
+
+        Assert.Empty(diagnostics);
+    }
+
+    [Fact]
+    public void Warns_about_a_parameter_in_a_class_without_steps()
+    {
+        var (diagnostics, _) = RunGenerator("""
+            class Settings
+            {
+                [Parameter] string Configuration = "";
+            }
+
+            partial class Build
+            {
+                Step Compile() => _ => _;
+            }
+            """);
+
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.Equal("BAUN010", diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
+        Assert.Contains("'Configuration' is in 'Settings', which has no steps", diagnostic.GetMessage());
+    }
+
+    [Theory]
+    [InlineData("[Parameter] bool Help;", "the built-in option '--help'")]
+    [InlineData("[Parameter(Name = \"v\")] bool Verbose;", "the built-in option '--v'")]
+    [InlineData("[Parameter] string Step = \"\";", "the built-in option '--step'")]
+    [InlineData("[Parameter] string ApiKey = \"\"; [Parameter] string Api_Key = \"\";", "the parameter 'ApiKey'")]
+    [InlineData("[Parameter] string ApiKey = \"\"; [Parameter(Name = \"api-key\")] string Key = \"\";", "the parameter 'ApiKey'")]
+    public void Reports_an_error_for_conflicting_parameter_names(string members, string conflict)
+    {
+        var (diagnostics, _) = RunGenerator($$"""
+            partial class Build
+            {
+                {{members}}
+
+                Step Compile() => _ => _;
+            }
+            """);
+
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.Equal("BAUN011", diagnostic.Id);
+        Assert.Contains($"conflicts with {conflict}.", diagnostic.GetMessage());
+    }
+
+    [Fact]
+    public void Registers_parameters_from_all_parts_of_a_partial_class()
+    {
+        var parameters = ((IBaunBuild)new SplitBuild()).GetParameters();
+
+        Assert.Equal(["Configuration", "Environment"], parameters.Select(parameter => parameter.Name));
+    }
+
     private static (ImmutableArray<Diagnostic> Diagnostics, string[] Sources) RunGenerator(
         string source,
         OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary)
@@ -319,11 +488,17 @@ public class StepGeneratorTests
 
 internal sealed partial class SplitBuild
 {
+    [Parameter]
+    public string Configuration = "Debug";
+
     public Step Compile() => _ => _;
 }
 
 internal sealed partial class SplitBuild
 {
+    [Parameter]
+    public string Environment = "staging";
+
     public Step Deploy() => _ => _
         .DependsOn(Compile);
 }
