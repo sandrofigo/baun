@@ -283,6 +283,23 @@ public sealed class ParameterTests : IDisposable
     }
 
     [Fact]
+    public void Finds_the_root_directory_by_the_nearest_baun_folder()
+    {
+        Directory.CreateDirectory(Path.Combine(root, ".baun"));
+        var subfolder = Directory.CreateDirectory(Path.Combine(root, "src", "app"));
+
+        Assert.Equal(root, BaunBuild.FindRootDirectory(subfolder.FullName));
+    }
+
+    [Fact]
+    public void Uses_the_directory_itself_as_the_root_directory_without_a_baun_folder()
+    {
+        var subfolder = Directory.CreateDirectory(Path.Combine(root, "src"));
+
+        Assert.Equal(subfolder.FullName, BaunBuild.FindRootDirectory(subfolder.FullName));
+    }
+
+    [Fact]
     public void Has_no_parameters_file_without_a_baun_folder()
     {
         Directory.CreateDirectory(Path.Combine(root, ".git"));

@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `Baun` and `Baun.Cli` packages are published with symbol packages to the nuget.org symbol server, with Source Link to the source on GitHub.
 - `baun --help` (or `-h`) in a build lists its steps and options, and `baun --version` (or `-v`) shows the version of baun the build uses, instead of failing with "Unknown option".
 - `[Parameter]` fields and properties on the build class are set from the command line (`--configuration Release`), environment variables (`CONFIGURATION`) or `.baun/parameters.json` in the nearest `.baun` folder of the current folder or its parents, in that order of precedence. Supports strings, booleans, numbers, enums, `Guid`, `Uri`, `TimeSpan`, nullables and arrays of these. New diagnostics `BAUN008` to `BAUN011` report parameters baun can't set.
+- Build classes have a `RootDirectory` property, added by the source generator, with the nearest folder that contains `.baun`. `BaunBuild.RootDirectory` returns the same folder outside the build class.
 - `baun init` creates an empty `.baun/parameters.json` if it doesn't exist, in the nearest `.baun` folder or in the current folder.
 
 ### Changed

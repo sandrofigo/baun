@@ -457,6 +457,46 @@ public class StepGeneratorTests
     }
 
     [Fact]
+    public void Adds_a_root_directory_property_to_the_build_class()
+    {
+        var (diagnostics, sources) = RunGenerator("""
+            partial class Build
+            {
+                Step Compile() => _ => _
+                    .Executes(() => System.Console.WriteLine(RootDirectory));
+            }
+            """);
+
+        Assert.Empty(diagnostics);
+        Assert.Contains("private static string RootDirectory => global::Baun.BaunBuild.RootDirectory;", Assert.Single(sources));
+    }
+
+    [Theory]
+    [InlineData("string RootDirectory = \"repo\";")]
+    [InlineData("static string RootDirectory => \"repo\";")]
+    [InlineData("void RootDirectory() { }")]
+    public void Adds_no_root_directory_property_when_the_build_class_has_one(string member)
+    {
+        var (diagnostics, sources) = RunGenerator($$"""
+            partial class Build
+            {
+                {{member}}
+
+                Step Compile() => _ => _;
+            }
+            """);
+
+        Assert.Empty(diagnostics);
+        Assert.DoesNotContain("RootDirectory", Assert.Single(sources));
+    }
+
+    [Fact]
+    public void The_root_directory_property_returns_the_root_directory_of_the_build()
+    {
+        Assert.Equal(BaunBuild.RootDirectory, SplitBuild.Root);
+    }
+
+    [Fact]
     public void Registers_parameters_from_all_parts_of_a_partial_class()
     {
         var parameters = ((IBaunBuild)new SplitBuild()).GetParameters();
@@ -490,6 +530,8 @@ internal sealed partial class SplitBuild
 {
     [Parameter]
     public string Configuration = "Debug";
+
+    public static string Root => RootDirectory;
 
     public Step Compile() => _ => _;
 }
