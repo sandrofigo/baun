@@ -1,12 +1,8 @@
 // The entry point of a project-based baun build.
-// _build.csproj references baun, so no #: lines are needed here.
 //
 // Run the entry step:  baun
 // Run a step:          baun Test
 // Without the tool:    dotnet run --project build -- Test
-//
-// The deployment steps live in DeploySteps.cs. Both files are parts of the same
-// partial class, so steps can depend on each other across files without a prefix.
 
 [Entry(nameof(Test))]
 partial class Build

@@ -63,7 +63,7 @@ A step's name is its method name, so you never repeat a name as a string. Steps 
 The example `Build.cs` below shows the intended style. The final API may differ.
 
 ```csharp
-#:package Baun@0.1.0
+#:package Baun@0.2.0
 
 [Entry(nameof(Test))]
 partial class Build
@@ -124,7 +124,7 @@ baun supports two ways to set up a build. Both use the same API and the same `Bu
 | Steps | `partial class Build` in `Build.cs` | `partial class Build` spread across any number of files |
 | Run | `baun Test` | `baun Test` |
 
-The [`examples`](examples) folder contains a sample of each: a [single-file build](examples/single-file/Build.cs) and a [project build](examples/project/build) with deployment steps in a separate file. They build against the baun source code in this repository, so they always match the current API.
+The [`examples`](examples) folder contains a sample of each: a [single-file build](examples/single-file/Build.cs) and a [project build](examples/project/build). They reference the latest Baun package.
 
 ### Single-file builds
 
@@ -140,7 +140,7 @@ On Linux and macOS you can also make the build directly executable. Add a sheban
 
 ```csharp
 #!/usr/bin/env dotnet
-#:package Baun@0.1.0
+#:package Baun@0.2.0
 ```
 
 Then mark the file as executable and run it:
@@ -165,7 +165,7 @@ A project build is a regular .NET console project, for example in a `build` fold
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Baun" Version="0.1.0" />
+    <PackageReference Include="Baun" Version="0.2.0" />
   </ItemGroup>
 
 </Project>
