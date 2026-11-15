@@ -286,7 +286,7 @@ baun Test
 
 Step names are case-insensitive, so `baun test` runs the `Test` step. Running `baun` without a step name runs the entry step. The tool looks for a `Build.cs` file or a build project in the current folder and its `build` subfolder, and runs it. You don't need to remember whether a repository uses a single-file or a project build, and CI scripts stay short.
 
-baun uses [Spectre.Console](https://spectreconsole.net) for its output. Each step starts with a heading and ends with a ✓ or ✗ line, failures show the exception, and the build ends with a summary table of every step's status and duration.
+baun uses [Spectre.Console](https://spectreconsole.net) for its output. Each step starts with a heading, failures show the exception, and the build ends with a summary table of every step's status and duration.
 
 The tool passes all arguments to the build, except for its own commands such as `init`, which always run as commands. To run a step with the same name as a command, use `--step`, which works for any step:
 
