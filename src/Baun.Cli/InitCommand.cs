@@ -145,6 +145,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         if (kind == BuildKind.Project)
         {
             await WriteEditorConfigAsync(cancellationToken);
+            await AddToSolutionAsync(files.Keys.Single(path => path.EndsWith(".csproj", StringComparison.Ordinal)));
         }
 
         if (!settings.NoBootstrap)
@@ -196,6 +197,105 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         string separator = content.Length == 0 || content.EndsWith('\n') ? string.Empty : "\n";
         File.AppendAllText(path, separator + entry + "\n");
         console.MarkupLineInterpolated($"[green]Updated[/] .gitignore");
+    }
+
+    /// <summary>
+    /// Asks whether to add the new build project to a solution (<c>.sln</c> or <c>.slnx</c>) in the current folder or
+    /// its subfolders, and
+    /// adds it to the root of the solution with <c>dotnet sln add</c>. Doesn't ask, and doesn't add it, when there is no
+    /// solution or baun init can't ask.
+    /// </summary>
+    private async Task AddToSolutionAsync(string projectFile)
+    {
+        var solutions = FindSolutions(context.Directory, depth: 0)
+            .Select(Relative)
+            .OrderBy(path => path.Count(c => c == Path.DirectorySeparatorChar))
+            .ThenBy(path => path, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (solutions.Count == 0 || !console.Profile.Capabilities.Interactive)
+        {
+            return;
+        }
+
+        string project = Relative(projectFile);
+        string? solution = AskForSolution(solutions, project);
+
+        if (solution is null)
+        {
+            return;
+        }
+
+        var dotnet = new ProcessStartInfo("dotnet") { WorkingDirectory = context.Directory };
+
+        foreach (string argument in (string[])["sln", solution, "add", "--in-root", project])
+        {
+            dotnet.ArgumentList.Add(argument);
+        }
+
+        int exitCode;
+
+        try
+        {
+            exitCode = await context.RunProcess(dotnet);
+        }
+        catch (Win32Exception)
+        {
+            exitCode = -1; // dotnet isn't on the PATH
+        }
+
+        if (exitCode == 0)
+        {
+            console.MarkupLineInterpolated($"[green]Added[/] {project} to {solution}");
+        }
+        else
+        {
+            string command = $"dotnet sln {solution} add --in-root {project}";
+            console.MarkupLineInterpolated($"[yellow]warning:[/] Couldn't add {project} to {solution}. Run [green]{command}[/] to add it.");
+        }
+    }
+
+    /// <summary>
+    /// Finds the solutions in <paramref name="directory"/> and up to <see cref="SolutionSearchDepth"/> levels of
+    /// subfolders, skipping hidden folders and build output.
+    /// </summary>
+    private static IEnumerable<string> FindSolutions(string directory, int depth)
+    {
+        IEnumerable<string> solutions = Directory.EnumerateFiles(directory)
+            .Where(path => Path.GetExtension(path).ToLowerInvariant() is ".sln" or ".slnx");
+
+        if (depth == SolutionSearchDepth)
+        {
+            return solutions;
+        }
+
+        return solutions.Concat(Directory.EnumerateDirectories(directory)
+            .Where(path => Path.GetFileName(path) is var name && !name.StartsWith('.') && !_skippedFolders.Contains(name))
+            .SelectMany(path => FindSolutions(path, depth + 1)));
+    }
+
+    private const int SolutionSearchDepth = 3;
+
+    private static readonly HashSet<string> _skippedFolders = new(StringComparer.OrdinalIgnoreCase) { "bin", "obj", "node_modules" };
+
+    private string? AskForSolution(List<string> solutions, string project)
+    {
+        if (solutions.Count == 1)
+        {
+            return console.Prompt(new ConfirmationPrompt($"Add {project.EscapeMarkup()} to {solutions[0].EscapeMarkup()}?"))
+                ? solutions[0]
+                : null;
+        }
+
+        const string none = "";
+
+        string choice = console.Prompt(
+            new SelectionPrompt<string>()
+                .Title($"Add {project.EscapeMarkup()} to a solution?")
+                .AddChoices([.. solutions, none])
+                .UseConverter(solution => solution == none ? "Don't add it" : solution.EscapeMarkup()));
+
+        return choice == none ? null : choice;
     }
 
     /// <summary>

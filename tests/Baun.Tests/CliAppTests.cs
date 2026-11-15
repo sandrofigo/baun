@@ -220,6 +220,119 @@ public sealed class CliAppTests : IDisposable
         Assert.True(File.Exists(Path.Combine(root, expectedFile)));
     }
 
+    [Theory]
+    [InlineData("My.sln")]
+    [InlineData("My.slnx")]
+    public async Task Init_adds_a_project_build_to_the_solution_when_confirmed(string solution)
+    {
+        Write(solution, "");
+        console.Interactive();
+        console.Input.PushTextWithEnter("y");
+
+        var exitCode = await RunAsync("init", "--project", "--no-bootstrap");
+
+        Assert.Equal(0, exitCode);
+        Assert.Contains($"Add {Path.Combine("build", "_build.csproj")} to {solution}?", console.Output);
+        var dotnet = Assert.Single(startedProcesses);
+        Assert.Equal("dotnet", dotnet.FileName);
+        Assert.Equal(root, dotnet.WorkingDirectory);
+        Assert.Equal(["sln", solution, "add", "--in-root", Path.Combine("build", "_build.csproj")], dotnet.ArgumentList);
+        Assert.Contains($"Added {Path.Combine("build", "_build.csproj")} to {solution}", console.Output);
+    }
+
+    [Fact]
+    public async Task Init_finds_solutions_in_subfolders()
+    {
+        Write("src/My.sln", "");
+        Write("a/b/c/Deep.slnx", "");
+        Write("a/b/c/d/TooDeep.sln", "");
+        Write(".hidden/Hidden.sln", "");
+        Write("src/bin/Output.sln", "");
+        console.Interactive();
+        console.Input.PushKey(ConsoleKey.Enter); // the shallowest solution comes first
+
+        var exitCode = await RunAsync("init", "--project", "--no-bootstrap");
+
+        Assert.Equal(0, exitCode);
+        Assert.Contains(Path.Combine("src", "My.sln"), console.Output);
+        Assert.Contains(Path.Combine("a", "b", "c", "Deep.slnx"), console.Output);
+        Assert.DoesNotContain("TooDeep", console.Output);
+        Assert.DoesNotContain("Hidden", console.Output);
+        Assert.DoesNotContain("Output", console.Output);
+        Assert.Equal(["sln", Path.Combine("src", "My.sln"), "add", "--in-root", Path.Combine("build", "_build.csproj")], Assert.Single(startedProcesses).ArgumentList);
+    }
+
+    [Fact]
+    public async Task Init_does_not_add_a_project_build_to_the_solution_when_declined()
+    {
+        Write("My.sln", "");
+        console.Interactive();
+        console.Input.PushTextWithEnter("n");
+
+        var exitCode = await RunAsync("init", "--project", "--no-bootstrap");
+
+        Assert.Equal(0, exitCode);
+        Assert.Empty(startedProcesses);
+    }
+
+    [Theory]
+    [InlineData(1, "B.slnx")]
+    [InlineData(2, null)]
+    public async Task Init_asks_which_solution_to_add_a_project_build_to(int downArrows, string? expectedSolution)
+    {
+        Write("A.sln", "");
+        Write("B.slnx", "");
+        console.Interactive();
+
+        for (var i = 0; i < downArrows; i++)
+        {
+            console.Input.PushKey(ConsoleKey.DownArrow);
+        }
+
+        console.Input.PushKey(ConsoleKey.Enter);
+
+        var exitCode = await RunAsync("init", "--project", "--no-bootstrap");
+
+        Assert.Equal(0, exitCode);
+        Assert.Contains("to a solution?", console.Output);
+
+        if (expectedSolution is null)
+        {
+            Assert.Empty(startedProcesses);
+        }
+        else
+        {
+            Assert.Equal(expectedSolution, Assert.Single(startedProcesses).ArgumentList[1]);
+        }
+    }
+
+    [Fact]
+    public async Task Init_does_not_add_a_project_build_to_the_solution_when_it_cannot_ask()
+    {
+        Write("My.sln", "");
+
+        var exitCode = await RunAsync("init", "--project", "--no-bootstrap");
+
+        Assert.Equal(0, exitCode);
+        Assert.Empty(startedProcesses);
+        Assert.DoesNotContain("My.sln", console.Output);
+    }
+
+    [Fact]
+    public async Task Init_warns_when_adding_to_the_solution_fails_but_still_succeeds()
+    {
+        Write("My.sln", "");
+        console.Interactive();
+        console.Input.PushTextWithEnter("y");
+        processExitCode = 1;
+
+        var exitCode = await RunAsync("init", "--project", "--no-bootstrap");
+
+        Assert.Equal(0, exitCode);
+        Assert.Contains($"warning: Couldn't add {Path.Combine("build", "_build.csproj")} to My.sln.", console.Output);
+        Assert.Contains($"Run dotnet sln My.sln add --in-root {Path.Combine("build", "_build.csproj")} to add it.", console.Output);
+    }
+
     [Fact]
     public async Task Init_creates_a_single_file_build_when_it_cannot_ask()
     {
