@@ -30,6 +30,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="KeepAChangelog.IO" Version="2.0.0" />
+    <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="11.0.0" />
     <PackageReference Include="Octokit" Version="14.0.0" />
     <PackageReference Include="Spectre.Console" Version="0.57.2" />
   </ItemGroup>

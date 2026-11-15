@@ -1,0 +1,240 @@
+namespace Baun.Tests;
+
+public sealed class AbsolutePathFileSystemTests : IDisposable
+{
+    private readonly AbsolutePath root = (AbsolutePath)Directory.CreateTempSubdirectory("baun-path-tests-").FullName;
+
+    public void Dispose() => root.Delete();
+
+    [Fact]
+    public void Tells_whether_a_file_or_directory_exists()
+    {
+        var file = Write("a.txt");
+
+        Assert.True(file.Exists);
+        Assert.True(file.FileExists);
+        Assert.False(file.DirectoryExists);
+        Assert.True(root.DirectoryExists);
+        Assert.False(root.FileExists);
+        Assert.False((root / "missing").Exists);
+    }
+
+    [Fact]
+    public void Creates_a_directory_with_its_parents()
+    {
+        var directory = (root / "a" / "b").CreateDirectory();
+
+        Assert.True(directory.DirectoryExists);
+        Assert.Equal(directory, directory.CreateDirectory()); // an existing directory is fine
+    }
+
+    [Fact]
+    public void Creates_or_cleans_a_directory()
+    {
+        var directory = root / "out";
+        Write("out/a.txt");
+        Write("out/sub/b.txt");
+
+        Assert.Equal(directory, directory.CreateOrCleanDirectory());
+        Assert.True(directory.DirectoryExists);
+        Assert.Empty(Directory.EnumerateFileSystemEntries(directory));
+
+        var created = (root / "new").CreateOrCleanDirectory();
+        Assert.True(created.DirectoryExists);
+    }
+
+    [Fact]
+    public void Deletes_a_file()
+    {
+        var file = Write("a.txt");
+
+        file.Delete();
+
+        Assert.False(file.Exists);
+    }
+
+    [Fact]
+    public void Deletes_a_directory_with_read_only_files()
+    {
+        var file = Write("dir/sub/a.txt");
+        File.SetAttributes(file, FileAttributes.ReadOnly);
+
+        (root / "dir").Delete();
+
+        Assert.False((root / "dir").Exists);
+    }
+
+    [Fact]
+    public void Deleting_a_missing_path_does_nothing()
+    {
+        (root / "missing").Delete();
+    }
+
+    [Fact]
+    public void Copies_a_file_and_creates_the_target_directory()
+    {
+        var file = Write("a.txt", "content");
+
+        var copy = file.CopyTo(root / "out" / "b.txt");
+
+        Assert.Equal(root / "out" / "b.txt", copy);
+        Assert.Equal("content", File.ReadAllText(copy));
+        Assert.True(file.Exists);
+    }
+
+    [Fact]
+    public void Copying_a_file_overwrites_only_when_asked()
+    {
+        var file = Write("a.txt", "new");
+        var target = Write("b.txt", "old");
+
+        Assert.Throws<IOException>(() => file.CopyTo(target));
+        Assert.Equal("old", File.ReadAllText(target));
+
+        file.CopyTo(target, overwrite: true);
+        Assert.Equal("new", File.ReadAllText(target));
+    }
+
+    [Fact]
+    public void Copies_a_directory_with_everything_in_it()
+    {
+        Write("src/a.txt", "a");
+        Write("src/sub/b.txt", "b");
+        (root / "src" / "empty").CreateDirectory();
+
+        var copy = (root / "src").CopyTo(root / "copy");
+
+        Assert.Equal("a", File.ReadAllText(copy / "a.txt"));
+        Assert.Equal("b", File.ReadAllText(copy / "sub" / "b.txt"));
+        Assert.True((copy / "empty").DirectoryExists);
+        Assert.True((root / "src" / "a.txt").Exists);
+    }
+
+    [Fact]
+    public void Copying_a_directory_merges_it_into_an_existing_one()
+    {
+        Write("src/a.txt", "new");
+        Write("copy/a.txt", "old");
+        Write("copy/keep.txt", "keep");
+
+        Assert.Throws<IOException>(() => (root / "src").CopyTo(root / "copy"));
+
+        (root / "src").CopyTo(root / "copy", overwrite: true);
+
+        Assert.Equal("new", File.ReadAllText(root / "copy" / "a.txt"));
+        Assert.Equal("keep", File.ReadAllText(root / "copy" / "keep.txt"));
+    }
+
+    [Fact]
+    public void Doesnt_copy_a_directory_into_itself()
+    {
+        Write("src/a.txt");
+
+        Assert.Throws<IOException>(() => (root / "src").CopyTo(root / "src" / "copy"));
+    }
+
+    [Fact]
+    public void Copying_a_missing_path_throws()
+    {
+        Assert.Throws<FileNotFoundException>(() => (root / "missing").CopyTo(root / "copy"));
+    }
+
+    [Fact]
+    public void Moves_a_file_and_creates_the_target_directory()
+    {
+        var file = Write("a.txt", "content");
+
+        var moved = file.MoveTo(root / "out" / "b.txt");
+
+        Assert.False(file.Exists);
+        Assert.Equal("content", File.ReadAllText(moved));
+    }
+
+    [Fact]
+    public void Moves_a_directory()
+    {
+        Write("src/sub/a.txt", "a");
+
+        var moved = (root / "src").MoveTo(root / "out" / "moved");
+
+        Assert.False((root / "src").Exists);
+        Assert.Equal("a", File.ReadAllText(moved / "sub" / "a.txt"));
+    }
+
+    [Fact]
+    public void Moving_replaces_an_existing_target_only_when_asked()
+    {
+        Write("src/a.txt", "new");
+        Write("target/old.txt", "old");
+
+        Assert.Throws<IOException>(() => (root / "src").MoveTo(root / "target"));
+        Assert.True((root / "src").Exists);
+
+        (root / "src").MoveTo(root / "target", overwrite: true);
+
+        Assert.Equal("new", File.ReadAllText(root / "target" / "a.txt"));
+        Assert.False((root / "target" / "old.txt").Exists);
+    }
+
+    [Fact]
+    public void Moving_a_missing_path_throws()
+    {
+        Assert.Throws<FileNotFoundException>(() => (root / "missing").MoveTo(root / "target"));
+    }
+
+    [Fact]
+    public void Globs_files()
+    {
+        Write("src/App/App.csproj");
+        Write("src/App/Program.cs");
+        Write("src/Lib/Lib.csproj");
+        Write("src/Lib/x/Lib.csproj");
+        Write("tests/Tests.csproj");
+
+        Assert.Equal(
+            [root / "src" / "App" / "App.csproj", root / "src" / "Lib" / "Lib.csproj", root / "src" / "Lib" / "x" / "Lib.csproj", root / "tests" / "Tests.csproj"],
+            root.GlobFiles("**/*.csproj"));
+        Assert.Equal([root / "src" / "App" / "Program.cs"], root.GlobFiles("src/*/*.cs"));
+    }
+
+    [Fact]
+    public void Globs_files_with_several_patterns_and_exclusions()
+    {
+        Write("src/App/App.csproj");
+        Write("src/App/bin/App.dll");
+        Write("src/App/Program.cs");
+        Write("tests/Tests.csproj");
+
+        Assert.Equal(
+            [root / "src" / "App" / "App.csproj", root / "src" / "App" / "Program.cs", root / "tests" / "Tests.csproj"],
+            root.GlobFiles("**/*.csproj", "src/**/*", "!**/bin/**"));
+    }
+
+    [Fact]
+    public void Globs_directories()
+    {
+        Write("src/App/bin/App.dll");
+        Write("src/App/obj/App.dll");
+        Write("src/Lib/bin/Lib.dll");
+
+        Assert.Equal([root / "src" / "App" / "bin", root / "src" / "Lib" / "bin"], root.GlobDirectories("**/bin"));
+        Assert.Equal(
+            [root / "src" / "App" / "bin", root / "src" / "App" / "obj"],
+            root.GlobDirectories("**/bin", "**/obj", "!src/Lib/**"));
+    }
+
+    [Fact]
+    public void Globbing_a_missing_directory_finds_nothing()
+    {
+        Assert.Empty((root / "missing").GlobFiles("**/*"));
+        Assert.Empty((root / "missing").GlobDirectories("**"));
+    }
+
+    private AbsolutePath Write(string relativePath, string content = "")
+    {
+        var path = root / relativePath;
+        path.Parent!.CreateDirectory();
+        File.WriteAllText(path, content);
+        return path;
+    }
+}

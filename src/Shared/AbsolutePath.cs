@@ -17,7 +17,7 @@ internal
 #else
 public
 #endif
-sealed class AbsolutePath : IEquatable<AbsolutePath>
+sealed partial class AbsolutePath : IEquatable<AbsolutePath>
 {
     private static readonly StringComparison _comparison =
         OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
