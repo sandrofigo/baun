@@ -1,6 +1,4 @@
 using System.Diagnostics;
-using System.Text;
-using KeepAChangelog.IO;
 using GitHub = Octokit;
 
 partial class Build
@@ -32,37 +30,6 @@ partial class Build
         Environment.GetEnvironmentVariable(name) is { Length: > 0 } value
             ? value
             : throw new InvalidOperationException($"The environment variable {name} isn't set.");
-
-    /// <summary>
-    /// Renders the entries of a changelog release as Markdown, grouped under their category headings.
-    /// </summary>
-    static string RenderReleaseNotes(Release release)
-    {
-        var notes = new StringBuilder();
-
-        foreach (Category category in release.Categories.Where(category => category.Entries.Count > 0))
-        {
-            if (notes.Length > 0)
-            {
-                notes.Append('\n');
-            }
-
-            notes.Append($"### {category.Type}\n\n");
-
-            foreach (Entry entry in category.Entries)
-            {
-                string text = entry.Text.ReplaceLineEndings("\n").Replace("\n", "\n  ");
-                notes.Append($"- {text}\n");
-            }
-        }
-
-        if (notes.Length == 0)
-        {
-            throw new InvalidOperationException($"The section [{release.Version}] in {ChangelogFile} has no entries.");
-        }
-
-        return notes.ToString();
-    }
 
     /// <summary>
     /// Creates the GitHub release for <paramref name="tag"/>, or updates its notes if it already exists, so the step

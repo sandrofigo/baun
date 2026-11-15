@@ -70,7 +70,7 @@ The build checks the changelog when the tag is pushed and fails before anything 
 - the section's date isn't the day the tag is pushed (in UTC),
 - the section has no entries, or the comparison link for the version is missing.
 
-The GitHub release notes are the entries of that section, grouped under their category headings. Run `baun ValidateChangelog` (or `./build.sh ValidateChangelog`, `build ValidateChangelog` on Windows) to check that the file is valid; on pull requests, the `Test` workflow does the same.
+The GitHub release notes are that section of the changelog, as written in the file. Run `baun ValidateChangelog` (or `./build.sh ValidateChangelog`, `build ValidateChangelog` on Windows) to check that the file is valid; on pull requests, the `Test` workflow does the same.
 
 ## 3. Mark the analyzer rules as shipped
 
