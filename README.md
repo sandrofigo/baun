@@ -250,6 +250,23 @@ steps:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
+### Changelog
+
+`Changelog` reads a changelog in the [Keep a Changelog](https://keepachangelog.com/) format. `Changelog.Read()` reads `CHANGELOG.md` in `RootDirectory`. Pass a path to read another file, or use `Changelog.Parse(text)` for text. An invalid file throws a `ChangelogFormatException` that names the line.
+
+A changelog has the `Unreleased` section, its `Releases` in the order of the file, and the `LatestRelease` (the one with the highest version). `GetRelease("1.2.3")` returns a release and throws if there's none, while `TryGetRelease` doesn't throw. Each `ChangelogRelease` has its `Version`, `Date`, `IsYanked` and `Categories`, such as `Added` and `Fixed`, with their `Entries`. `Notes` returns the categories and entries as Markdown without the release heading, so it works as the notes of a GitHub release:
+
+```csharp
+Step Release() => _ => _
+    .Executes(async () =>
+    {
+        string tag = GitHub.Tag!;
+        ChangelogRelease release = Changelog.Read().GetRelease(tag.TrimStart('v'));
+
+        await GitHub.CreateOrUpdateRelease(tag, notes: release.Notes);
+    });
+```
+
 ## Single file or project
 
 baun supports two ways to set up a build. Both use the same API and the same `Build.cs` entry point, so you can switch between them at any time.
