@@ -85,6 +85,33 @@ public sealed class ChangelogTests
     }
 
     [Fact]
+    public void GetReleaseNotes_returns_the_notes_of_the_release()
+    {
+        Changelog changelog = Changelog.Parse(Text);
+
+        Assert.Equal(changelog.GetRelease("1.1.0").Notes, changelog.GetReleaseNotes("1.1.0"));
+        Assert.Throws<InvalidOperationException>(() => changelog.GetReleaseNotes("2.0.0"));
+    }
+
+    [Theory]
+    [InlineData("1.1.0")]
+    [InlineData("1.0.0")]
+    public void GetReleaseNotes_formats_like_keep_a_changelog(string version)
+    {
+        KeepAChangelog.IO.Release release = KeepAChangelog.IO.Changelog.Parse(Text).Releases.Single(release => release.Version == version);
+
+        // The formatting of the release notes in build/Build.Helpers.cs, with \n line endings.
+        string expected = string.Join(
+            "\n\n",
+            release.Categories
+                .Where(category => category.Entries.Count > 0)
+                .OrderBy(category => category.Type)
+                .Select(category => category.ToString())).ReplaceLineEndings("\n");
+
+        Assert.Equal(expected, Changelog.Parse(Text).GetReleaseNotes(version));
+    }
+
+    [Fact]
     public void GetRelease_throws_for_a_missing_version()
     {
         Changelog changelog = Changelog.Parse(Text);

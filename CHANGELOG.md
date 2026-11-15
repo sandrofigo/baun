@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `GitHub`, in the new `Baun.CI` namespace that builds import automatically, reads the GitHub Actions run the build runs in, such as `GitHub.Tag`, `GitHub.RefName`, `GitHub.RefType`, `GitHub.Repository`, `GitHub.Sha` and `GitHub.Token`.
 - `GitHub.CreateOrUpdateRelease` creates the GitHub release for a tag, or updates it if it already exists.
 - `GitHubRepository` holds the owner and name of a GitHub repository. `GitHub.Repository` returns it, and `GitHubRepository.Parse` reads `owner/name`.
-- `Changelog` in `Baun.CI` reads a [Keep a Changelog](https://keepachangelog.com/) file, such as `Changelog.Read()` for `CHANGELOG.md` in the root directory. It has the unreleased section and the releases, and `ChangelogRelease.Notes` gives a release's entries as Markdown, for example for `GitHub.CreateOrUpdateRelease`.
+- `Changelog` in `Baun.CI` reads a [Keep a Changelog](https://keepachangelog.com/) file, such as `Changelog.Read()` for `CHANGELOG.md` in the root directory. It has the unreleased section and the releases, and `Changelog.GetReleaseNotes` (or `ChangelogRelease.Notes`) gives a release's entries as Markdown, for example for `GitHub.CreateOrUpdateRelease`.
 
 ### Changed
 

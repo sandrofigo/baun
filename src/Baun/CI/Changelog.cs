@@ -104,6 +104,17 @@ public sealed class Changelog
                 $"The changelog has no section for version {version}. Rename [Unreleased] to [{version}] with the release date and add a new, empty [Unreleased] section above it.");
 
     /// <summary>
+    /// Gets the notes of the release with <paramref name="version"/>, such as <c>1.2.3</c>: its categories and entries
+    /// as Markdown, without its <c>## [version] - date</c> heading, as <see cref="ChangelogRelease.Notes"/> returns them.
+    /// </summary>
+    /// <remarks>
+    /// The notes fit a GitHub release, which shows its title instead of the heading:
+    /// <c>GitHub.CreateOrUpdateRelease(tag, notes: changelog.GetReleaseNotes("1.2.3"))</c>.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">The changelog has no release with <paramref name="version"/>.</exception>
+    public string GetReleaseNotes(string version) => GetRelease(version).Notes;
+
+    /// <summary>
     /// Tries to get the release with <paramref name="version"/>, such as <c>1.2.3</c>.
     /// </summary>
     /// <returns><see langword="true"/> if the changelog has a release with <paramref name="version"/>.</returns>

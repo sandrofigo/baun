@@ -254,16 +254,16 @@ steps:
 
 `Changelog` reads a changelog in the [Keep a Changelog](https://keepachangelog.com/) format. `Changelog.Read()` reads `CHANGELOG.md` in `RootDirectory`. Pass a path to read another file, or use `Changelog.Parse(text)` for text. An invalid file throws a `ChangelogFormatException` that names the line.
 
-A changelog has the `Unreleased` section, its `Releases` in the order of the file, and the `LatestRelease` (the one with the highest version). `GetRelease("1.2.3")` returns a release and throws if there's none, while `TryGetRelease` doesn't throw. Each `ChangelogRelease` has its `Version`, `Date`, `IsYanked` and `Categories`, such as `Added` and `Fixed`, with their `Entries`. `Notes` returns the categories and entries as Markdown without the release heading, so it works as the notes of a GitHub release:
+A changelog has the `Unreleased` section, its `Releases` in the order of the file, and the `LatestRelease` (the one with the highest version). `GetRelease("1.2.3")` returns a release and throws if there's none, while `TryGetRelease` doesn't throw. Each `ChangelogRelease` has its `Version`, `Date`, `IsYanked` and `Categories`, such as `Added` and `Fixed`, with their `Entries`. `GetReleaseNotes("1.2.3")` (or a release's `Notes`) returns the categories with entries as Markdown, in the order of Keep a Changelog and without the release heading, so they work as the notes of a GitHub release:
 
 ```csharp
 Step Release() => _ => _
     .Executes(async () =>
     {
         string tag = GitHub.Tag!;
-        ChangelogRelease release = Changelog.Read().GetRelease(tag.TrimStart('v'));
+        string notes = Changelog.Read().GetReleaseNotes(tag.TrimStart('v'));
 
-        await GitHub.CreateOrUpdateRelease(tag, notes: release.Notes);
+        await GitHub.CreateOrUpdateRelease(tag, notes: notes);
     });
 ```
 
