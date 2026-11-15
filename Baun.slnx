@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/examples/">
+    <File Path="examples/single-file/Build.cs" />
     <Project Path="examples/project/build/_build.csproj" />
   </Folder>
   <Folder Name="/tests/">
