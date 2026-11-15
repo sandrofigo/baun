@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-15
+
 ### Added
 
 - `GitHub`, in the new `Baun.CI` namespace that builds import automatically, reads the GitHub Actions run the build runs in, such as `GitHub.Tag`, `GitHub.RefName`, `GitHub.RefType`, `GitHub.Repository`, `GitHub.Sha` and `GitHub.Token`.
@@ -65,7 +67,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Single-file (`Build.cs`) and project (`build/Build.csproj`) builds, with Spectre.Console output.
 - `baun` tool (`Baun.Cli`) that runs builds and creates or updates them with `baun init`, including bootstrap scripts that install the .NET SDK locally when it's missing.
 
-[Unreleased]: https://github.com/sandrofigo/baun/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/sandrofigo/baun/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/sandrofigo/baun/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/sandrofigo/baun/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/sandrofigo/baun/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/sandrofigo/baun/releases/tag/v0.1.0
