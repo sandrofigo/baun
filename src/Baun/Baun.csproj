@@ -17,9 +17,10 @@
     <Compile Include="..\Shared\*.cs" Link="Shared\%(Filename)%(Extension)" />
   </ItemGroup>
 
-  <!-- Imports the Baun namespace in projects and single-file builds that reference the package. -->
+  <!-- Imports the Baun namespace and hides settings files in projects and single-file builds that reference the package. -->
   <ItemGroup>
     <None Include="buildTransitive\Baun.props" Pack="true" PackagePath="buildTransitive" />
+    <None Include="buildTransitive\Baun.targets" Pack="true" PackagePath="buildTransitive" />
   </ItemGroup>
 
   <!-- Ship the source generator inside the Baun package, so that referencing Baun is all a build needs. -->

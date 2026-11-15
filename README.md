@@ -308,7 +308,7 @@ A project build is a regular .NET console project, for example in a `build` fold
 </Project>
 ```
 
-`Build.cs` looks the same as in a single-file build, without the `#:` lines. `baun init` also adds a `build/.editorconfig` and, for Rider and ReSharper, a `build/_build.csproj.DotSettings`, so IDEs don't ask for `private` on steps, warn about using the `_` parameter in `_ => _` or flag PascalCase parameter fields such as `NuGetApiKey`. Like the bootstrap scripts, `baun init` always overwrites these files. Without the [baun tool](#the-baun-tool), you run a step with the .NET SDK directly:
+`Build.cs` looks the same as in a single-file build, without the `#:` lines. `baun init` also adds a `build/.editorconfig` and, for Rider and ReSharper, a `build/_build.csproj.DotSettings`, so IDEs don't ask for `private` on steps, warn about using the `_` parameter in `_ => _` or flag PascalCase parameter fields such as `NuGetApiKey`. Like the bootstrap scripts, `baun init` always overwrites these files. The Baun package hides these files, along with `Directory.Build.props` and `Directory.Build.targets`, from the project's items, so they don't clutter the project in IDEs. Without the [baun tool](#the-baun-tool), you run a step with the .NET SDK directly:
 
 ```shell
 dotnet run --project build -- Test

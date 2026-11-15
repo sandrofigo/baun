@@ -1,0 +1,11 @@
+<Project>
+
+  <!--
+    Hides IDE and MSBuild settings files from the project, so they don't clutter it. This has to be a .targets file,
+    because the SDK adds its default None items after .props files are imported.
+  -->
+  <ItemGroup>
+    <None Remove="*.csproj.DotSettings;.editorconfig;Directory.Build.props;Directory.Build.targets" />
+  </ItemGroup>
+
+</Project>

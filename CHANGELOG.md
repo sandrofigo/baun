@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `baun init --project` also writes `build/_build.csproj.DotSettings` with the settings of `build/.editorconfig` for Rider and ReSharper, and both files let private fields be PascalCase, so `[Parameter]` fields such as `NuGetApiKey` aren't flagged by the naming check.
+- Project builds no longer list `*.csproj.DotSettings`, `.editorconfig`, `Directory.Build.props` and `Directory.Build.targets` as project items.
 
 ## [0.3.0] - 2026-11-15
 
