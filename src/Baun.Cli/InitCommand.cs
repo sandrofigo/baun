@@ -58,7 +58,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
         if (settings.SingleFile || settings.Project || settings.NoBootstrap)
         {
-            console.MarkupLineInterpolated($"[red bold]error:[/] A build already exists ({buildPath}). In an existing build, baun init only updates the bootstrap scripts, so it doesn't take --single-file, --project or --no-bootstrap.");
+            console.WriteError(Markup.Escape($"A build already exists ({buildPath}). In an existing build, baun init only updates the bootstrap scripts, so it doesn't take --single-file, --project or --no-bootstrap."));
             return 1;
         }
 
@@ -69,7 +69,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
         if (!scriptsFindBuild)
         {
-            console.MarkupLineInterpolated($"[red bold]error:[/] The bootstrap scripts run a single-file Build.cs or build/_build.csproj in the folder they're in, but the build is {buildPath}.");
+            console.WriteError(Markup.Escape($"The bootstrap scripts run a single-file Build.cs or build/_build.csproj in the folder they're in, but the build is {buildPath}."));
             return 1;
         }
 
@@ -94,7 +94,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         {
             bool exists = File.Exists(path);
             await File.WriteAllTextAsync(path, content, cancellationToken);
-            console.MarkupLineInterpolated($"[green]{(exists ? "Updated" : "Created")}[/] {Relative(path)}");
+            console.WriteSuccess($"{(exists ? "Updated" : "Created")} {Markup.Escape(Relative(path))}");
         }
     }
 
@@ -131,7 +131,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
         if (existing is not null)
         {
-            console.MarkupLineInterpolated($"[red bold]error:[/] {Relative(existing)} already exists.");
+            console.WriteError(Markup.Escape($"{Relative(existing)} already exists."));
             return 1;
         }
 
@@ -139,7 +139,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             await File.WriteAllTextAsync(path, content, cancellationToken);
-            console.MarkupLineInterpolated($"[green]Created[/] {Relative(path)}");
+            console.WriteSuccess($"Created {Markup.Escape(Relative(path))}");
         }
 
         if (kind == BuildKind.Project)
@@ -157,15 +157,31 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
         await MarkExecutableAsync(executables);
 
-        console.WriteLine();
-        console.MarkupLine("Run [green]baun[/] to run the entry step, or [green]baun Compile[/] to run a specific step.");
-
-        if (!settings.NoBootstrap)
-        {
-            console.MarkupLine("Without the baun tool or the .NET SDK, run [green]./build.sh[/] on Linux and macOS, or [green]build[/] on Windows.");
-        }
+        WriteNextSteps(bootstrap: !settings.NoBootstrap);
 
         return 0;
+    }
+
+    /// <summary>
+    /// Writes how to run the new build.
+    /// </summary>
+    private void WriteNextSteps(bool bootstrap)
+    {
+        Grid grid = new Grid()
+            .AddColumn(new GridColumn().PadLeft(2).PadRight(2))
+            .AddColumn()
+            .AddRow(Theme.Accent("baun"), Theme.Faint("Run the entry step"))
+            .AddRow(Theme.Accent("baun Compile"), Theme.Faint("Run a specific step"));
+
+        if (bootstrap)
+        {
+            grid.AddRow(Theme.Accent("./build.sh"), Theme.Faint("Run without the baun tool or the .NET SDK on Linux and macOS"));
+            grid.AddRow(Theme.Accent("./build.cmd"), Theme.Faint("Run without the baun tool or the .NET SDK on Windows"));
+        }
+
+        console.WriteLine();
+        console.MarkupLine("Next steps:");
+        console.Write(grid);
     }
 
     /// <summary>
@@ -178,7 +194,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         if (!File.Exists(path))
         {
             File.WriteAllText(path, entry + "\n");
-            console.MarkupLineInterpolated($"[green]Created[/] .gitignore");
+            console.WriteSuccess("Created .gitignore");
             return;
         }
 
@@ -196,7 +212,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
         string separator = content.Length == 0 || content.EndsWith('\n') ? string.Empty : "\n";
         File.AppendAllText(path, separator + entry + "\n");
-        console.MarkupLineInterpolated($"[green]Updated[/] .gitignore");
+        console.WriteSuccess("Updated .gitignore");
     }
 
     /// <summary>
@@ -246,12 +262,12 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
         if (exitCode == 0)
         {
-            console.MarkupLineInterpolated($"[green]Added[/] {project} to {solution}");
+            console.WriteSuccess($"Added {Markup.Escape(project)} to {Markup.Escape(solution)}");
         }
         else
         {
             string command = $"dotnet sln {solution} add --in-root {project}";
-            console.MarkupLineInterpolated($"[yellow]warning:[/] Couldn't add {project} to {solution}. Run [green]{command}[/] to add it.");
+            console.WriteWarning($"Couldn't add {Markup.Escape(project)} to {Markup.Escape(solution)}. Run {Theme.Accent(command)} to add it.");
         }
     }
 
@@ -282,20 +298,47 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
     {
         if (solutions.Count == 1)
         {
-            return console.Prompt(new ConfirmationPrompt($"Add {project.EscapeMarkup()} to {solutions[0].EscapeMarkup()}?"))
-                ? solutions[0]
-                : null;
+            var confirmation = new ConfirmationPrompt($"Add {Theme.Accent(project)} to {Theme.Accent(solutions[0])}?")
+            {
+                ChoicesStyle = Theme.PrimaryStyle,
+                DefaultValueStyle = Theme.FaintStyle,
+            };
+
+            return console.Prompt(confirmation) ? solutions[0] : null;
         }
 
         const string none = "";
 
-        string choice = console.Prompt(
-            new SelectionPrompt<string>()
-                .Title($"Add {project.EscapeMarkup()} to a solution?")
-                .AddChoices([.. solutions, none])
-                .UseConverter(solution => solution == none ? "Don't add it" : solution.EscapeMarkup()));
+        string choice = Select(
+            $"Add {project} to a solution?",
+            [.. solutions, none],
+            solution => solution == none ? "Don't add it" : solution);
 
         return choice == none ? null : choice;
+    }
+
+    /// <summary>
+    /// Asks to pick one of <paramref name="choices"/>, then writes the question and the answer, since the prompt
+    /// disappears once answered.
+    /// </summary>
+    /// <param name="title">The question.</param>
+    /// <param name="choices">The choices.</param>
+    /// <param name="label">Returns a choice's label.</param>
+    /// <param name="hint">Returns a faint hint shown after a choice's label in the prompt, or <see langword="null"/>.</param>
+    /// <param name="defaultValue">The default value to select.</param>
+    private T Select<T>(string title, IEnumerable<T> choices, Func<T, string> label, Func<T, string?>? hint = null, T? defaultValue = default)
+        where T : notnull
+    {
+        T choice = console.Prompt(
+            new SelectionPrompt<T>()
+                .Title(Markup.Escape(title))
+                .HighlightStyle(Theme.PrimaryStyle)
+                .AddChoices(choices)
+                .DefaultValue(defaultValue)
+                .UseConverter(item => Markup.Escape(label(item)) + (hint?.Invoke(item) is { } text ? " " + Theme.Faint(text) : "")));
+
+        console.WriteSuccess($"{Markup.Escape(title)} {Theme.Accent(label(choice))}");
+        return choice;
     }
 
     /// <summary>
@@ -345,12 +388,12 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
         if (exitCode == 0)
         {
-            console.MarkupLineInterpolated($"[green]Staged[/] {list} as executable in git");
+            console.WriteSuccess($"Staged {Markup.Escape(list)} as executable in git");
         }
         else
         {
             string command = $"git add --chmod=+x -- {string.Join(' ', relativePaths)}";
-            console.MarkupLineInterpolated($"[yellow]warning:[/] Couldn't mark {list} as executable in git. Run [green]{command}[/] before committing.");
+            console.WriteWarning($"Couldn't mark {Markup.Escape(list)} as executable in git. Run {Theme.Accent(command)} before committing.");
         }
     }
 
@@ -372,13 +415,12 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
     private string Relative(string path) => Path.GetRelativePath(context.Directory, path);
 
     private BuildKind AskForKind() =>
-        console.Prompt(
-            new SelectionPrompt<BuildKind>()
-                .Title("Which kind of build do you want to create?")
-                .AddChoices(BuildKind.SingleFile, BuildKind.Project)
-                .UseConverter(kind => kind == BuildKind.SingleFile
-                    ? "Single file [grey](Build.cs in this folder)[/]"
-                    : "Project [grey](build/_build.csproj and build/Build.cs)[/]"));
+        Select(
+            "Which kind of build do you want to create?",
+            [BuildKind.Project, BuildKind.SingleFile],
+            kind => kind == BuildKind.SingleFile ? "Single file" : "Project",
+            kind => kind == BuildKind.SingleFile ? "Build.cs in this folder" : "build/_build.csproj and build/Build.cs",
+            BuildKind.Project);
 
     private static Dictionary<string, string> CreateSingleFileBuild(string directory, string baunVersion) => new()
     {
@@ -421,7 +463,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         string path = Path.Combine(context.Directory, "build", ".editorconfig");
         bool exists = File.Exists(path);
         await File.WriteAllTextAsync(path, EditorConfig.ReplaceLineEndings("\n"), cancellationToken);
-        console.MarkupLineInterpolated($"[green]{(exists ? "Updated" : "Created")}[/] {Relative(path)}");
+        console.WriteSuccess($"{(exists ? "Updated" : "Created")} {Markup.Escape(Relative(path))}");
     }
 
     /// <summary>

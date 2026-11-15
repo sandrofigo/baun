@@ -200,9 +200,9 @@ public sealed class CliAppTests : IDisposable
     }
 
     [Theory]
-    [InlineData(0, "Build.cs")]
-    [InlineData(1, "build/_build.csproj")]
-    public async Task Init_asks_which_kind_of_build_to_create(int downArrows, string expectedFile)
+    [InlineData(0, "build/_build.csproj", "Project")]
+    [InlineData(1, "Build.cs", "Single file")]
+    public async Task Init_asks_which_kind_of_build_to_create(int downArrows, string expectedFile, string expectedAnswer)
     {
         console.Interactive();
 
@@ -216,7 +216,7 @@ public sealed class CliAppTests : IDisposable
         var exitCode = await RunAsync("init");
 
         Assert.Equal(0, exitCode);
-        Assert.Contains("Which kind of build do you want to create?", console.Output);
+        Assert.Contains($"✓ Which kind of build do you want to create? {expectedAnswer}", console.Output);
         Assert.True(File.Exists(Path.Combine(root, expectedFile)));
     }
 
