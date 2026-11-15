@@ -66,8 +66,10 @@ partial class Build
                 throw new InvalidOperationException($"{ChangelogFile} has no comparison link for [{version}]. Add one at the end of the file, for example: [{version}]: https://github.com/sandrofigo/baun/compare/vPREVIOUS...{Tag}");
             }
 
-            // Fails if the section has no entries.
-            RenderReleaseNotes(release);
+            if (!release.Categories.Any(category => category.Entries.Count > 0))
+            {
+                throw new InvalidOperationException($"The section [{version}] in {ChangelogFile} has no entries.");
+            }
 
             Console.WriteLine($"{ChangelogFile} is valid and has a section for {version}, dated today.");
         });
@@ -120,7 +122,7 @@ partial class Build
         .Executes(async () =>
         {
             string version = GetVersion();
-            string notes = RenderReleaseNotes(GetRelease(ReadChangelog(), version));
+            string notes = GetRelease(ReadChangelog(), version).ToString();
 
             await CreateOrUpdateGitHubRelease(Tag!, notes, prerelease: version.Contains('-'));
         });
