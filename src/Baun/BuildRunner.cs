@@ -26,11 +26,12 @@ internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console)
         }
         catch (BuildConfigurationException exception)
         {
-            console.WriteException(exception);
+            console.WriteError(Markup.Escape(exception.Message));
             return 1;
         }
 
-        console.MarkupLineInterpolated($"[bold]Running[/] {string.Join(" -> ", plan.Select(step => step.Name))}");
+        string arrow = $" {Theme.Faint(console.Arrow())} ";
+        console.MarkupLine($"{Theme.Accent("baun")}  {string.Join(arrow, plan.Select(step => Markup.Escape(step.Name)))}");
 
         var results = new List<StepResult>();
         var total = Stopwatch.StartNew();
@@ -38,7 +39,7 @@ internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console)
         foreach (ResolvedStep step in plan)
         {
             console.WriteLine();
-            console.Write(new Rule($"[bold]{Markup.Escape(step.Name)}[/]").LeftJustified().RuleStyle("grey"));
+            console.Write(new Rule(Theme.Accent(step.Name)).LeftJustified().RuleStyle(Theme.FaintStyle));
 
             var stopwatch = Stopwatch.StartNew();
 
@@ -52,51 +53,51 @@ internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console)
             catch (Exception exception)
             {
                 TimeSpan failedAfter = stopwatch.Elapsed;
-                console.WriteException(exception, ExceptionFormats.ShortenPaths);
-                console.MarkupLineInterpolated($"[red]Step {step.Name} failed after {Format(failedAfter)}[/]");
+                console.WriteException(exception, Theme.ExceptionSettings(ExceptionFormats.ShortenPaths));
+                console.MarkupLine($"[red]{console.Cross()} {Markup.Escape(step.Name)} failed after {Format(failedAfter)}[/]");
                 results.Add(new StepResult(step.Name, StepStatus.Failed, failedAfter));
                 results.AddRange(plan.Skip(results.Count).Select(skipped => new StepResult(skipped.Name, StepStatus.Skipped, null)));
 
                 WriteSummary(results);
-                console.MarkupLineInterpolated($"[red bold]Build failed after {Format(total.Elapsed)}[/]");
+                console.MarkupLine($"[red]{console.Cross()} Build failed after {Format(total.Elapsed)}[/]");
                 return 1;
             }
 
             TimeSpan succeededIn = stopwatch.Elapsed;
-            console.MarkupLineInterpolated($"[green]Step {step.Name} succeeded in {Format(succeededIn)}[/]");
+            console.MarkupLine($"[green]{console.Check()}[/] {Markup.Escape(step.Name)} {Theme.Faint(Format(succeededIn))}");
             results.Add(new StepResult(step.Name, StepStatus.Succeeded, succeededIn));
         }
 
         WriteSummary(results);
-        console.MarkupLineInterpolated($"[green bold]Build succeeded in {Format(total.Elapsed)}[/]");
+        console.MarkupLine($"[green]{console.Check()} Build succeeded in {Format(total.Elapsed)}[/]");
         return 0;
     }
 
     private void WriteSummary(List<StepResult> results)
     {
         Table table = new Table()
-            .Border(TableBorder.Rounded)
-            .BorderColor(Color.Grey)
-            .AddColumn("Step")
-            .AddColumn("Status")
-            .AddColumn(new TableColumn("Duration").RightAligned());
+            .Border(TableBorder.Simple)
+            .BorderStyle(Theme.FaintStyle)
+            .AddColumn(new TableColumn(Theme.Faint("Step")))
+            .AddColumn(new TableColumn(Theme.Faint("Status")))
+            .AddColumn(new TableColumn(Theme.Faint("Duration")).RightAligned());
 
         foreach (StepResult result in results)
         {
             string status = result.Status switch
             {
-                StepStatus.Succeeded => "[green]Succeeded[/]",
-                StepStatus.Failed => "[red]Failed[/]",
-                _ => "[grey]Skipped[/]"
+                StepStatus.Succeeded => $"[green]{console.Check()} Succeeded[/]",
+                StepStatus.Failed => $"[red]{console.Cross()} Failed[/]",
+                _ => Theme.Faint($"{console.Circle()} Skipped")
             };
 
             table.AddRow(
-                Markup.Escape(result.Name),
+                result.Status == StepStatus.Skipped ? Theme.Faint(result.Name) : Markup.Escape(result.Name),
                 status,
-                result.Duration is { } duration ? FormatSummaryDuration(duration) : "[grey]-[/]");
+                result.Duration is { } duration ? FormatSummaryDuration(duration) : Theme.Faint("-"));
         }
 
-        console.WriteLine();
+        // The simple border starts with an empty line, which separates the table from the step output.
         console.Write(table);
     }
 

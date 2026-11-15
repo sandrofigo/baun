@@ -18,10 +18,10 @@ internal sealed class NoBuildCommand(IAnsiConsole console) : Command<NoBuildComm
 
     public override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
-        console.MarkupLine(
-            "[red bold]error:[/] No baun build found. Expected a single-file [blue]Build.cs[/], or a [blue]Build.cs[/] next to a project file, " +
-            "in the current folder or its [blue]build[/] subfolder.");
-        console.MarkupLine("Run [green]baun init[/] to create one.");
+        console.WriteError(
+            $"No baun build found. Expected a single-file {Theme.Accent("Build.cs")}, or a {Theme.Accent("Build.cs")} next to a project file, " +
+            $"in the current folder or its {Theme.Accent("build")} subfolder.");
+        console.MarkupLine($"  Run {Theme.Accent("baun init")} to create one.");
         return 1;
     }
 }

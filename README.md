@@ -50,7 +50,7 @@ Inspired by [NUKE](https://github.com/nuke-build/nuke), baun treats your build a
 
 4. Open `Build.cs` and replace the sample steps with your own work. Add a step by adding a method that returns a `Step`. The [Concept](#concept) section explains how steps work.
 
-5. Commit `Build.cs` (or the `build` folder) and the bootstrap scripts. On a CI server, run the same build with `./build.sh Test` or `build Test`, or install the tool and run `baun Test`.
+5. Commit `Build.cs` (or the `build` folder) and the bootstrap scripts. On a CI server, run the same build with `./build.sh Test` or `./build.cmd Test`, or install the tool and run `baun Test`.
 
 ## Concept
 
@@ -267,7 +267,7 @@ When you create a project build and there is a solution (`.sln` or `.slnx`) in t
 
 ```shell
 ./build.sh Test   # Linux and macOS
-build Test        # Windows (build.cmd, which runs build.ps1)
+./build.cmd Test  # Windows (runs build.ps1)
 ```
 
 The scripts use an installed .NET 10 (or later) SDK when there is one. Otherwise they install the latest .NET 10 SDK into a `.dotnet` folder next to them with Microsoft's [`dotnet-install`](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-install-script) script, and reuse it on later runs. Nothing is installed system-wide.
@@ -286,7 +286,7 @@ baun Test
 
 Step names are case-insensitive, so `baun test` runs the `Test` step. Running `baun` without a step name runs the entry step. The tool looks for a `Build.cs` file or a build project in the current folder and its `build` subfolder, and runs it. You don't need to remember whether a repository uses a single-file or a project build, and CI scripts stay short.
 
-baun uses [Spectre.Console](https://spectreconsole.net) for its output. Each step starts with a heading, failures show the exception, and the build ends with a summary table of every step's status and duration.
+baun uses [Spectre.Console](https://spectreconsole.net) for its output. Each step starts with a heading and ends with a ✓ or ✗ line, failures show the exception, and the build ends with a summary table of every step's status and duration.
 
 The tool passes all arguments to the build, except for its own commands such as `init`, which always run as commands. To run a step with the same name as a command, use `--step`, which works for any step:
 

@@ -15,6 +15,11 @@
     <InternalsVisibleTo Include="Baun.Tests" />
   </ItemGroup>
 
+  <!-- Console helpers and the theme, shared by the library and the tool. -->
+  <ItemGroup>
+    <Compile Include="..\Shared\*.cs" Link="Shared\%(Filename)%(Extension)" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Spectre.Console" Version="0.57.2" />
     <PackageReference Include="Spectre.Console.Cli" Version="0.57.2" />

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Reflection;
 using Spectre.Console;
 using Spectre.Console.Cli;
+using Spectre.Console.Cli.Help;
 
 namespace Baun.Cli;
 
@@ -55,6 +56,7 @@ internal static class CliApp
             config.ConfigureConsole(console);
             config.UseStrictParsing();
             config.CaseSensitivity(CaseSensitivity.None); // baun Init works like baun init, as step names do
+            config.Settings.HelpProviderStyles = HelpStyle;
 
             config.AddCommand<InitCommand>(InitCommandName)
                 .WithDescription("Creates a new build in the current folder, or updates the bootstrap scripts of an existing one.")
@@ -67,6 +69,45 @@ internal static class CliApp
     }
 
     private const string InitCommandName = "init";
+
+    /// <summary>
+    /// The styles of the help output: primary headers, commands and options, faint placeholders.
+    /// </summary>
+    private static readonly HelpProviderStyle HelpStyle = new()
+    {
+        Description = new DescriptionStyle { Header = Theme.PrimaryStyle },
+        Usage = new UsageStyle
+        {
+            Header = Theme.PrimaryStyle,
+            CurrentCommand = Theme.PrimaryStyle,
+            Command = Theme.PrimaryStyle,
+            Options = Theme.FaintStyle,
+            RequiredArgument = Theme.PrimaryStyle,
+            OptionalArgument = Theme.FaintStyle,
+        },
+        Examples = new ExampleStyle { Header = Theme.PrimaryStyle, Arguments = Theme.PrimaryStyle },
+        Arguments = new ArgumentStyle
+        {
+            Header = Theme.PrimaryStyle,
+            RequiredArgument = Theme.PrimaryStyle,
+            OptionalArgument = Theme.FaintStyle,
+        },
+        Options = new OptionStyle
+        {
+            Header = Theme.PrimaryStyle,
+            DefaultValueHeader = Theme.FaintStyle,
+            DefaultValue = Theme.FaintStyle,
+            RequiredOption = Theme.PrimaryStyle,
+            RequiredOptionValue = Theme.PrimaryStyle,
+            OptionalOptionValue = Theme.FaintStyle,
+        },
+        Commands = new CommandStyle
+        {
+            Header = Theme.PrimaryStyle,
+            ChildCommand = Theme.PrimaryStyle,
+            RequiredArgument = Theme.PrimaryStyle,
+        },
+    };
 
     /// <summary>
     /// Returns whether <paramref name="arguments"/> start with one of the CLI's own commands.

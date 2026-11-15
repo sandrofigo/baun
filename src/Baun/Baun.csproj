@@ -12,6 +12,11 @@
     <InternalsVisibleTo Include="Baun.Tests" />
   </ItemGroup>
 
+  <!-- Console helpers and the theme, shared by the library and the tool. -->
+  <ItemGroup>
+    <Compile Include="..\Shared\*.cs" Link="Shared\%(Filename)%(Extension)" />
+  </ItemGroup>
+
   <!-- Imports the Baun namespace in projects and single-file builds that reference the package. -->
   <ItemGroup>
     <None Include="buildTransitive\Baun.props" Pack="true" PackagePath="buildTransitive" />

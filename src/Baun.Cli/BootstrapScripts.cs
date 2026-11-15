@@ -98,7 +98,7 @@ internal static class BootstrapScripts
 
         """;
 
-    // Lets Windows users run "build Test" without calling PowerShell themselves.
+    // Lets Windows users run "./build.cmd Test" without calling PowerShell themselves.
     private const string CmdScript =
         "@powershell -NoProfile -ExecutionPolicy Bypass -File \"%~dp0build.ps1\" %*\r\n";
 }

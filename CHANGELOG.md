@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `baun init --project` names the build project `build/_build.csproj` instead of `build/Build.csproj`, and the bootstrap scripts run `build/_build.csproj`.
 - The build summary shows step durations under one second as `<1s` instead of milliseconds.
 - Durations are written without a space before the unit, such as `1.2s` and `350ms`.
+- Redesigned the console output of builds and the `baun` tool: a blue-purple accent color for step names, commands and prompt selections, ✓/✗ status symbols, a borderless build summary, and themed prompts, help and exceptions. Build configuration errors, such as an unknown step, are shown as a single error line instead of an exception.
 
 ## [0.2.0] - 2026-11-15
 
