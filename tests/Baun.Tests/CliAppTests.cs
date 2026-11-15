@@ -397,7 +397,61 @@ public sealed class CliAppTests : IDisposable
         var exitCode = await RunAsync("init", "--project", "--no-bootstrap");
 
         Assert.Equal(0, exitCode);
-        Assert.Equal(["build"], Directory.GetFileSystemEntries(root).Select(Path.GetFileName));
+        Assert.Equal([".baun", "build"], Directory.GetFileSystemEntries(root).Select(Path.GetFileName).Order());
+        Assert.Equal("{}\n", File.ReadAllText(Path.Combine(root, ".baun", "parameters.json")));
+    }
+
+    [Theory]
+    [InlineData("--single-file")]
+    [InlineData("--project")]
+    public async Task Init_creates_an_empty_parameters_file(string kind)
+    {
+        var exitCode = await RunAsync("init", kind);
+
+        Assert.Equal(0, exitCode);
+        Assert.Equal("{}\n", File.ReadAllText(Path.Combine(root, ".baun", "parameters.json")));
+        Assert.Contains("Created " + Path.Combine(".baun", "parameters.json"), console.Output);
+    }
+
+    [Fact]
+    public async Task Init_does_not_overwrite_an_existing_parameters_file()
+    {
+        Write(".baun/parameters.json", "{ \"Configuration\": \"Release\" }\n");
+
+        var exitCode = await RunAsync("init", "--single-file");
+
+        Assert.Equal(0, exitCode);
+        Assert.Equal("{ \"Configuration\": \"Release\" }\n", File.ReadAllText(Path.Combine(root, ".baun", "parameters.json")));
+        Assert.DoesNotContain("parameters.json", console.Output);
+    }
+
+    [Fact]
+    public async Task Init_creates_the_parameters_file_in_the_repository_root()
+    {
+        Directory.CreateDirectory(Path.Combine(root, ".git"));
+        var subfolder = Directory.CreateDirectory(Path.Combine(root, "tools")).FullName;
+
+        var exitCode = await CliApp.RunAsync(["init", "--single-file", "--no-bootstrap"], subfolder, console, startInfo =>
+        {
+            startedProcesses.Add(startInfo);
+            return Task.FromResult(0);
+        });
+
+        Assert.Equal(0, exitCode);
+        Assert.True(File.Exists(Path.Combine(root, ".baun", "parameters.json")));
+        Assert.False(Directory.Exists(Path.Combine(subfolder, ".baun")));
+        Assert.Contains("Created " + Path.Combine("..", ".baun", "parameters.json"), console.Output);
+    }
+
+    [Fact]
+    public async Task Init_in_an_existing_build_creates_a_missing_parameters_file()
+    {
+        Write("Build.cs", "#:package Baun@0.1.0\n");
+
+        var exitCode = await RunAsync("init");
+
+        Assert.Equal(0, exitCode);
+        Assert.Equal("{}\n", File.ReadAllText(Path.Combine(root, ".baun", "parameters.json")));
     }
 
     [Theory]

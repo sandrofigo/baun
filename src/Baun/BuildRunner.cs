@@ -7,7 +7,13 @@ namespace Baun;
 /// <summary>
 /// Resolves the steps of a build and runs them in dependency order.
 /// </summary>
-internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console)
+/// <param name="build">The build to run.</param>
+/// <param name="console">The console to write to.</param>
+/// <param name="parameterSources">
+/// Where parameter values come from besides the command line. Defaults to the environment variables of this process and
+/// <c>.baun/parameters.json</c> in the repository root.
+/// </param>
+internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console, ParameterSources? parameterSources = null)
 {
     /// <summary>
     /// Runs the build.
@@ -26,15 +32,21 @@ internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console)
 
         try
         {
-            var steps = ResolveSteps();
-
             if (HasOption(arguments, "--help", "-h"))
             {
-                WriteHelp(steps);
+                // Parameters aren't set for the help, so an invalid value can't hide it.
+                WriteHelp(ResolveSteps());
                 return 0;
             }
 
-            var requested = SelectRequestedSteps(steps, arguments);
+            var parameters = build.GetParameters();
+            var (names, parameterValues) = ParseArguments(arguments, parameters);
+
+            // Parameters are set before the steps are resolved, so step definitions can already use them.
+            ParameterResolver.Apply(parameters, parameterValues, parameterSources ?? ParameterSources.Default());
+
+            var steps = ResolveSteps();
+            var requested = SelectRequestedSteps(steps, names);
             plan = CreateExecutionPlan(requested);
         }
         catch (BuildConfigurationException exception)
@@ -133,6 +145,19 @@ internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console)
             stepRows.AddRow(Markup.Escape(step.Name), step.IsEntry ? "Runs when no step is named" : string.Empty);
         }
 
+        var parameters = build.GetParameters();
+        Grid parameterRows = Section();
+
+        foreach (BaunParameter parameter in parameters)
+        {
+            string option = ParameterResolver.ToOption(parameter.Name);
+            string usage = ParameterResolver.IsArray(parameter) ? $"{option} <value>..."
+                : ParameterResolver.IsFlag(parameter) ? option
+                : $"{option} <value>";
+
+            parameterRows.AddRow("    " + Markup.Escape(usage), Markup.Escape(parameter.Description ?? string.Empty));
+        }
+
         Grid optionRows = Section()
             .AddRow("-h, --help", "Prints help information")
             .AddRow("-v, --version", "Prints version information")
@@ -144,6 +169,18 @@ internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console)
         console.MarkupLine(Theme.Accent("STEPS:"));
         console.Write(stepRows);
         console.WriteLine();
+
+        if (parameters.Count > 0)
+        {
+            console.MarkupLine(Theme.Accent("PARAMETERS:"));
+            console.Write(parameterRows);
+            console.WriteLine();
+            console.WriteLine(
+                $"    Also read from environment variables, such as {ToEnvironmentVariable(parameters[0].Name)}, " +
+                $"and {ParameterResolver.ParametersFileDisplayName}.");
+            console.WriteLine();
+        }
+
         console.MarkupLine(Theme.Accent("OPTIONS:"));
         console.Write(optionRows);
     }
@@ -195,9 +232,22 @@ internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console)
         return steps;
     }
 
-    private List<ResolvedStep> SelectRequestedSteps(List<ResolvedStep> steps, IReadOnlyList<string> arguments)
+    /// <summary>
+    /// Returns the environment variable of a parameter, such as <c>NU_GET_API_KEY</c> for <c>NuGetApiKey</c>.
+    /// </summary>
+    private static string ToEnvironmentVariable(string name) =>
+        ParameterResolver.ToOption(name)[2..].Replace('-', '_').ToUpperInvariant();
+
+    /// <summary>
+    /// Splits the command-line arguments into step names and parameter values.
+    /// </summary>
+    private static (List<string> StepNames, Dictionary<BaunParameter, List<string>> ParameterValues) ParseArguments(
+        IReadOnlyList<string> arguments,
+        IReadOnlyList<BaunParameter> parameters)
     {
         var names = new List<string>();
+        var values = new Dictionary<BaunParameter, List<string>>();
+        var byName = parameters.ToDictionary(parameter => ParameterResolver.Normalize(parameter.Name));
 
         for (int i = 0; i < arguments.Count; i++)
         {
@@ -213,6 +263,48 @@ internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console)
 
                 names.Add(arguments[++i]);
             }
+            else if (argument.StartsWith("--", StringComparison.Ordinal) && argument.Length > 2)
+            {
+                int equals = argument.IndexOf('=');
+                string option = equals >= 0 ? argument[..equals] : argument;
+
+                if (!byName.TryGetValue(ParameterResolver.Normalize(option[2..]), out BaunParameter? parameter))
+                {
+                    throw new BuildConfigurationException($"Unknown option {option}.");
+                }
+
+                string value;
+
+                if (equals >= 0)
+                {
+                    value = argument[(equals + 1)..];
+                }
+                else if (ParameterResolver.IsFlag(parameter))
+                {
+                    // --verbose alone means true. The next argument is only its value if it's true or false, so
+                    // --verbose Test still runs the step Test.
+                    value = i + 1 < arguments.Count && bool.TryParse(arguments[i + 1], out _) ? arguments[++i] : "true";
+                }
+                else if (i + 1 < arguments.Count && !arguments[i + 1].StartsWith("--", StringComparison.Ordinal))
+                {
+                    value = arguments[++i];
+                }
+                else
+                {
+                    throw new BuildConfigurationException($"Option {option} requires a value.");
+                }
+
+                if (!values.TryGetValue(parameter, out List<string>? list))
+                {
+                    values[parameter] = list = [];
+                }
+                else if (!ParameterResolver.IsArray(parameter))
+                {
+                    throw new BuildConfigurationException($"Option {option} can only be given once.");
+                }
+
+                list.Add(value);
+            }
             else if (argument.StartsWith('-'))
             {
                 throw new BuildConfigurationException($"Unknown option {argument}.");
@@ -223,6 +315,11 @@ internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console)
             }
         }
 
+        return (names, values);
+    }
+
+    private List<ResolvedStep> SelectRequestedSteps(List<ResolvedStep> steps, List<string> names)
+    {
         if (names.Count == 0)
         {
             ResolvedStep step = steps.FirstOrDefault(step => step.IsEntry)
@@ -307,8 +404,6 @@ internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console)
 
         public List<ResolvedStep> Dependencies { get; } = [];
     }
-
-    private sealed class BuildConfigurationException(string message) : Exception(message);
 
     private enum StepStatus
     {

@@ -113,6 +113,57 @@ partial class Build
 }
 ```
 
+## Parameters
+
+Mark a field or property of the build class with `[Parameter]` to set it from outside the build, for example a configuration, a version or an API key. baun sets parameters before it runs any step:
+
+```csharp
+[Entry(nameof(Pack))]
+partial class Build
+{
+    [Parameter("Configuration to build")]
+    string Configuration = "Debug";
+
+    [Parameter("NuGet API key")]
+    string? NuGetApiKey;
+
+    [Parameter]
+    bool Verbose;
+
+    [Parameter("Projects to pack")]
+    string[] Projects = [];
+
+    // ...
+}
+```
+
+A parameter is read from these sources. The first one that has a value wins:
+
+1. The command line: `baun Pack --configuration Release --verbose`
+2. An environment variable: `CONFIGURATION=Release`
+3. `.baun/parameters.json` in the root of the repository (the folder that contains `.git`):
+
+   ```json
+   {
+     "Configuration": "Release",
+     "Projects": ["src/App", "src/Lib"]
+   }
+   ```
+
+When no source sets a parameter, it keeps its initial value. Commit `parameters.json` for shared defaults, and override them with environment variables or on the command line. Keep secrets such as API keys out of the file and pass them as environment variables, for example from your CI server's secrets. An empty environment variable counts as not set, because CI servers often pass undefined secrets as empty values. `baun init` creates an empty `.baun/parameters.json`.
+
+Names are case-insensitive and ignore `-` and `_`, so `NuGetApiKey` is set by `--nuget-api-key`, `--NuGetApiKey`, `NUGET_API_KEY` or `"nugetApiKey"`. To use another name, set it in the attribute: `[Parameter(Name = "nuget-source")]`. baun doesn't add a prefix to environment variables, so pick names that don't clash with other variables. For example, MSBuild also reads `CONFIGURATION`, so with `dotnet run` it also changes the configuration the build itself is compiled with.
+
+On the command line, a value follows the option, as in `--configuration Release` or `--configuration=Release`. A `bool` parameter given alone, such as `--verbose`, is `true`.
+
+Parameters can be `string`, `bool`, `char`, any number type, an enum, `Guid`, `Uri`, `TimeSpan`, a nullable of these, or an array of them. Enum values are case-insensitive. An array takes its values from the first source that has any, without merging sources:
+
+- On the command line, repeat the option: `--projects src/App --projects src/Lib`
+- In an environment variable, separate them with commas: `PROJECTS=src/App,src/Lib`
+- In `parameters.json`, use a JSON array, or a single value for an array with one item
+
+`baun --help` lists the parameters. baun reports an invalid value, such as `--retries many` for an `int`, as an error before it runs any step. An unknown key in `parameters.json` is also an error, so typos don't go unnoticed. The source generator reports parameters it can't set as compiler errors, such as a `readonly` field, a property without a setter or an unsupported type (`BAUN008` to `BAUN011`).
+
 ## Single file or project
 
 baun supports two ways to set up a build. Both use the same API and the same `Build.cs` entry point, so you can switch between them at any time.
@@ -259,6 +310,8 @@ baun init --project      # creates build/_build.csproj and build/Build.cs
 
 The new build has a few sample steps and references the same version of baun as the tool. When `baun init` can't ask, for example in a script, it creates a single-file build. Creating a build never overwrites existing build files.
 
+`baun init` also creates an empty [`.baun/parameters.json`](#parameters) in the root of the repository, also when it updates an existing build. It never overwrites an existing one.
+
 When you create a project build and there is a solution (`.sln` or `.slnx`) in the current folder or up to three levels of subfolders, such as `src/MyApp.sln`, `baun init` asks whether to add `build/_build.csproj` to it. If you agree, it runs `dotnet sln add --in-root`, so the build project sits at the root of the solution. With several solutions, you pick one. When `baun init` can't ask, it leaves the solution alone.
 
 ### Running without the .NET SDK
@@ -296,7 +349,7 @@ baun --step Init
 
 The source generator warns about such steps (`BAUN007`).
 
-Run `baun --help` to list the steps of the build, with the entry step marked, and `baun --version` to show the version of baun the build uses. Both also work with the bootstrap scripts, such as `./build.sh --help`. In a folder without a build, they show the help and version of the tool.
+Run `baun --help` to list the steps and parameters of the build, with the entry step marked, and `baun --version` to show the version of baun the build uses. Both also work with the bootstrap scripts, such as `./build.sh --help`. In a folder without a build, they show the help and version of the tool.
 
 ## Development
 
