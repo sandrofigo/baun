@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Reflection;
+using Baun.CI;
 using Spectre.Console;
 
 namespace Baun;
@@ -13,8 +14,17 @@ namespace Baun;
 /// Where parameter values come from besides the command line. Defaults to the environment variables of this process and
 /// <c>.baun/parameters.json</c> in the nearest <c>.baun</c> folder of the current directory or its parents.
 /// </param>
-internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console, ParameterSources? parameterSources = null)
+/// <param name="ciProvider">
+/// The CI server whose log groups each step is written in. Defaults to the one detected from the environment variables.
+/// </param>
+internal sealed class BuildRunner(
+    IBaunBuild build,
+    IAnsiConsole console,
+    ParameterSources? parameterSources = null,
+    CIProvider? ciProvider = null)
 {
+    private readonly CIProvider provider = ciProvider ?? CIProviders.Detect();
+
     /// <summary>
     /// Runs the build.
     /// </summary>
@@ -60,15 +70,15 @@ internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console, Parame
 
         foreach (ResolvedStep step in plan)
         {
-            // Separate each step from the output of the one before it.
-            if (step != plan[0])
-            {
-                console.WriteLine();
-            }
-
-            console.MarkupLine(Theme.Faint($"{console.Marker()} {step.Name}"));
-
             var stopwatch = Stopwatch.StartNew();
+
+            // Outside CI, the step name gets an empty line before and after it. In CI, the log groups separate the steps.
+            IDisposable group = LogGroups.Begin(
+                console,
+                provider,
+                step.Name,
+                Theme.Faint($"{console.Marker()} {step.Name}"),
+                padFallback: true);
 
             try
             {
@@ -79,6 +89,9 @@ internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console, Parame
             }
             catch (Exception exception)
             {
+                // End the group first, so the error isn't hidden in a collapsed group.
+                group.Dispose();
+
                 results.Add(new StepResult(step.Name, StepStatus.Failed, stopwatch.Elapsed));
                 console.WriteException(exception, Theme.ExceptionSettings(ExceptionFormats.ShortenPaths));
                 results.AddRange(plan.Skip(results.Count).Select(skipped => new StepResult(skipped.Name, StepStatus.Skipped, null)));
@@ -88,6 +101,7 @@ internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console, Parame
                 return 1;
             }
 
+            group.Dispose();
             results.Add(new StepResult(step.Name, StepStatus.Succeeded, stopwatch.Elapsed));
         }
 

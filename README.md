@@ -267,6 +267,28 @@ Step Release() => _ => _
     });
 ```
 
+### Log groups
+
+On a CI server that supports log groups, baun writes each step in a collapsible group named after the step. The summary and the error of a failing step are written outside the groups, so they stay visible. baun detects the CI server from its environment variables:
+
+| CI server | Detected by |
+| --- | --- |
+| GitHub Actions | `GITHUB_ACTIONS=true` |
+| Azure Pipelines | `TF_BUILD=True` |
+| GitLab CI/CD | `GITLAB_CI=true` |
+| TeamCity | `TEAMCITY_VERSION` |
+
+To group output yourself, for example in a build's own entry point, use `LogGroup.Begin`. The group ends when the returned object is disposed:
+
+```csharp
+using (LogGroup.Begin("Restore"))
+{
+    // output of the restore
+}
+```
+
+Groups don't nest. A group opened inside another one, such as inside a step, is written as a plain `› Restore` line, so the step stays one group. Outside CI, steps and groups are written as plain lines.
+
 ## Single file or project
 
 baun supports two ways to set up a build. Both use the same API and the same `Build.cs` entry point, so you can switch between them at any time.

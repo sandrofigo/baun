@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Baun.CI;
 using Spectre.Console;
 using Spectre.Console.Testing;
 
@@ -240,11 +241,90 @@ public class BuildRunnerTests
         Assert.Contains("Step Main depends on Helper, which is not a step of ForeignDependencyBuild.", result.Output);
     }
 
+    [Fact]
+    public async Task Writes_an_empty_line_before_and_after_each_step_name()
+    {
+        var build = new FailingBuild();
+
+        var result = await RunAsync(build, "First");
+
+        string[] lines = result.Output.ReplaceLineEndings("\n").Split('\n');
+        int header = Array.IndexOf(lines, "▸ First");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(1, header);
+        Assert.Equal(string.Empty, lines[header - 1]);
+        Assert.Equal(string.Empty, lines[header + 1]);
+    }
+
+    [Fact]
+    public async Task Writes_each_step_in_a_log_group_in_CI()
+    {
+        var build = new SampleBuild();
+
+        var result = await RunInCIAsync(build, CIProvider.GitHubActions, "Compile");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.DoesNotContain("▸", result.Output);
+
+        string[] lines = result.Output.ReplaceLineEndings("\n").Split('\n');
+        Assert.Equal(
+            ["::group::Clean", "::endgroup::", "::group::Restore", "::endgroup::", "::group::Compile", "::endgroup::"],
+            lines.Where(line => line.StartsWith("::", StringComparison.Ordinal)));
+
+        int lastGroupEnd = Array.LastIndexOf(lines, "::endgroup::");
+        Assert.Contains(lines.Skip(lastGroupEnd), line => line.Contains("Build succeeded"));
+        Assert.DoesNotContain(lines.Take(lastGroupEnd), line => line.Contains("Succeeded"));
+    }
+
+    [Fact]
+    public async Task Writes_the_error_of_a_failing_step_after_its_log_group()
+    {
+        var build = new FailingBuild();
+
+        var result = await RunInCIAsync(build, CIProvider.GitHubActions);
+
+        Assert.Equal(1, result.ExitCode);
+
+        string output = result.Output;
+        int failingGroupEnd = output.IndexOf("::endgroup::", output.IndexOf("::group::Failing", StringComparison.Ordinal), StringComparison.Ordinal);
+        Assert.True(failingGroupEnd >= 0);
+        Assert.True(output.IndexOf("Boom", StringComparison.Ordinal) > failingGroupEnd);
+        Assert.DoesNotContain("::group::Last", output);
+    }
+
+    [Fact]
+    public async Task Writes_a_group_inside_a_step_as_a_line_in_CI()
+    {
+        var console = new TestConsole().Width(250);
+        var build = new GroupingBuild(console);
+
+        var exitCode = await new BuildRunner(build, console, ParameterSources.None, CIProvider.GitHubActions).RunAsync([]);
+        var result = new RunResult(exitCode, console.Output);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(1, CountOccurrences(result.Output, "::group::"));
+        Assert.Equal(1, CountOccurrences(result.Output, "::endgroup::"));
+        Assert.Contains("› Inner", result.Output);
+    }
+
+    private static int CountOccurrences(string text, string value) =>
+        (text.Length - text.Replace(value, string.Empty, StringComparison.Ordinal).Length) / value.Length;
+
+    private static async Task<RunResult> RunInCIAsync(IBaunBuild build, CIProvider provider, params string[] arguments)
+    {
+        var console = new TestConsole().Width(250);
+
+        var exitCode = await new BuildRunner(build, console, ParameterSources.None, provider).RunAsync(arguments);
+
+        return new RunResult(exitCode, console.Output);
+    }
+
     private static async Task<RunResult> RunAsync(IBaunBuild build, params string[] arguments)
     {
         var console = new TestConsole().Width(250);
 
-        var exitCode = await new BuildRunner(build, console, ParameterSources.None).RunAsync(arguments);
+        var exitCode = await new BuildRunner(build, console, ParameterSources.None, CIProvider.None).RunAsync(arguments);
 
         return new RunResult(exitCode, console.Output);
     }
@@ -305,6 +385,21 @@ internal sealed partial class FailingBuild
     public Step Last() => _ => _
         .DependsOn(Failing)
         .Executes(() => Executed.Add(nameof(Last)));
+}
+
+[Entry(nameof(Main))]
+internal sealed partial class GroupingBuild(IAnsiConsole console)
+{
+    public Step Main() => _ => _
+        .Executes(async () =>
+        {
+            await Task.Yield();
+
+            using (LogGroups.Begin(console, CIProvider.GitHubActions, "Inner", "› Inner"))
+            {
+                console.WriteLine("inside");
+            }
+        });
 }
 
 [Entry(nameof(A))]

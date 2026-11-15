@@ -13,9 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `GitHub.CreateOrUpdateRelease` creates the GitHub release for a tag, or updates it if it already exists.
 - `GitHubRepository` holds the owner and name of a GitHub repository. `GitHub.Repository` returns it, and `GitHubRepository.Parse` reads `owner/name`.
 - `Changelog` in `Baun.CI` reads a [Keep a Changelog](https://keepachangelog.com/) file, such as `Changelog.Read()` for `CHANGELOG.md` in the root directory. It has the unreleased section and the releases, and `Changelog.GetReleaseNotes` (or `ChangelogRelease.Notes`) gives a release's entries as Markdown, for example for `GitHub.CreateOrUpdateRelease`.
+- On GitHub Actions, Azure Pipelines, GitLab CI/CD and TeamCity, each step is written in a collapsible log group, and `LogGroup.Begin` in `Baun.CI` opens a group from a build. Groups don't nest: a group inside another one is written as a plain line.
 
 ### Changed
 
+- The name of each step is written with an empty line before and after it, separating it from the output of the steps.
 - `baun init --project` also writes `build/_build.csproj.DotSettings` with the settings of `build/.editorconfig` for Rider and ReSharper, and both files let private fields be PascalCase, so `[Parameter]` fields such as `NuGetApiKey` aren't flagged by the naming check.
 - Project builds no longer list `*.csproj.DotSettings`, `.editorconfig`, `Directory.Build.props` and `Directory.Build.targets` as project items.
 

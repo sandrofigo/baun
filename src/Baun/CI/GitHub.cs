@@ -1,4 +1,4 @@
-using System.Globalization;
+using static Baun.EnvironmentVariables;
 
 namespace Baun.CI;
 
@@ -299,11 +299,4 @@ public static class GitHub
 
         return await GitHubReleases.CreateOrUpdate(new OctokitGitHubApi(token, apiUrl), repository, data, cancellationToken);
     }
-
-    private static bool IsTrue(string name) => string.Equals(Get(name), "true", StringComparison.OrdinalIgnoreCase);
-
-    private static string? Get(string name) => Environment.GetEnvironmentVariable(name) is { Length: > 0 } value ? value : null;
-
-    private static long? GetNumber(string name) =>
-        long.TryParse(Get(name), NumberStyles.None, CultureInfo.InvariantCulture, out long number) ? number : null;
 }
