@@ -122,7 +122,7 @@ partial class Build
         .Executes(async () =>
         {
             string version = GetVersion();
-            string notes = GetRelease(ReadChangelog(), version).ToString();
+            string notes = GetReleaseNotes(GetRelease(ReadChangelog(), version));
 
             await CreateOrUpdateGitHubRelease(Tag!, notes, prerelease: version.Contains('-'));
         });

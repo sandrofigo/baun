@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using KeepAChangelog.IO;
 using GitHub = Octokit;
 
 partial class Build
@@ -30,6 +31,18 @@ partial class Build
         Environment.GetEnvironmentVariable(name) is { Length: > 0 } value
             ? value
             : throw new InvalidOperationException($"The environment variable {name} isn't set.");
+
+    /// <summary>
+    /// Gets the categories and entries of <paramref name="release"/> without its heading, which the GitHub release
+    /// already shows as its title.
+    /// </summary>
+    static string GetReleaseNotes(Release release) =>
+        string.Join(
+            "\n\n",
+            release.Categories
+                .Where(category => category.Entries.Count > 0)
+                .OrderBy(category => category.Type)
+                .Select(category => category.ToString()));
 
     /// <summary>
     /// Creates the GitHub release for <paramref name="tag"/>, or updates its notes if it already exists, so the step
