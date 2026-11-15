@@ -117,6 +117,29 @@ AbsolutePath Package => ArtifactsDirectory / "packages" / "App.1.0.0.nupkg";
 
 An `AbsolutePath` converts to a `string` implicitly, so you can pass it to `File`, `Directory`, `Path` and process arguments. To turn a string into an `AbsolutePath`, cast it: `(AbsolutePath)"/tmp/output"`. The cast throws for a relative path, and `/` throws for a rooted one. `Name`, `Extension` and `Parent` return the parts of a path. Two paths are equal when they name the same file, ignoring case on Windows and macOS, and a trailing separator doesn't count.
 
+`AbsolutePath` also has helpers for common file work in a build:
+
+```csharp
+Step Pack() => _ => _
+    .Executes(() =>
+    {
+        ArtifactsDirectory.CreateOrCleanDirectory();
+
+        foreach (AbsolutePath project in RootDirectory.GlobFiles("src/**/*.csproj", "!**/bin/**"))
+        {
+            // dotnet pack project
+        }
+
+        (RootDirectory / "README.md").CopyTo(ArtifactsDirectory / "README.md");
+    });
+```
+
+- `Exists`, `FileExists` and `DirectoryExists` tell whether something is at the path.
+- `CreateDirectory()` creates a directory with its parents. `CreateOrCleanDirectory()` also empties a directory that already exists.
+- `Delete()` deletes a file, or a directory with everything in it, including read-only files. It does nothing when the path doesn't exist.
+- `CopyTo(target)` copies a file, or a directory with everything in it, and creates the target's parent directories. A directory is merged into an existing one. `MoveTo(target)` moves a file or directory. Both throw instead of replacing an existing file unless you pass `overwrite: true`. The target is the new path, not the folder to put it in, so use `directory / path.Name` to keep the name.
+- `GlobFiles(patterns)` and `GlobDirectories(patterns)` return the files or directories below a directory that match any of the patterns, sorted by path. `*` matches any characters in a name, and `**` matches any number of directories. A pattern that starts with `!` excludes what it matches, as in `!**/bin/**`.
+
 baun includes a source generator that completes the `partial class Build` at compile time. It finds every method that returns a `Step`, takes each step's name from its method name, and registers it with the build. This avoids scanning the build with reflection, and you don't need to register anything by hand. It also reports mistakes as compiler errors, such as a build class that isn't `partial` or an `[Entry]` that doesn't name a step. baun checks for circular dependencies before it runs any step.
 
 baun's types, such as `Step`, `Entry` and `BaunBuild`, are in the `Baun` namespace, and the types for CI servers, such as `GitHub`, are in `Baun.CI`. The Baun package imports both automatically, so a build never needs `using` lines for baun itself.
