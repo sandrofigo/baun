@@ -4,16 +4,34 @@ using KeepAChangelog.IO;
 [Entry(nameof(Test))]
 partial class Build
 {
-    const string Solution = "Baun.slnx";
     const string ChangelogFile = "CHANGELOG.md";
-    const string ArtifactsDirectory = "artifacts";
+
+    static string Solution => Path.Combine(RootDirectory, "Baun.slnx");
+    static string ChangelogPath => Path.Combine(RootDirectory, ChangelogFile);
+    static string ArtifactsDirectory => Path.Combine(RootDirectory, "artifacts");
+
+    [Parameter("Configuration to test and pack")]
+    string Configuration = "Release";
+
+    [Parameter("Type of the ref the build runs for, set by GitHub Actions: branch or tag", Name = "github-ref-type")]
+    string? GitHubRefType;
+
+    [Parameter("Name of the ref the build runs for, set by GitHub Actions, such as v1.2.3", Name = "github-ref-name")]
+    string? GitHubRefName;
+
+    [Parameter("API key for pushing the packages to nuget.org", Name = "nuget-api-key")]
+    string? NuGetApiKey;
+
+    [Parameter("Token for creating the GitHub release", Name = "github-token")]
+    string? GitHubToken;
+
+    [Parameter("Repository of the GitHub release, set by GitHub Actions, such as sandrofigo/baun", Name = "github-repository")]
+    string? GitHubRepository;
 
     /// <summary>
     /// The tag being released, for example v1.2.3, or null when the build doesn't run for a tag.
     /// </summary>
-    static readonly string? Tag = Environment.GetEnvironmentVariable("GITHUB_REF_TYPE") == "tag"
-        ? Environment.GetEnvironmentVariable("GITHUB_REF_NAME")
-        : null;
+    string? Tag => GitHubRefType == "tag" ? GitHubRefName : null;
 
     Step ValidateChangelog() => _ => _
         .Executes(() =>
@@ -67,14 +85,14 @@ partial class Build
     Step Test() => _ => _
         .Executes(async () =>
         {
-            await Run("dotnet", "test", "--solution", Solution, "--configuration", "Release");
+            await Run("dotnet", "test", "--solution", Solution, "--configuration", Configuration);
         });
 
     Step Pack() => _ => _
         .DependsOn(ValidateChangelog, Test)
         .Executes(async () =>
         {
-            List<string> arguments = ["pack", Solution, "--configuration", "Release", "--output", ArtifactsDirectory];
+            List<string> arguments = ["pack", Solution, "--configuration", Configuration, "--output", ArtifactsDirectory];
 
             if (Tag is not null)
             {
@@ -95,7 +113,7 @@ partial class Build
     Step PushPackages() => _ => _
         .Executes(async () =>
         {
-            string apiKey = GetRequiredEnvironmentVariable("NUGET_API_KEY");
+            string apiKey = Required(NuGetApiKey, "nuget-api-key");
 
             await Run(
                 "dotnet", "nuget", "push", Path.Combine(ArtifactsDirectory, "*.nupkg"),
@@ -114,14 +132,19 @@ partial class Build
             string version = GetVersion();
             string notes = GetReleaseNotes(GetRelease(ReadChangelog(), version));
 
-            await CreateOrUpdateGitHubRelease(Tag!, notes, prerelease: version.Contains('-'));
+            await CreateOrUpdateGitHubRelease(
+                Required(GitHubToken, "github-token"),
+                Required(GitHubRepository, "github-repository"),
+                Tag!,
+                notes,
+                prerelease: version.Contains('-'));
         });
 
     static Changelog ReadChangelog()
     {
         try
         {
-            return Changelog.FromFile(ChangelogFile);
+            return Changelog.FromFile(ChangelogPath);
         }
         catch (ChangelogParseException exception)
         {
@@ -136,11 +159,11 @@ partial class Build
     /// <summary>
     /// Gets the version from the tag, for example 1.2.3 from v1.2.3.
     /// </summary>
-    static string GetVersion()
+    string GetVersion()
     {
         if (Tag is null)
         {
-            throw new InvalidOperationException("This step only runs for a release tag (GITHUB_REF_TYPE=tag and GITHUB_REF_NAME=v1.2.3).");
+            throw new InvalidOperationException("This step only runs for a release tag (--github-ref-type tag --github-ref-name v1.2.3).");
         }
 
         if (!Regex.IsMatch(Tag, @"^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$"))
