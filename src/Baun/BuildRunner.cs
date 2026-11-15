@@ -30,16 +30,18 @@ internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console)
             return 1;
         }
 
-        string arrow = $" {Theme.Faint(console.Arrow())} ";
-        console.MarkupLine($"{Theme.Accent("baun")}  {string.Join(arrow, plan.Select(step => Markup.Escape(step.Name)))}");
-
         var results = new List<StepResult>();
         var total = Stopwatch.StartNew();
 
         foreach (ResolvedStep step in plan)
         {
-            console.WriteLine();
-            console.Write(new Rule(Theme.Accent(step.Name)).LeftJustified().RuleStyle(Theme.FaintStyle));
+            // Separate each step from the output of the one before it.
+            if (step != plan[0])
+            {
+                console.WriteLine();
+            }
+
+            console.MarkupLine(Theme.Faint($"{console.Marker()} {step.Name}"));
 
             var stopwatch = Stopwatch.StartNew();
 
@@ -52,10 +54,8 @@ internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console)
             }
             catch (Exception exception)
             {
-                TimeSpan failedAfter = stopwatch.Elapsed;
+                results.Add(new StepResult(step.Name, StepStatus.Failed, stopwatch.Elapsed));
                 console.WriteException(exception, Theme.ExceptionSettings(ExceptionFormats.ShortenPaths));
-                console.MarkupLine($"[red]{console.Cross()} {Markup.Escape(step.Name)} failed after {Format(failedAfter)}[/]");
-                results.Add(new StepResult(step.Name, StepStatus.Failed, failedAfter));
                 results.AddRange(plan.Skip(results.Count).Select(skipped => new StepResult(skipped.Name, StepStatus.Skipped, null)));
 
                 WriteSummary(results);
@@ -63,9 +63,7 @@ internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console)
                 return 1;
             }
 
-            TimeSpan succeededIn = stopwatch.Elapsed;
-            console.MarkupLine($"[green]{console.Check()}[/] {Markup.Escape(step.Name)} {Theme.Faint(Format(succeededIn))}");
-            results.Add(new StepResult(step.Name, StepStatus.Succeeded, succeededIn));
+            results.Add(new StepResult(step.Name, StepStatus.Succeeded, stopwatch.Elapsed));
         }
 
         WriteSummary(results);

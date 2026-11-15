@@ -40,7 +40,7 @@ internal static class Theme
 
     public static string Chevron(this IAnsiConsole console) => console.Profile.Capabilities.Unicode ? "›" : ">";
 
-    public static string Arrow(this IAnsiConsole console) => console.Profile.Capabilities.Unicode ? "→" : "->";
+    public static string Marker(this IAnsiConsole console) => console.Profile.Capabilities.Unicode ? "▸" : ">";
 
     /// <summary>
     /// Writes a line that reports something done, such as a created file.

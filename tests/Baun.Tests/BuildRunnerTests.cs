@@ -13,7 +13,6 @@ public class BuildRunnerTests
 
         Assert.Equal(0, result.ExitCode);
         Assert.Equal(["Clean", "Restore", "Compile", "Test"], build.Executed);
-        Assert.Contains("baun  Clean → Restore → Compile → Test", result.Output);
         Assert.Matches(@"Compile\s+✓ Succeeded", result.Output);
         Assert.Contains("Build succeeded", result.Output);
     }
@@ -75,7 +74,7 @@ public class BuildRunnerTests
 
         Assert.Equal(0, result.ExitCode);
         Assert.Equal(["Clean", "Restore", "Compile", "Test", "Pack"], build.Executed);
-        Assert.Matches(@"✓ All \d", result.Output);
+        Assert.Matches(@"All\s+✓ Succeeded", result.Output);
     }
 
     [Fact]
@@ -142,7 +141,6 @@ public class BuildRunnerTests
 
         Assert.Equal(0, result.ExitCode);
         Assert.Equal(["Clean", "Restore", "Compile"], build.Executed);
-        Assert.Contains("baun  Clean → Restore → Compile", result.Output);
     }
 
     [Theory]
@@ -168,7 +166,7 @@ public class BuildRunnerTests
 
         Assert.Equal(1, result.ExitCode);
         Assert.Equal(["First"], build.Executed);
-        Assert.Contains("✗ Failing failed after", result.Output);
+        Assert.Matches(@"Failing\s+✗ Failed", result.Output);
         Assert.Contains("Boom", result.Output);
         Assert.Matches(@"Last\s+○ Skipped", result.Output);
         Assert.Contains("Build failed", result.Output);
