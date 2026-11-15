@@ -19,14 +19,14 @@ internal sealed record ParameterSources(IReadOnlyDictionary<string, string> Envi
     public static ParameterSources None { get; } = new(new Dictionary<string, string>(), null);
 
     /// <summary>
-    /// The environment variables of this process, and <c>.baun/parameters.json</c> in the root of the repository the
-    /// current directory is in.
+    /// The environment variables of this process, and <c>.baun/parameters.json</c> in the nearest <c>.baun</c> folder
+    /// in the current directory or its parents.
     /// </summary>
     public static ParameterSources Default() => ForDirectory(System.Environment.CurrentDirectory);
 
     /// <summary>
-    /// The environment variables of this process, and <c>.baun/parameters.json</c> in the root of the repository
-    /// <paramref name="directory"/> is in, or in <paramref name="directory"/> when it isn't in a repository.
+    /// The environment variables of this process, and <c>.baun/parameters.json</c> in the nearest <c>.baun</c> folder
+    /// in <paramref name="directory"/> or its parents. Without a <c>.baun</c> folder, there is no parameters file.
     /// </summary>
     public static ParameterSources ForDirectory(string directory)
     {
@@ -37,7 +37,7 @@ internal sealed record ParameterSources(IReadOnlyDictionary<string, string> Envi
             environment[(string)variable.Key] = (string?)variable.Value ?? string.Empty;
         }
 
-        return new ParameterSources(environment, RepositoryRoot.GetParametersFile(directory));
+        return new ParameterSources(environment, RepositoryRoot.TryGetParametersFile(directory));
     }
 }
 

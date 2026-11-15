@@ -8,7 +8,7 @@ namespace Baun;
 /// <list type="number">
 /// <item>the command line, such as <c>--configuration Release</c></item>
 /// <item>an environment variable, such as <c>CONFIGURATION=Release</c></item>
-/// <item><c>.baun/parameters.json</c> in the root of the repository, such as <c>{ "Configuration": "Release" }</c></item>
+/// <item><c>.baun/parameters.json</c> in the nearest <c>.baun</c> folder of the current directory or its parents, such as <c>{ "Configuration": "Release" }</c></item>
 /// </list>
 /// When none of them sets it, the parameter keeps its initial value. Names match case-insensitively and ignore
 /// <c>-</c> and <c>_</c>, so <c>NuGetApiKey</c> is set by <c>--nuget-api-key</c> and <c>NUGET_API_KEY</c>.
