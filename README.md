@@ -141,7 +141,7 @@ A parameter is read from these sources. The first one that has a value wins:
 
 1. The command line: `baun Pack --configuration Release --verbose`
 2. An environment variable: `CONFIGURATION=Release`
-3. `.baun/parameters.json` in the root of the repository (the folder that contains `.git`):
+3. `.baun/parameters.json` in the nearest `.baun` folder, searched from the current folder up through its parents:
 
    ```json
    {
@@ -310,7 +310,7 @@ baun init --project      # creates build/_build.csproj and build/Build.cs
 
 The new build has a few sample steps and references the same version of baun as the tool. When `baun init` can't ask, for example in a script, it creates a single-file build. Creating a build never overwrites existing build files.
 
-`baun init` also creates an empty [`.baun/parameters.json`](#parameters) in the root of the repository, also when it updates an existing build. It never overwrites an existing one.
+`baun init` also creates an empty [`.baun/parameters.json`](#parameters), also when it updates an existing build. It uses the nearest existing `.baun` folder in the current folder or its parents, or creates `.baun` in the current folder. It never overwrites an existing `parameters.json`.
 
 When you create a project build and there is a solution (`.sln` or `.slnx`) in the current folder or up to three levels of subfolders, such as `src/MyApp.sln`, `baun init` asks whether to add `build/_build.csproj` to it. If you agree, it runs `dotnet sln add --in-root`, so the build project sits at the root of the solution. With several solutions, you pick one. When `baun init` can't ask, it leaves the solution alone.
 

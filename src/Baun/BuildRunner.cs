@@ -11,7 +11,7 @@ namespace Baun;
 /// <param name="console">The console to write to.</param>
 /// <param name="parameterSources">
 /// Where parameter values come from besides the command line. Defaults to the environment variables of this process and
-/// <c>.baun/parameters.json</c> in the repository root.
+/// <c>.baun/parameters.json</c> in the nearest <c>.baun</c> folder of the current directory or its parents.
 /// </param>
 internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console, ParameterSources? parameterSources = null)
 {

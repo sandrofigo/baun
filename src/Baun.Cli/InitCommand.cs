@@ -87,12 +87,14 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
     }
 
     /// <summary>
-    /// Creates an empty <c>.baun/parameters.json</c> in the root of the repository, where the build reads it, unless it
-    /// already exists. It holds the user's parameter values, so it's never overwritten.
+    /// Creates an empty <c>.baun/parameters.json</c> unless it already exists: in the nearest <c>.baun</c> folder of the
+    /// current folder or its parents, where the build reads it, or in a new <c>.baun</c> folder in the current folder.
+    /// It holds the user's parameter values, so it's never overwritten.
     /// </summary>
     private async Task CreateParametersFileAsync(CancellationToken cancellationToken)
     {
-        string path = RepositoryRoot.GetParametersFile(context.Directory);
+        string root = RepositoryRoot.TryFind(context.Directory) ?? context.Directory;
+        string path = Path.Combine(root, RepositoryRoot.FolderName, RepositoryRoot.ParametersFileName);
 
         if (File.Exists(path))
         {
@@ -418,7 +420,20 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         }
     }
 
-    private static bool IsInGitRepository(string directory) => RepositoryRoot.TryFind(directory) is not null;
+    private static bool IsInGitRepository(string directory)
+    {
+        for (var current = new DirectoryInfo(directory); current is not null; current = current.Parent)
+        {
+            string git = Path.Combine(current.FullName, ".git");
+
+            if (Directory.Exists(git) || File.Exists(git))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private string Relative(string path) => Path.GetRelativePath(context.Directory, path);
 

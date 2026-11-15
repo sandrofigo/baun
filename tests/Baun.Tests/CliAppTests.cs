@@ -426,22 +426,38 @@ public sealed class CliAppTests : IDisposable
     }
 
     [Fact]
-    public async Task Init_creates_the_parameters_file_in_the_repository_root()
+    public async Task Init_creates_the_parameters_file_in_an_existing_baun_folder_of_a_parent()
     {
-        Directory.CreateDirectory(Path.Combine(root, ".git"));
+        Directory.CreateDirectory(Path.Combine(root, ".baun"));
         var subfolder = Directory.CreateDirectory(Path.Combine(root, "tools")).FullName;
 
-        var exitCode = await CliApp.RunAsync(["init", "--single-file", "--no-bootstrap"], subfolder, console, startInfo =>
-        {
-            startedProcesses.Add(startInfo);
-            return Task.FromResult(0);
-        });
+        var exitCode = await RunInAsync(subfolder, "init", "--single-file", "--no-bootstrap");
 
         Assert.Equal(0, exitCode);
         Assert.True(File.Exists(Path.Combine(root, ".baun", "parameters.json")));
         Assert.False(Directory.Exists(Path.Combine(subfolder, ".baun")));
         Assert.Contains("Created " + Path.Combine("..", ".baun", "parameters.json"), console.Output);
     }
+
+    [Fact]
+    public async Task Init_creates_the_baun_folder_in_the_current_folder_when_there_is_none()
+    {
+        Directory.CreateDirectory(Path.Combine(root, ".git")); // a git repository doesn't decide where .baun goes
+        var subfolder = Directory.CreateDirectory(Path.Combine(root, "tools")).FullName;
+
+        var exitCode = await RunInAsync(subfolder, "init", "--single-file", "--no-bootstrap");
+
+        Assert.Equal(0, exitCode);
+        Assert.True(File.Exists(Path.Combine(subfolder, ".baun", "parameters.json")));
+        Assert.False(Directory.Exists(Path.Combine(root, ".baun")));
+    }
+
+    private Task<int> RunInAsync(string directory, params string[] arguments) =>
+        CliApp.RunAsync(arguments, directory, console, startInfo =>
+        {
+            startedProcesses.Add(startInfo);
+            return Task.FromResult(0);
+        });
 
     [Fact]
     public async Task Init_in_an_existing_build_creates_a_missing_parameters_file()

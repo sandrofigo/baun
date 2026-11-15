@@ -262,22 +262,32 @@ public sealed class ParameterTests : IDisposable
     }
 
     [Fact]
-    public void Finds_the_parameters_file_in_the_repository_root()
+    public void Finds_the_parameters_file_in_the_nearest_baun_folder_of_a_parent()
     {
         var repository = Directory.CreateDirectory(Path.Combine(root, "repo"));
-        Directory.CreateDirectory(Path.Combine(repository.FullName, ".git"));
+        Directory.CreateDirectory(Path.Combine(repository.FullName, ".baun"));
+        Directory.CreateDirectory(Path.Combine(repository.FullName, ".git")); // ignored, only .baun counts
         var subfolder = Directory.CreateDirectory(Path.Combine(repository.FullName, "src", "app"));
 
         Assert.Equal(Path.Combine(repository.FullName, ".baun", "parameters.json"), ParameterSources.ForDirectory(subfolder.FullName).ParametersFile);
     }
 
     [Fact]
-    public void Finds_the_parameters_file_in_a_worktree_whose_git_is_a_file()
+    public void Prefers_the_nearest_baun_folder()
     {
-        File.WriteAllText(Path.Combine(root, ".git"), "gitdir: elsewhere\n");
-        var subfolder = Directory.CreateDirectory(Path.Combine(root, "build"));
+        Directory.CreateDirectory(Path.Combine(root, ".baun"));
+        var nested = Directory.CreateDirectory(Path.Combine(root, "nested"));
+        Directory.CreateDirectory(Path.Combine(nested.FullName, ".baun"));
 
-        Assert.Equal(Path.Combine(root, ".baun", "parameters.json"), ParameterSources.ForDirectory(subfolder.FullName).ParametersFile);
+        Assert.Equal(Path.Combine(nested.FullName, ".baun", "parameters.json"), ParameterSources.ForDirectory(nested.FullName).ParametersFile);
+    }
+
+    [Fact]
+    public void Has_no_parameters_file_without_a_baun_folder()
+    {
+        Directory.CreateDirectory(Path.Combine(root, ".git"));
+
+        Assert.Null(ParameterSources.ForDirectory(root).ParametersFile);
     }
 
     [Fact]
