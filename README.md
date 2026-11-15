@@ -180,7 +180,7 @@ Parameters can be `string`, `bool`, `char`, any number type, an enum, `Guid`, `U
 
 ### GitHub Actions
 
-`GitHub` reads the [default environment variables](https://docs.github.com/en/actions/reference/variables-reference#default-environment-variables) of the GitHub Actions workflow run the build runs in:
+`GitHub` reads the [default environment variables](https://docs.github.com/en/actions/reference/variables-reference#default-environment-variables) of the GitHub Actions workflow run the build runs in, with a property for each, such as `GitHub.Tag`, `GitHub.RefName`, `GitHub.Sha` and `GitHub.Token`:
 
 ```csharp
 Step Pack() => _ => _
@@ -192,33 +192,6 @@ Step Pack() => _ => _
         }
     });
 ```
-
-| Property | Variable | Example |
-| --- | --- | --- |
-| `IsActions` | `GITHUB_ACTIONS` | `true` in GitHub Actions |
-| `Ref` | `GITHUB_REF` | `refs/tags/v1.2.3` |
-| `RefName` | `GITHUB_REF_NAME` | `v1.2.3` |
-| `RefType`, `IsBranch`, `IsTag` | `GITHUB_REF_TYPE` | `GitHubRefType.Tag` |
-| `Tag` | `GITHUB_REF_NAME` when the ref is a tag | `v1.2.3` |
-| `IsRefProtected` | `GITHUB_REF_PROTECTED` | `true` |
-| `HeadRef`, `BaseRef` | `GITHUB_HEAD_REF`, `GITHUB_BASE_REF` | `feature-branch-1`, `main` |
-| `Sha` | `GITHUB_SHA` | `ffac537e6cbbf934b08745a378932722df287a53` |
-| `Repository`, `RepositoryId` | `GITHUB_REPOSITORY`, `GITHUB_REPOSITORY_ID` | `GitHubRepository` with `Owner` `octocat` and `Name` `Hello-World`, `123456789` |
-| `RepositoryOwner`, `RepositoryOwnerId` | `GITHUB_REPOSITORY_OWNER`, `GITHUB_REPOSITORY_OWNER_ID` | `octocat`, `1234567` |
-| `EventName`, `EventPath` | `GITHUB_EVENT_NAME`, `GITHUB_EVENT_PATH` | `workflow_dispatch`, `/github/workflow/event.json` |
-| `Workflow`, `WorkflowRef`, `WorkflowSha` | `GITHUB_WORKFLOW`, `GITHUB_WORKFLOW_REF`, `GITHUB_WORKFLOW_SHA` | `My test workflow` |
-| `Job` | `GITHUB_JOB` | `greeting_job` |
-| `Actor`, `ActorId`, `TriggeringActor` | `GITHUB_ACTOR`, `GITHUB_ACTOR_ID`, `GITHUB_TRIGGERING_ACTOR` | `octocat`, `1234567` |
-| `ServerUrl`, `ApiUrl`, `GraphQLUrl` | `GITHUB_SERVER_URL`, `GITHUB_API_URL`, `GITHUB_GRAPHQL_URL` | `https://github.com` |
-| `Workspace` | `GITHUB_WORKSPACE` | `/home/runner/work/my-repo-name/my-repo-name` |
-| `StepSummary` | `GITHUB_STEP_SUMMARY` | path of the job summary file |
-| `RetentionDays` | `GITHUB_RETENTION_DAYS` | `90` |
-| `RunId`, `RunNumber`, `RunAttempt` | `GITHUB_RUN_ID`, `GITHUB_RUN_NUMBER`, `GITHUB_RUN_ATTEMPT` | `1658821493`, `3`, `1` |
-| `RunnerOs`, `RunnerArch` | `RUNNER_OS`, `RUNNER_ARCH` | `Linux`, `X64` |
-| `RunnerName`, `RunnerEnvironment` | `RUNNER_NAME`, `RUNNER_ENVIRONMENT` | `Hosted Agent`, `github-hosted` |
-| `RunnerTemp`, `RunnerToolCache` | `RUNNER_TEMP`, `RUNNER_TOOL_CACHE` | `D:\a\_temp` |
-| `IsDebug` | `RUNNER_DEBUG` | `true` when debug logging is enabled |
-| `Token` | `GITHUB_TOKEN`, which the workflow has to set (see below) | `ghs_...` |
 
 A property is `null` (or `false`) when its variable isn't set or is empty, such as outside GitHub Actions. The variables are read each time a property is used, so you can set them yourself to try a run locally: `GITHUB_REF_TYPE=tag GITHUB_REF_NAME=v1.2.3 baun Pack`. To also accept a value on the command line, use the property as a parameter's initial value:
 
