@@ -64,8 +64,8 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
         // The scripts run Build.cs or build/_build.csproj next to them.
         bool scriptsFindBuild = build.ProjectFile is null
-            ? IsSamePath(build.BuildFile, Path.Combine(context.Directory, "Build.cs"))
-            : IsSamePath(build.ProjectFile, Path.Combine(context.Directory, "build", "_build.csproj"));
+            ? build.BuildFile == context.Directory / "Build.cs"
+            : build.ProjectFile == context.Directory / "build" / "_build.csproj";
 
         if (!scriptsFindBuild)
         {
@@ -81,7 +81,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         await WriteBootstrapScriptsAsync(cancellationToken);
         AddToGitIgnore(BootstrapScripts.DotnetFolder);
         await CreateParametersFileAsync(cancellationToken);
-        await MarkExecutableAsync([Path.Combine(context.Directory, BootstrapScripts.ShellScriptName)]);
+        await MarkExecutableAsync([context.Directory / BootstrapScripts.ShellScriptName]);
 
         return 0;
     }
@@ -93,15 +93,15 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
     /// </summary>
     private async Task CreateParametersFileAsync(CancellationToken cancellationToken)
     {
-        string root = RepositoryRoot.TryFind(context.Directory) ?? context.Directory;
-        string path = Path.Combine(root, RepositoryRoot.FolderName, RepositoryRoot.ParametersFileName);
+        AbsolutePath root = RepositoryRoot.TryFind(context.Directory) ?? context.Directory;
+        AbsolutePath path = root / RepositoryRoot.FolderName / RepositoryRoot.ParametersFileName;
 
         if (File.Exists(path))
         {
             return;
         }
 
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        Directory.CreateDirectory(path.Parent!);
         await File.WriteAllTextAsync(path, "{}\n", cancellationToken);
         console.WriteSuccess($"Created {Markup.Escape(Relative(path))}");
     }
@@ -111,16 +111,13 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
     /// </summary>
     private async Task WriteBootstrapScriptsAsync(CancellationToken cancellationToken)
     {
-        foreach ((string path, string content) in BootstrapScripts.Create(context.Directory))
+        foreach ((AbsolutePath path, string content) in BootstrapScripts.Create(context.Directory))
         {
             bool exists = File.Exists(path);
             await File.WriteAllTextAsync(path, content, cancellationToken);
             console.WriteSuccess($"{(exists ? "Updated" : "Created")} {Markup.Escape(Relative(path))}");
         }
     }
-
-    private static bool IsSamePath(string first, string second) =>
-        string.Equals(Path.GetFullPath(first), Path.GetFullPath(second), StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Creates a new build, <c>.baun/parameters.json</c> and by default its bootstrap scripts. Existing build files and
@@ -142,14 +139,14 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             : CreateProjectBuild(context.Directory, context.BaunVersion);
 
         // Files that must be executable: the single-file build for its shebang, and the shell script.
-        var executables = new List<string>();
+        var executables = new List<AbsolutePath>();
 
         if (kind == BuildKind.SingleFile)
         {
-            executables.Add(Path.Combine(context.Directory, "Build.cs"));
+            executables.Add(context.Directory / "Build.cs");
         }
 
-        string? existing = files.Keys.FirstOrDefault(File.Exists);
+        AbsolutePath? existing = files.Keys.FirstOrDefault(path => File.Exists(path));
 
         if (existing is not null)
         {
@@ -157,9 +154,9 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             return 1;
         }
 
-        foreach ((string path, string content) in files)
+        foreach ((AbsolutePath path, string content) in files)
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            Directory.CreateDirectory(path.Parent!);
             await File.WriteAllTextAsync(path, content, cancellationToken);
             console.WriteSuccess($"Created {Markup.Escape(Relative(path))}");
         }
@@ -167,14 +164,14 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         if (kind == BuildKind.Project)
         {
             await WriteIdeSettingsAsync(cancellationToken);
-            await AddToSolutionAsync(files.Keys.Single(path => path.EndsWith(".csproj", StringComparison.Ordinal)));
+            await AddToSolutionAsync(files.Keys.Single(path => path.Extension == ".csproj"));
         }
 
         if (!settings.NoBootstrap)
         {
             await WriteBootstrapScriptsAsync(cancellationToken);
             AddToGitIgnore(BootstrapScripts.DotnetFolder);
-            executables.Add(Path.Combine(context.Directory, BootstrapScripts.ShellScriptName));
+            executables.Add(context.Directory / BootstrapScripts.ShellScriptName);
         }
 
         await CreateParametersFileAsync(cancellationToken);
@@ -212,7 +209,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
     /// </summary>
     private void AddToGitIgnore(string entry)
     {
-        string path = Path.Combine(context.Directory, ".gitignore");
+        AbsolutePath path = context.Directory / ".gitignore";
 
         if (!File.Exists(path))
         {
@@ -244,7 +241,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
     /// adds it to the root of the solution with <c>dotnet sln add</c>. Doesn't ask, and doesn't add it, when there is no
     /// solution or baun init can't ask.
     /// </summary>
-    private async Task AddToSolutionAsync(string projectFile)
+    private async Task AddToSolutionAsync(AbsolutePath projectFile)
     {
         var solutions = FindSolutions(context.Directory, depth: 0)
             .Select(Relative)
@@ -298,10 +295,11 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
     /// Finds the solutions in <paramref name="directory"/> and up to <see cref="SolutionSearchDepth"/> levels of
     /// subfolders, skipping hidden folders and build output.
     /// </summary>
-    private static IEnumerable<string> FindSolutions(string directory, int depth)
+    private static IEnumerable<AbsolutePath> FindSolutions(AbsolutePath directory, int depth)
     {
-        IEnumerable<string> solutions = Directory.EnumerateFiles(directory)
-            .Where(path => Path.GetExtension(path).ToLowerInvariant() is ".sln" or ".slnx");
+        IEnumerable<AbsolutePath> solutions = Directory.EnumerateFiles(directory)
+            .Select(path => (AbsolutePath)path)
+            .Where(path => path.Extension.ToLowerInvariant() is ".sln" or ".slnx");
 
         if (depth == SolutionSearchDepth)
         {
@@ -309,7 +307,8 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         }
 
         return solutions.Concat(Directory.EnumerateDirectories(directory)
-            .Where(path => Path.GetFileName(path) is var name && !name.StartsWith('.') && !_skippedFolders.Contains(name))
+            .Select(path => (AbsolutePath)path)
+            .Where(path => !path.Name.StartsWith('.') && !_skippedFolders.Contains(path.Name))
             .SelectMany(path => FindSolutions(path, depth + 1)));
     }
 
@@ -368,7 +367,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
     /// Makes <paramref name="paths"/> executable on disk and, inside a git repository, in git's index, so they stay
     /// executable when committed from any operating system, including Windows.
     /// </summary>
-    private async Task MarkExecutableAsync(IReadOnlyList<string> paths)
+    private async Task MarkExecutableAsync(IReadOnlyList<AbsolutePath> paths)
     {
         if (paths.Count == 0)
         {
@@ -377,7 +376,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
         if (!OperatingSystem.IsWindows())
         {
-            foreach (string path in paths)
+            foreach (AbsolutePath path in paths)
             {
                 File.SetUnixFileMode(path, File.GetUnixFileMode(path) | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute);
             }
@@ -420,11 +419,11 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         }
     }
 
-    private static bool IsInGitRepository(string directory)
+    private static bool IsInGitRepository(AbsolutePath directory)
     {
-        for (var current = new DirectoryInfo(directory); current is not null; current = current.Parent)
+        for (AbsolutePath? current = directory; current is not null; current = current.Parent)
         {
-            string git = Path.Combine(current.FullName, ".git");
+            AbsolutePath git = current / ".git";
 
             if (Directory.Exists(git) || File.Exists(git))
             {
@@ -435,7 +434,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         return false;
     }
 
-    private string Relative(string path) => Path.GetRelativePath(context.Directory, path);
+    private string Relative(AbsolutePath path) => Path.GetRelativePath(context.Directory, path);
 
     private BuildKind AskForKind() =>
         Select(
@@ -445,9 +444,9 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             kind => kind == BuildKind.SingleFile ? "Build.cs in this folder" : "build/_build.csproj and build/Build.cs",
             BuildKind.Project);
 
-    private static Dictionary<string, string> CreateSingleFileBuild(string directory, string baunVersion) => new()
+    private static Dictionary<AbsolutePath, string> CreateSingleFileBuild(AbsolutePath directory, string baunVersion) => new()
     {
-        [Path.Combine(directory, "Build.cs")] = $"""
+        [directory / "Build.cs"] = $"""
             #!/usr/bin/env dotnet
             #:package Baun@{baunVersion}
 
@@ -455,9 +454,9 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             """.ReplaceLineEndings("\n")
     };
 
-    private static Dictionary<string, string> CreateProjectBuild(string directory, string baunVersion) => new()
+    private static Dictionary<AbsolutePath, string> CreateProjectBuild(AbsolutePath directory, string baunVersion) => new()
     {
-        [Path.Combine(directory, "build", "_build.csproj")] = $"""
+        [directory / "build" / "_build.csproj"] = $"""
             <Project Sdk="Microsoft.NET.Sdk">
 
               <PropertyGroup>
@@ -475,7 +474,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             </Project>
 
             """.ReplaceLineEndings("\n"),
-        [Path.Combine(directory, "build", "Build.cs")] = BuildFileBody.ReplaceLineEndings("\n"),
+        [directory / "build" / "Build.cs"] = BuildFileBody.ReplaceLineEndings("\n"),
     };
 
     /// <summary>
@@ -485,7 +484,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
     {
         foreach ((string name, string content) in new[] { (".editorconfig", EditorConfig), ("_build.csproj.DotSettings", DotSettings) })
         {
-            string path = Path.Combine(context.Directory, "build", name);
+            AbsolutePath path = context.Directory / "build" / name;
             bool exists = File.Exists(path);
             await File.WriteAllTextAsync(path, content.ReplaceLineEndings("\n"), cancellationToken);
             console.WriteSuccess($"{(exists ? "Updated" : "Created")} {Markup.Escape(Relative(path))}");

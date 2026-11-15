@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `ChangelogRelease.Link` returns the link of a release at the end of the changelog, such as `[1.2.3]: https://github.com/sandrofigo/baun/compare/v1.2.2...v1.2.3`, or `null` if it has none.
+- `AbsolutePath` holds an absolute path of a file or directory. The `/` operator combines it with a relative path, as in `RootDirectory / "artifacts"`, and it converts to a `string` implicitly.
+- `[Parameter]` fields and properties can be `AbsolutePath`. A relative value is relative to `RootDirectory`.
+
+### Changed
+
+- `RootDirectory` and `BaunBuild.RootDirectory` are an `AbsolutePath` instead of a `string`.
+- `Changelog.Read` takes an `AbsolutePath` instead of a `string`.
+- `GitHub.EventPath`, `GitHub.Workspace`, `GitHub.StepSummary`, `GitHub.RunnerTemp` and `GitHub.RunnerToolCache` are an `AbsolutePath` instead of a `string`.
 
 ## [0.4.0] - 2026-11-15
 

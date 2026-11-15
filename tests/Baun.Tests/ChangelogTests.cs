@@ -175,7 +175,7 @@ public sealed class ChangelogTests
     [Fact]
     public void Reads_a_file()
     {
-        string path = Path.GetTempFileName();
+        var path = (AbsolutePath)Path.GetTempFileName();
 
         try
         {
@@ -192,7 +192,7 @@ public sealed class ChangelogTests
     [Fact]
     public void Read_names_the_file_of_an_invalid_changelog()
     {
-        string path = Path.GetTempFileName();
+        var path = (AbsolutePath)Path.GetTempFileName();
 
         try
         {
@@ -212,7 +212,7 @@ public sealed class ChangelogTests
     [Fact]
     public void Read_throws_for_a_missing_file()
     {
-        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "CHANGELOG.md");
+        var path = (AbsolutePath)Path.GetTempPath() / Guid.NewGuid().ToString("N") / "CHANGELOG.md";
 
         Assert.Throws<FileNotFoundException>(() => Changelog.Read(path));
     }

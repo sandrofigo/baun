@@ -1,14 +1,18 @@
+extern alias cli;
+
 using System.Diagnostics;
 using System.Text.RegularExpressions;
-using Baun.Cli;
+using cli::Baun.Cli;
 using Spectre.Console;
 using Spectre.Console.Testing;
 
 namespace Baun.Tests;
 
+using AbsolutePath = cli::Baun.AbsolutePath;
+
 public sealed class CliAppTests : IDisposable
 {
-    private readonly string root = Directory.CreateTempSubdirectory("baun-cli-tests-").FullName;
+    private readonly AbsolutePath root = (AbsolutePath)Directory.CreateTempSubdirectory("baun-cli-tests-").FullName;
     private readonly TestConsole console = new TestConsole().Width(250);
     private readonly List<ProcessStartInfo> startedProcesses = [];
     private int processExitCode;
@@ -29,7 +33,7 @@ public sealed class CliAppTests : IDisposable
         Assert.Equal(0, exitCode);
         var process = Assert.Single(startedProcesses);
         Assert.Equal("dotnet", process.FileName);
-        Assert.Equal(["run", "--file", Path.Combine(root, "Build.cs"), "--", "Compile", "Test"], process.ArgumentList);
+        Assert.Equal(["run", "--file", root / "Build.cs", "--", "Compile", "Test"], process.ArgumentList);
     }
 
     [Fact]
@@ -41,7 +45,7 @@ public sealed class CliAppTests : IDisposable
         await RunAsync();
 
         var process = Assert.Single(startedProcesses);
-        Assert.Equal(["run", "--project", Path.Combine(root, "build", "_build.csproj"), "--"], process.ArgumentList);
+        Assert.Equal(["run", "--project", root / "build" / "_build.csproj", "--"], process.ArgumentList);
     }
 
     [Theory]
@@ -79,10 +83,10 @@ public sealed class CliAppTests : IDisposable
 
         Assert.Equal(0, exitCode);
         Assert.Empty(startedProcesses);
-        Assert.Equal("#:package Baun@0.1.0\n", File.ReadAllText(Path.Combine(root, "Build.cs")));
+        Assert.Equal("#:package Baun@0.1.0\n", File.ReadAllText(root / "Build.cs"));
         Assert.Contains("Created build.sh", console.Output);
-        Assert.Equal(BootstrapScripts.Create(root)[Path.Combine(root, "build.ps1")], File.ReadAllText(Path.Combine(root, "build.ps1")));
-        Assert.Equal(".dotnet/\n", File.ReadAllText(Path.Combine(root, ".gitignore")));
+        Assert.Equal(BootstrapScripts.Create(root)[root / "build.ps1"], File.ReadAllText(root / "build.ps1"));
+        Assert.Equal(".dotnet/\n", File.ReadAllText(root / ".gitignore"));
     }
 
     [Fact]
@@ -91,17 +95,17 @@ public sealed class CliAppTests : IDisposable
         Write("build/Build.cs", "// my build\n");
         Write("build/_build.csproj", "<Project />");
         Write("build.sh", "# old script\n");
-        Directory.CreateDirectory(Path.Combine(root, ".git"));
+        Directory.CreateDirectory(root / ".git");
 
         var exitCode = await RunAsync("init");
 
         Assert.Equal(0, exitCode);
-        Assert.Equal(BootstrapScripts.Create(root)[Path.Combine(root, "build.sh")], File.ReadAllText(Path.Combine(root, "build.sh")));
+        Assert.Equal(BootstrapScripts.Create(root)[root / "build.sh"], File.ReadAllText(root / "build.sh"));
         Assert.Contains("Updated build.sh", console.Output);
         Assert.Contains("Created build.ps1", console.Output);
-        Assert.Equal("// my build\n", File.ReadAllText(Path.Combine(root, "build", "Build.cs")));
-        Assert.Contains("csharp_default_private_modifier = implicit", File.ReadAllText(Path.Combine(root, "build", ".editorconfig")));
-        Assert.Contains("DEFAULT_PRIVATE_MODIFIER", File.ReadAllText(Path.Combine(root, "build", "_build.csproj.DotSettings")));
+        Assert.Equal("// my build\n", File.ReadAllText(root / "build" / "Build.cs"));
+        Assert.Contains("csharp_default_private_modifier = implicit", File.ReadAllText(root / "build" / ".editorconfig"));
+        Assert.Contains("DEFAULT_PRIVATE_MODIFIER", File.ReadAllText(root / "build" / "_build.csproj.DotSettings"));
         Assert.Equal(["add", "--chmod=+x", "--", "build.sh"], Assert.Single(startedProcesses).ArgumentList);
     }
 
@@ -129,7 +133,7 @@ public sealed class CliAppTests : IDisposable
 
         Assert.Equal(1, exitCode);
         Assert.Contains("but the build is " + Path.Combine("build", "Build.cs"), console.Output);
-        Assert.False(File.Exists(Path.Combine(root, "build.sh")));
+        Assert.False(File.Exists(root / "build.sh"));
     }
 
     [Fact]
@@ -174,7 +178,7 @@ public sealed class CliAppTests : IDisposable
         Assert.Empty(startedProcesses);
         Assert.Contains("Created Build.cs", console.Output);
 
-        var buildFile = Path.Combine(root, "Build.cs");
+        var buildFile = root / "Build.cs";
         var content = File.ReadAllText(buildFile);
         Assert.StartsWith("#!/usr/bin/env dotnet\n#:package Baun@", content);
         Assert.DoesNotContain("RunAsync", content); // the source generator adds the entry point
@@ -195,7 +199,7 @@ public sealed class CliAppTests : IDisposable
         var exitCode = await RunAsync(command, option, "--no-bootstrap");
 
         Assert.Equal(0, exitCode);
-        Assert.True(File.Exists(Path.Combine(root, "build", "_build.csproj")));
+        Assert.True(File.Exists(root / "build" / "_build.csproj"));
     }
 
     [Fact]
@@ -205,13 +209,13 @@ public sealed class CliAppTests : IDisposable
 
         Assert.Equal(0, exitCode);
 
-        var buildFile = Path.Combine(root, "build", "Build.cs");
-        var projectFile = Path.Combine(root, "build", "_build.csproj");
+        var buildFile = root / "build" / "Build.cs";
+        var projectFile = root / "build" / "_build.csproj";
         Assert.DoesNotContain("#:", File.ReadAllText(buildFile));
         Assert.Contains("<PackageReference Include=\"Baun\" Version=\"", File.ReadAllText(projectFile));
         Assert.Contains("<RootNamespace></RootNamespace>", File.ReadAllText(projectFile));
-        Assert.Contains("csharp_default_private_modifier = implicit", File.ReadAllText(Path.Combine(root, "build", ".editorconfig")));
-        Assert.Contains("Instance fields (private)", File.ReadAllText(Path.Combine(root, "build", "_build.csproj.DotSettings")));
+        Assert.Contains("csharp_default_private_modifier = implicit", File.ReadAllText(root / "build" / ".editorconfig"));
+        Assert.Contains("Instance fields (private)", File.ReadAllText(root / "build" / "_build.csproj.DotSettings"));
         Assert.Equal(new BuildLocation(buildFile, projectFile), BuildLocator.Find(root));
     }
 
@@ -233,7 +237,7 @@ public sealed class CliAppTests : IDisposable
 
         Assert.Equal(0, exitCode);
         Assert.Contains($"✓ Which kind of build do you want to create? › {expectedAnswer}", console.Output);
-        Assert.True(File.Exists(Path.Combine(root, expectedFile)));
+        Assert.True(File.Exists(root / expectedFile));
     }
 
     [Theory]
@@ -356,7 +360,7 @@ public sealed class CliAppTests : IDisposable
 
         Assert.Equal(0, exitCode);
         Assert.DoesNotContain("Which kind of build", console.Output);
-        Assert.True(File.Exists(Path.Combine(root, "Build.cs")));
+        Assert.True(File.Exists(root / "Build.cs"));
     }
 
     [Fact]
@@ -368,8 +372,8 @@ public sealed class CliAppTests : IDisposable
 
         Assert.Equal(1, exitCode);
         Assert.Contains("already exists", console.Output);
-        Assert.Equal("// my own file\n", File.ReadAllText(Path.Combine(root, "build", "Build.cs")));
-        Assert.False(File.Exists(Path.Combine(root, "build", "_build.csproj")));
+        Assert.Equal("// my own file\n", File.ReadAllText(root / "build" / "Build.cs"));
+        Assert.False(File.Exists(root / "build" / "_build.csproj"));
     }
 
     [Fact]
@@ -379,17 +383,17 @@ public sealed class CliAppTests : IDisposable
 
         Assert.Equal(0, exitCode);
 
-        var shellScript = File.ReadAllText(Path.Combine(root, "build.sh"));
+        var shellScript = File.ReadAllText(root / "build.sh");
         Assert.StartsWith("#!/usr/bin/env sh\n", shellScript);
         Assert.Contains("https://dot.net/v1/dotnet-install.sh", shellScript);
         Assert.Contains("--channel \"$DOTNET_CHANNEL\"", shellScript);
-        Assert.Contains("https://dot.net/v1/dotnet-install.ps1", File.ReadAllText(Path.Combine(root, "build.ps1")));
-        Assert.Contains("%~dp0build.ps1", File.ReadAllText(Path.Combine(root, "build.cmd")));
-        Assert.Equal(".dotnet/\n", File.ReadAllText(Path.Combine(root, ".gitignore")));
+        Assert.Contains("https://dot.net/v1/dotnet-install.ps1", File.ReadAllText(root / "build.ps1"));
+        Assert.Contains("%~dp0build.ps1", File.ReadAllText(root / "build.cmd"));
+        Assert.Equal(".dotnet/\n", File.ReadAllText(root / ".gitignore"));
 
         if (!OperatingSystem.IsWindows())
         {
-            Assert.True(File.GetUnixFileMode(Path.Combine(root, "build.sh")).HasFlag(UnixFileMode.UserExecute));
+            Assert.True(File.GetUnixFileMode(root / "build.sh").HasFlag(UnixFileMode.UserExecute));
         }
     }
 
@@ -400,7 +404,7 @@ public sealed class CliAppTests : IDisposable
 
         Assert.Equal(0, exitCode);
         Assert.Equal([".baun", "build"], Directory.GetFileSystemEntries(root).Select(Path.GetFileName).Order());
-        Assert.Equal("{}\n", File.ReadAllText(Path.Combine(root, ".baun", "parameters.json")));
+        Assert.Equal("{}\n", File.ReadAllText(root / ".baun" / "parameters.json"));
     }
 
     [Theory]
@@ -411,7 +415,7 @@ public sealed class CliAppTests : IDisposable
         var exitCode = await RunAsync("init", kind);
 
         Assert.Equal(0, exitCode);
-        Assert.Equal("{}\n", File.ReadAllText(Path.Combine(root, ".baun", "parameters.json")));
+        Assert.Equal("{}\n", File.ReadAllText(root / ".baun" / "parameters.json"));
         Assert.Contains("Created " + Path.Combine(".baun", "parameters.json"), console.Output);
     }
 
@@ -423,38 +427,40 @@ public sealed class CliAppTests : IDisposable
         var exitCode = await RunAsync("init", "--single-file");
 
         Assert.Equal(0, exitCode);
-        Assert.Equal("{ \"Configuration\": \"Release\" }\n", File.ReadAllText(Path.Combine(root, ".baun", "parameters.json")));
+        Assert.Equal("{ \"Configuration\": \"Release\" }\n", File.ReadAllText(root / ".baun" / "parameters.json"));
         Assert.DoesNotContain("parameters.json", console.Output);
     }
 
     [Fact]
     public async Task Init_creates_the_parameters_file_in_an_existing_baun_folder_of_a_parent()
     {
-        Directory.CreateDirectory(Path.Combine(root, ".baun"));
-        var subfolder = Directory.CreateDirectory(Path.Combine(root, "tools")).FullName;
+        Directory.CreateDirectory(root / ".baun");
+        var subfolder = root / "tools";
+        Directory.CreateDirectory(subfolder);
 
         var exitCode = await RunInAsync(subfolder, "init", "--single-file", "--no-bootstrap");
 
         Assert.Equal(0, exitCode);
-        Assert.True(File.Exists(Path.Combine(root, ".baun", "parameters.json")));
-        Assert.False(Directory.Exists(Path.Combine(subfolder, ".baun")));
+        Assert.True(File.Exists(root / ".baun" / "parameters.json"));
+        Assert.False(Directory.Exists(subfolder / ".baun"));
         Assert.Contains("Created " + Path.Combine("..", ".baun", "parameters.json"), console.Output);
     }
 
     [Fact]
     public async Task Init_creates_the_baun_folder_in_the_current_folder_when_there_is_none()
     {
-        Directory.CreateDirectory(Path.Combine(root, ".git")); // a git repository doesn't decide where .baun goes
-        var subfolder = Directory.CreateDirectory(Path.Combine(root, "tools")).FullName;
+        Directory.CreateDirectory(root / ".git"); // a git repository doesn't decide where .baun goes
+        var subfolder = root / "tools";
+        Directory.CreateDirectory(subfolder);
 
         var exitCode = await RunInAsync(subfolder, "init", "--single-file", "--no-bootstrap");
 
         Assert.Equal(0, exitCode);
-        Assert.True(File.Exists(Path.Combine(subfolder, ".baun", "parameters.json")));
-        Assert.False(Directory.Exists(Path.Combine(root, ".baun")));
+        Assert.True(File.Exists(subfolder / ".baun" / "parameters.json"));
+        Assert.False(Directory.Exists(root / ".baun"));
     }
 
-    private Task<int> RunInAsync(string directory, params string[] arguments) =>
+    private Task<int> RunInAsync(AbsolutePath directory, params string[] arguments) =>
         CliApp.RunAsync(arguments, directory, console, startInfo =>
         {
             startedProcesses.Add(startInfo);
@@ -469,7 +475,7 @@ public sealed class CliAppTests : IDisposable
         var exitCode = await RunAsync("init");
 
         Assert.Equal(0, exitCode);
-        Assert.Equal("{}\n", File.ReadAllText(Path.Combine(root, ".baun", "parameters.json")));
+        Assert.Equal("{}\n", File.ReadAllText(root / ".baun" / "parameters.json"));
     }
 
     [Theory]
@@ -483,7 +489,7 @@ public sealed class CliAppTests : IDisposable
 
         await RunAsync("init", "--single-file");
 
-        Assert.Equal(after, File.ReadAllText(Path.Combine(root, ".gitignore")));
+        Assert.Equal(after, File.ReadAllText(root / ".gitignore"));
     }
 
     [Theory]
@@ -491,7 +497,7 @@ public sealed class CliAppTests : IDisposable
     [InlineData("--project", new[] { "build.sh" })]
     public async Task Init_stages_executable_files_in_a_git_repository(string kind, string[] executables)
     {
-        Directory.CreateDirectory(Path.Combine(root, ".git"));
+        Directory.CreateDirectory(root / ".git");
 
         var exitCode = await RunAsync("init", kind);
 
@@ -514,7 +520,7 @@ public sealed class CliAppTests : IDisposable
     [Fact]
     public async Task Init_warns_when_git_fails_but_still_succeeds()
     {
-        Directory.CreateDirectory(Path.Combine(root, ".git"));
+        Directory.CreateDirectory(root / ".git");
         processExitCode = 128;
 
         var exitCode = await RunAsync("init", "--single-file");
@@ -533,8 +539,8 @@ public sealed class CliAppTests : IDisposable
 
         Assert.Equal(0, exitCode);
         Assert.Contains("Updated build.sh", console.Output);
-        Assert.Equal(BootstrapScripts.Create(root)[Path.Combine(root, "build.sh")], File.ReadAllText(Path.Combine(root, "build.sh")));
-        Assert.True(File.Exists(Path.Combine(root, "Build.cs")));
+        Assert.Equal(BootstrapScripts.Create(root)[root / "build.sh"], File.ReadAllText(root / "build.sh"));
+        Assert.True(File.Exists(root / "Build.cs"));
     }
 
     [Fact]
@@ -546,7 +552,7 @@ public sealed class CliAppTests : IDisposable
 
         Assert.Equal(0, exitCode);
         Assert.Contains("Updated build" + Path.DirectorySeparatorChar + ".editorconfig", console.Output);
-        Assert.Contains("csharp_default_private_modifier = implicit", File.ReadAllText(Path.Combine(root, "build", ".editorconfig")));
+        Assert.Contains("csharp_default_private_modifier = implicit", File.ReadAllText(root / "build" / ".editorconfig"));
     }
 
     [Theory]
@@ -569,8 +575,8 @@ public sealed class CliAppTests : IDisposable
 
     private void Write(string relativePath, string content)
     {
-        var path = Path.Combine(root, relativePath);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var path = root / relativePath;
+        Directory.CreateDirectory(path.Parent!);
         File.WriteAllText(path, content);
     }
 }

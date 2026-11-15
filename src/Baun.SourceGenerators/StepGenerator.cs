@@ -79,7 +79,7 @@ public sealed class StepGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor ParameterTypeNotSupported = new(
         id: "BAUN009",
         title: "Parameter type is not supported",
-        messageFormat: "The parameter '{0}' has the type '{1}', which baun can't set. Use string, bool, char, a number type, an enum, Guid, Uri, TimeSpan, a nullable of these, or an array of them.",
+        messageFormat: "The parameter '{0}' has the type '{1}', which baun can't set. Use string, bool, char, a number type, an enum, Guid, Uri, TimeSpan, AbsolutePath, a nullable of these, or an array of them.",
         category: "Baun",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -231,8 +231,13 @@ public sealed class StepGenerator : IIncrementalGenerator
                 return true;
         }
 
-        return type is INamedTypeSymbol { ContainingNamespace: { Name: "System", ContainingNamespace.IsGlobalNamespace: true } } named
-               && named.Name is "Guid" or "Uri" or "TimeSpan";
+        return type is INamedTypeSymbol { ContainingNamespace: { ContainingNamespace.IsGlobalNamespace: true } namespaceSymbol } named
+               && namespaceSymbol.Name switch
+               {
+                   "System" => named.Name is "Guid" or "Uri" or "TimeSpan",
+                   "Baun" => named.Name is "AbsolutePath",
+                   _ => false,
+               };
     }
 
     private static bool IsEntryPoint(SyntaxNode node) =>
@@ -513,7 +518,7 @@ public sealed class StepGenerator : IIncrementalGenerator
             source.AppendLine("    /// Gets the root directory of the repository: the nearest folder, from the current directory up through its");
             source.AppendLine("    /// parents, that contains a <c>.baun</c> folder. Without one, it's the current directory.");
             source.AppendLine("    /// </summary>");
-            source.AppendLine($"    private static string {RootDirectoryName} => global::Baun.BaunBuild.RootDirectory;");
+            source.AppendLine($"    private static global::Baun.AbsolutePath {RootDirectoryName} => global::Baun.BaunBuild.RootDirectory;");
             source.AppendLine();
         }
 

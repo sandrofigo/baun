@@ -11,7 +11,7 @@ namespace Baun;
 /// </summary>
 /// <param name="Environment">The environment variables.</param>
 /// <param name="ParametersFile">The path of <c>.baun/parameters.json</c>, or <see langword="null"/> for none.</param>
-internal sealed record ParameterSources(IReadOnlyDictionary<string, string> Environment, string? ParametersFile)
+internal sealed record ParameterSources(IReadOnlyDictionary<string, string> Environment, AbsolutePath? ParametersFile)
 {
     /// <summary>
     /// No environment variables and no parameters file.
@@ -22,13 +22,13 @@ internal sealed record ParameterSources(IReadOnlyDictionary<string, string> Envi
     /// The environment variables of this process, and <c>.baun/parameters.json</c> in the nearest <c>.baun</c> folder
     /// in the current directory or its parents.
     /// </summary>
-    public static ParameterSources Default() => ForDirectory(System.Environment.CurrentDirectory);
+    public static ParameterSources Default() => ForDirectory((AbsolutePath)System.Environment.CurrentDirectory);
 
     /// <summary>
     /// The environment variables of this process, and <c>.baun/parameters.json</c> in the nearest <c>.baun</c> folder
     /// in <paramref name="directory"/> or its parents. Without a <c>.baun</c> folder, there is no parameters file.
     /// </summary>
-    public static ParameterSources ForDirectory(string directory)
+    public static ParameterSources ForDirectory(AbsolutePath directory)
     {
         var environment = new Dictionary<string, string>();
 
@@ -166,7 +166,7 @@ internal static class ParameterResolver
     /// <summary>
     /// Reads the values of <paramref name="path"/>, by parameter. A missing file has no values.
     /// </summary>
-    private static Dictionary<BaunParameter, List<string>> ReadParametersFile(string? path, Dictionary<string, BaunParameter> byName)
+    private static Dictionary<BaunParameter, List<string>> ReadParametersFile(AbsolutePath? path, Dictionary<string, BaunParameter> byName)
     {
         var values = new Dictionary<BaunParameter, List<string>>();
 
@@ -270,6 +270,11 @@ internal static class ParameterResolver
 
         try
         {
+            if (underlying == typeof(AbsolutePath))
+            {
+                return ToAbsolutePath(value);
+            }
+
             return TypeDescriptor.GetConverter(type).ConvertFromString(null, CultureInfo.InvariantCulture, value);
         }
         catch (Exception exception) when (exception is not BuildConfigurationException)
@@ -281,4 +286,11 @@ internal static class ParameterResolver
                 $"Parameter {parameter.Name}: {position}\"{value}\" from {source} is not a valid {underlying.Name}.{validValues}");
         }
     }
+
+    /// <summary>
+    /// Converts <paramref name="value"/> to an absolute path. A relative path is relative to
+    /// <see cref="BaunBuild.RootDirectory"/>, so it doesn't depend on the folder the build runs from.
+    /// </summary>
+    private static AbsolutePath ToAbsolutePath(string value) =>
+        Path.IsPathFullyQualified(value) ? (AbsolutePath)value : BaunBuild.RootDirectory / value;
 }

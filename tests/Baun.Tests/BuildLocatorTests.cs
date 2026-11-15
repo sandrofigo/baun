@@ -1,10 +1,14 @@
-using Baun.Cli;
+extern alias cli;
+
+using cli::Baun.Cli;
 
 namespace Baun.Tests;
 
+using AbsolutePath = cli::Baun.AbsolutePath;
+
 public sealed class BuildLocatorTests : IDisposable
 {
-    private readonly string root = Directory.CreateTempSubdirectory("baun-tests-").FullName;
+    private readonly AbsolutePath root = (AbsolutePath)Directory.CreateTempSubdirectory("baun-tests-").FullName;
 
     public void Dispose() => Directory.Delete(root, recursive: true);
 
@@ -59,10 +63,10 @@ public sealed class BuildLocatorTests : IDisposable
         Assert.Null(BuildLocator.Find(root));
     }
 
-    private string Write(string relativePath, string content)
+    private AbsolutePath Write(string relativePath, string content)
     {
-        var path = Path.GetFullPath(Path.Combine(root, relativePath));
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var path = root / relativePath;
+        Directory.CreateDirectory(path.Parent!);
         File.WriteAllText(path, content);
         return path;
     }

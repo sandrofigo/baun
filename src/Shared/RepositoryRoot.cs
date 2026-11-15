@@ -19,13 +19,13 @@ internal static class RepositoryRoot
     /// Returns the first of <paramref name="directory"/> and its parents that contains a <c>.baun</c> folder, or
     /// <see langword="null"/> when there is none.
     /// </summary>
-    public static string? TryFind(string directory)
+    public static AbsolutePath? TryFind(AbsolutePath directory)
     {
-        for (var current = new DirectoryInfo(Path.GetFullPath(directory)); current is not null; current = current.Parent)
+        for (AbsolutePath? current = directory; current is not null; current = current.Parent)
         {
-            if (Directory.Exists(Path.Combine(current.FullName, FolderName)))
+            if (Directory.Exists(current / FolderName))
             {
-                return current.FullName;
+                return current;
             }
         }
 
@@ -36,6 +36,6 @@ internal static class RepositoryRoot
     /// Returns the path of <c>.baun/parameters.json</c> in the repository root of <paramref name="directory"/>, or
     /// <see langword="null"/> when no <c>.baun</c> folder is found.
     /// </summary>
-    public static string? TryGetParametersFile(string directory) =>
-        TryFind(directory) is { } root ? Path.Combine(root, FolderName, ParametersFileName) : null;
+    public static AbsolutePath? TryGetParametersFile(AbsolutePath directory) =>
+        TryFind(directory) is { } root ? root / FolderName / ParametersFileName : null;
 }

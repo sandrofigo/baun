@@ -468,7 +468,7 @@ public class StepGeneratorTests
             """);
 
         Assert.Empty(diagnostics);
-        Assert.Contains("private static string RootDirectory => global::Baun.BaunBuild.RootDirectory;", Assert.Single(sources));
+        Assert.Contains("private static global::Baun.AbsolutePath RootDirectory => global::Baun.BaunBuild.RootDirectory;", Assert.Single(sources));
     }
 
     [Theory]
@@ -531,7 +531,7 @@ internal sealed partial class SplitBuild
     [Parameter]
     public string Configuration = "Debug";
 
-    public static string Root => RootDirectory;
+    public static AbsolutePath Root => RootDirectory;
 
     public Step Compile() => _ => _;
 }

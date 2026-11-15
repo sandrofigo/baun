@@ -5,7 +5,7 @@ namespace Baun.Cli;
 /// </summary>
 /// <param name="BuildFile">The path of the build's <c>Build.cs</c> file.</param>
 /// <param name="ProjectFile">The path of the build project, or <see langword="null"/> for a single-file build.</param>
-internal sealed record BuildLocation(string BuildFile, string? ProjectFile);
+internal sealed record BuildLocation(AbsolutePath BuildFile, AbsolutePath? ProjectFile);
 
 internal static class BuildLocator
 {
@@ -20,12 +20,12 @@ internal static class BuildLocator
     /// A folder contains a build if it has a <c>Build.cs</c> file. A <c>Build.cs</c> with <c>#:</c> directives, such as
     /// <c>#:package Baun@0.1.0</c>, is a single-file build. Otherwise the build is the single project file next to it.
     /// </remarks>
-    public static BuildLocation? Find(string directory)
+    public static BuildLocation? Find(AbsolutePath directory)
     {
         foreach (string folder in _searchFolders)
         {
-            string path = Path.GetFullPath(Path.Combine(directory, folder));
-            string buildFile = Path.Combine(path, BuildFileName);
+            AbsolutePath path = directory / folder;
+            AbsolutePath buildFile = path / BuildFileName;
 
             if (!File.Exists(buildFile))
             {
@@ -41,7 +41,7 @@ internal static class BuildLocator
 
             if (projectFiles.Length == 1)
             {
-                return new BuildLocation(buildFile, projectFiles[0]);
+                return new BuildLocation(buildFile, (AbsolutePath)projectFiles[0]);
             }
         }
 
@@ -51,7 +51,7 @@ internal static class BuildLocator
     /// <summary>
     /// Returns whether the file starts with <c>#:</c> directives (after an optional shebang, comments and blank lines).
     /// </summary>
-    internal static bool IsSingleFileBuild(string buildFile)
+    internal static bool IsSingleFileBuild(AbsolutePath buildFile)
     {
         foreach (var rawLine in File.ReadLines(buildFile))
         {
