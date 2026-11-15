@@ -38,6 +38,8 @@ internal static class Theme
 
     public static string Circle(this IAnsiConsole console) => console.Profile.Capabilities.Unicode ? "○" : "-";
 
+    public static string Chevron(this IAnsiConsole console) => console.Profile.Capabilities.Unicode ? "›" : ">";
+
     public static string Arrow(this IAnsiConsole console) => console.Profile.Capabilities.Unicode ? "→" : "->";
 
     /// <summary>

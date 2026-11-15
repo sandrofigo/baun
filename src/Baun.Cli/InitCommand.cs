@@ -337,7 +337,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
                 .DefaultValue(defaultValue)
                 .UseConverter(item => Markup.Escape(label(item)) + (hint?.Invoke(item) is { } text ? " " + Theme.Faint(text) : "")));
 
-        console.WriteSuccess($"{Markup.Escape(title)} {Theme.Accent(label(choice))}");
+        console.WriteSuccess($"{Markup.Escape(title)} {Theme.Faint(console.Chevron())} {Theme.Accent(label(choice))}");
         return choice;
     }
 
