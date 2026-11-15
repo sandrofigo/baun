@@ -13,3 +13,14 @@ BAUN004 | Baun | Error | StepGenerator
 BAUN005 | Baun | Error | StepGenerator
 BAUN006 | Baun | Error | StepGenerator
 BAUN007 | Baun | Warning | StepGenerator
+
+## Release 0.3.0
+
+### New Rules
+
+Rule ID | Category | Severity | Notes
+--------|----------|----------|-------
+BAUN008 | Baun | Error | StepGenerator
+BAUN009 | Baun | Error | StepGenerator
+BAUN010 | Baun | Warning | StepGenerator
+BAUN011 | Baun | Error | StepGenerator
