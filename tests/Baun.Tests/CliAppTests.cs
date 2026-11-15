@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using Baun.Cli;
+using Spectre.Console;
 using Spectre.Console.Testing;
 
 namespace Baun.Tests;
@@ -138,6 +140,18 @@ public sealed class CliAppTests : IDisposable
         Assert.Empty(startedProcesses);
         Assert.Contains("No baun build found.", console.Output);
         Assert.Contains("Run baun init to create one.", console.Output);
+    }
+
+    [Fact]
+    public async Task Colors_only_the_headings_and_usage_placeholders_of_the_help()
+    {
+        console.EmitAnsiSequences().Colors(ColorSystem.TrueColor);
+
+        var exitCode = await RunAsync("init", "--help");
+
+        Assert.Equal(0, exitCode);
+        var colored = Regex.Matches(console.Output, @"\e\[38;[0-9;]+m([^\e]*)\e\[0m").Select(match => match.Groups[1].Value);
+        Assert.Equal(["DESCRIPTION:", "USAGE:", "[OPTIONS]", "EXAMPLES:", "OPTIONS:"], colored);
     }
 
     [Fact]

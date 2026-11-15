@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `baun init --project` asks whether to add the build project to a solution (`.sln` or `.slnx`) in the current folder or its subfolders.
 - The `Baun` and `Baun.Cli` packages are published with symbol packages to the nuget.org symbol server, with Source Link to the source on GitHub.
+- `baun --help` (or `-h`) in a build lists its steps and options, and `baun --version` (or `-v`) shows the version of baun the build uses, instead of failing with "Unknown option".
 
 ### Changed
 

@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+using Spectre.Console;
 using Spectre.Console.Testing;
 
 namespace Baun.Tests;
@@ -87,6 +89,50 @@ public class BuildRunnerTests
         Assert.Equal(1, result.ExitCode);
         Assert.Empty(build.Executed);
         Assert.Contains("Unknown step Deploy. Available steps: Clean, Restore, Compile, Test, Pack, All.", result.Output);
+    }
+
+    [Theory]
+    [InlineData("--help")]
+    [InlineData("-h")]
+    [InlineData("Compile", "--HELP")]
+    public async Task Shows_help_with_the_steps_instead_of_running_them(params string[] arguments)
+    {
+        var build = new SampleBuild();
+
+        var result = await RunAsync(build, arguments);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Empty(build.Executed);
+        Assert.Contains("USAGE:", result.Output);
+        Assert.Matches(@"\n\s+Clean\s*\n", result.Output);
+        Assert.Matches(@"\n\s+Test\s+Runs when no step is named", result.Output);
+        Assert.Contains("--step <name>", result.Output);
+    }
+
+    [Fact]
+    public async Task Colors_only_the_headings_and_usage_placeholders_of_the_help()
+    {
+        var console = new TestConsole().Width(250).EmitAnsiSequences().Colors(ColorSystem.TrueColor);
+
+        var exitCode = await new BuildRunner(new SampleBuild(), console).RunAsync(["--help"]);
+
+        Assert.Equal(0, exitCode);
+        var colored = Regex.Matches(console.Output, @"\e\[38;[0-9;]+m([^\e]*)\e\[0m").Select(match => match.Groups[1].Value);
+        Assert.Equal(["USAGE:", "[steps] [OPTIONS]", "STEPS:", "OPTIONS:"], colored);
+    }
+
+    [Theory]
+    [InlineData("--version")]
+    [InlineData("-v")]
+    public async Task Shows_the_version_instead_of_running_steps(string argument)
+    {
+        var build = new SampleBuild();
+
+        var result = await RunAsync(build, argument);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Empty(build.Executed);
+        Assert.Matches(@"^\d+\.\d+\.\d+\S*$", result.Output.Trim());
     }
 
     [Fact]

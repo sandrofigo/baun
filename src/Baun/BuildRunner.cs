@@ -16,11 +16,24 @@ internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console)
     /// <returns>The process exit code: 0 on success, 1 on failure.</returns>
     public async Task<int> RunAsync(IReadOnlyList<string> arguments)
     {
+        if (HasOption(arguments, "--version", "-v"))
+        {
+            console.WriteLine(GetVersion());
+            return 0;
+        }
+
         List<ResolvedStep> plan;
 
         try
         {
             var steps = ResolveSteps();
+
+            if (HasOption(arguments, "--help", "-h"))
+            {
+                WriteHelp(steps);
+                return 0;
+            }
+
             var requested = SelectRequestedSteps(steps, arguments);
             plan = CreateExecutionPlan(requested);
         }
@@ -97,6 +110,56 @@ internal sealed class BuildRunner(IBaunBuild build, IAnsiConsole console)
 
         // The simple border starts with an empty line, which separates the table from the step output.
         console.Write(table);
+    }
+
+    private static bool HasOption(IReadOnlyList<string> arguments, string name, string shortName) =>
+        arguments.Any(argument =>
+            string.Equals(argument, name, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(argument, shortName, StringComparison.Ordinal));
+
+    /// <summary>
+    /// Writes the usage, the steps and the options, in the style of the baun tool's help.
+    /// </summary>
+    private void WriteHelp(List<ResolvedStep> steps)
+    {
+        Grid Section() => new Grid()
+            .AddColumn(new GridColumn().PadLeft(4).PadRight(4).NoWrap())
+            .AddColumn();
+
+        Grid stepRows = Section();
+
+        foreach (ResolvedStep step in steps)
+        {
+            stepRows.AddRow(Markup.Escape(step.Name), step.IsEntry ? "Runs when no step is named" : string.Empty);
+        }
+
+        Grid optionRows = Section()
+            .AddRow("-h, --help", "Prints help information")
+            .AddRow("-v, --version", "Prints version information")
+            .AddRow("    --step <name>", "Runs a step whose name is also a command of the baun tool, such as init");
+
+        console.MarkupLine(Theme.Accent("USAGE:"));
+        console.MarkupLine($"    baun {Theme.Faint("[steps] [OPTIONS]")}");
+        console.WriteLine();
+        console.MarkupLine(Theme.Accent("STEPS:"));
+        console.Write(stepRows);
+        console.WriteLine();
+        console.MarkupLine(Theme.Accent("OPTIONS:"));
+        console.Write(optionRows);
+    }
+
+    /// <summary>
+    /// Gets the version of baun the build uses.
+    /// </summary>
+    private static string GetVersion()
+    {
+        string version = typeof(BuildRunner).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()!
+            .InformationalVersion;
+
+        // Drop build metadata such as "+3a69508".
+        int metadata = version.IndexOf('+');
+        return metadata >= 0 ? version[..metadata] : version;
     }
 
     private List<ResolvedStep> ResolveSteps()
