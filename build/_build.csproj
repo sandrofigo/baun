@@ -10,9 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Baun" Version="0.3.0" />
-    <PackageReference Include="KeepAChangelog.IO" Version="2.0.0" />
-    <PackageReference Include="Octokit" Version="14.0.0" />
+    <PackageReference Include="Baun" Version="0.4.0" />
   </ItemGroup>
 
 </Project>

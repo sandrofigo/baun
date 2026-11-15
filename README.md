@@ -63,7 +63,7 @@ A step's name is its method name, so you never repeat a name as a string. Steps 
 The example `Build.cs` below shows the intended style. The final API may differ.
 
 ```csharp
-#:package Baun@0.2.0
+#:package Baun@0.4.0
 
 [Entry(nameof(Test))]
 partial class Build
@@ -316,7 +316,7 @@ On Linux and macOS you can also make the build directly executable. Add a sheban
 
 ```csharp
 #!/usr/bin/env dotnet
-#:package Baun@0.2.0
+#:package Baun@0.4.0
 ```
 
 Then mark the file as executable and run it:
@@ -341,7 +341,7 @@ A project build is a regular .NET console project, for example in a `build` fold
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Baun" Version="0.2.0" />
+    <PackageReference Include="Baun" Version="0.4.0" />
   </ItemGroup>
 
 </Project>

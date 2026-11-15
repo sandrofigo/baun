@@ -1,6 +1,5 @@
 using System.Diagnostics;
-using KeepAChangelog.IO;
-using GitHub = Octokit;
+using System.Text.RegularExpressions;
 
 partial class Build
 {
@@ -36,63 +35,27 @@ partial class Build
             : throw new InvalidOperationException($"The parameter --{option} isn't set. Pass it on the command line or as the environment variable {option.Replace('-', '_').ToUpperInvariant()}.");
 
     /// <summary>
-    /// Gets the categories and entries of <paramref name="release"/> without its heading, which the GitHub release
-    /// already shows as its title.
+    /// Gets the version from the tag, for example 1.2.3 from v1.2.3.
     /// </summary>
-    static string GetReleaseNotes(Release release) =>
-        string.Join(
-            "\n\n",
-            release.Categories
-                .Where(category => category.Entries.Count > 0)
-                .OrderBy(category => category.Type)
-                .Select(category => category.ToString()));
+    string GetVersion()
+    {
+        if (Tag is null)
+        {
+            throw new InvalidOperationException("This step only runs for a release tag (--tag v1.2.3).");
+        }
+
+        if (!Regex.IsMatch(Tag, @"^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$"))
+        {
+            throw new InvalidOperationException($"The tag '{Tag}' is not a version such as v1.2.3 or v1.2.3-preview.1.");
+        }
+
+        return Tag[1..];
+    }
 
     /// <summary>
-    /// Creates the GitHub release for <paramref name="tag"/> in <paramref name="repository"/> (owner/name), or updates
-    /// its notes if it already exists, so the step can be run again.
+    /// Returns whether the changelog has a comparison link for <paramref name="version"/>, such as
+    /// <c>[1.2.3]: https://github.com/...</c>.
     /// </summary>
-    static async Task CreateOrUpdateGitHubRelease(string token, string repository, string tag, string notes, bool prerelease)
-    {
-        string[] parts = repository.Split('/');
-        (string owner, string name) = (parts[0], parts[1]);
-
-        var client = new GitHub.GitHubClient(new GitHub.ProductHeaderValue("baun-build"))
-        {
-            Credentials = new GitHub.Credentials(token)
-        };
-
-        GitHub.Release? existing;
-
-        try
-        {
-            existing = await client.Repository.Release.Get(owner, name, tag);
-        }
-        catch (GitHub.NotFoundException)
-        {
-            existing = null;
-        }
-
-        if (existing is null)
-        {
-            GitHub.Release created = await client.Repository.Release.Create(owner, name, new GitHub.NewRelease(tag)
-            {
-                Name = tag,
-                Body = notes,
-                Prerelease = prerelease,
-            });
-
-            Console.WriteLine($"Created GitHub release {created.HtmlUrl}");
-        }
-        else
-        {
-            GitHub.Release updated = await client.Repository.Release.Edit(owner, name, existing.Id, new GitHub.ReleaseUpdate
-            {
-                Name = tag,
-                Body = notes,
-                Prerelease = prerelease,
-            });
-
-            Console.WriteLine($"Updated GitHub release {updated.HtmlUrl}");
-        }
-    }
+    static bool HasVersionLink(string version) =>
+        Regex.IsMatch(File.ReadAllText(ChangelogPath), $@"^\[{Regex.Escape(version)}\]:\s*\S+", RegexOptions.Multiline);
 }
