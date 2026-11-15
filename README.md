@@ -96,6 +96,18 @@ A `Step` is a delegate. Each step returns a lambda, and baun calls that lambda w
 
 Because steps are members of a class, the build class is also the natural place for anything they share, such as settings or version numbers. Use regular fields and properties for these.
 
+Every build class has a `RootDirectory` property with the root directory of the repository, so paths don't depend on the folder the build runs from:
+
+```csharp
+Step Clean() => _ => _
+    .Executes(() =>
+    {
+        Directory.Delete(Path.Combine(RootDirectory, "artifacts"), recursive: true);
+    });
+```
+
+The root directory is the nearest folder that contains a `.baun` folder, searched from the current folder up through its parents. Without a `.baun` folder, it's the current folder. `baun init` creates `.baun` (see [Parameters](#parameters)). The source generator adds the property, unless the build class already has a member named `RootDirectory`. Outside the build class, use `BaunBuild.RootDirectory`.
+
 baun includes a source generator that completes the `partial class Build` at compile time. It finds every method that returns a `Step`, takes each step's name from its method name, and registers it with the build. This avoids scanning the build with reflection, and you don't need to register anything by hand. It also reports mistakes as compiler errors, such as a build class that isn't `partial` or an `[Entry]` that doesn't name a step. baun checks for circular dependencies before it runs any step.
 
 baun's types, such as `Step`, `Entry` and `BaunBuild`, are in the `Baun` namespace. The Baun package imports it automatically, so a build never needs `using` lines for baun itself.

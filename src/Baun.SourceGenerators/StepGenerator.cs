@@ -103,6 +103,12 @@ public sealed class StepGenerator : IIncrementalGenerator
     /// <summary>The built-in options of a build, which parameters can't be named after, normalized.</summary>
     private static readonly string[] ReservedParameterNames = new[] { "HELP", "H", "VERSION", "V", "STEP" };
 
+    /// <summary>
+    /// The property added to every build class that returns the repository's root directory, unless the class already
+    /// has a member with this name.
+    /// </summary>
+    private const string RootDirectoryName = "RootDirectory";
+
     /// <summary>The baun tool's commands, which take precedence over steps with the same name.</summary>
     private static readonly string[] CliCommands = new[] { "init" };
 
@@ -273,6 +279,7 @@ public sealed class StepGenerator : IIncrementalGenerator
             MethodName: method.Name,
             MethodLocation: LocationInfo.From(method.Locations.FirstOrDefault()),
             Entry: entry,
+            HasRootDirectory: !type.GetMembers(RootDirectoryName).IsEmpty,
             IsPartial: isPartial,
             IsSupported: isSupported,
             TypeLocation: LocationInfo.From(type.Locations.FirstOrDefault()));
@@ -499,6 +506,17 @@ public sealed class StepGenerator : IIncrementalGenerator
 
         source.AppendLine($"partial class {type.TypeName} : global::Baun.IBaunBuild");
         source.AppendLine("{");
+
+        if (!type.HasRootDirectory)
+        {
+            source.AppendLine("    /// <summary>");
+            source.AppendLine("    /// Gets the root directory of the repository: the nearest folder, from the current directory up through its");
+            source.AppendLine("    /// parents, that contains a <c>.baun</c> folder. Without one, it's the current directory.");
+            source.AppendLine("    /// </summary>");
+            source.AppendLine($"    private static string {RootDirectoryName} => global::Baun.BaunBuild.RootDirectory;");
+            source.AppendLine();
+        }
+
         source.AppendLine("    global::System.Collections.Generic.IReadOnlyList<global::Baun.BaunStep> global::Baun.IBaunBuild.GetSteps() =>");
         source.AppendLine("        new global::Baun.BaunStep[]");
         source.AppendLine("        {");
@@ -535,6 +553,7 @@ public sealed class StepGenerator : IIncrementalGenerator
         string MethodName,
         LocationInfo? MethodLocation,
         EntryInfo? Entry,
+        bool HasRootDirectory,
         bool IsPartial,
         bool IsSupported,
         LocationInfo? TypeLocation);
