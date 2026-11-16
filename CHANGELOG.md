@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Changelog.Read` takes an `AbsolutePath` instead of a `string`.
 - `GitHub.EventPath`, `GitHub.Workspace`, `GitHub.StepSummary`, `GitHub.RunnerTemp` and `GitHub.RunnerToolCache` are an `AbsolutePath` instead of a `string`.
 
+### Fixed
+
+- Rider no longer rewrites the `build/_build.csproj.DotSettings` from `baun init --project` when it opens the project.
+
 ## [0.4.0] - 2026-11-15
 
 ### Added

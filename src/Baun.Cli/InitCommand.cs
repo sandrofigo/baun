@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Text;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -482,11 +483,18 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
     /// </summary>
     private async Task WriteIdeSettingsAsync(CancellationToken cancellationToken)
     {
-        foreach ((string name, string content) in new[] { (".editorconfig", EditorConfig), ("_build.csproj.DotSettings", DotSettings) })
+        // Rider saves .DotSettings files with a BOM, and rewrites one without it when it opens the project.
+        var files = new[]
+        {
+            (".editorconfig", EditorConfig, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)),
+            ("_build.csproj.DotSettings", DotSettings, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true)),
+        };
+
+        foreach ((string name, string content, Encoding encoding) in files)
         {
             AbsolutePath path = context.Directory / "build" / name;
             bool exists = File.Exists(path);
-            await File.WriteAllTextAsync(path, content.ReplaceLineEndings("\n"), cancellationToken);
+            await File.WriteAllTextAsync(path, content.ReplaceLineEndings("\n"), encoding, cancellationToken);
             console.WriteSuccess($"{(exists ? "Updated" : "Created")} {Markup.Escape(Relative(path))}");
         }
     }
@@ -507,7 +515,8 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
     /// <summary>
     /// The settings of <see cref="EditorConfig"/> for ReSharper and Rider, which don't read <c>.editorconfig</c> when
-    /// it's turned off in their options.
+    /// it's turned off in their options. It's in the exact form Rider saves it in, including the flag that the naming
+    /// rules are already migrated, so Rider doesn't rewrite it when it opens the project.
     /// </summary>
     private const string DotSettings = """
         <wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
@@ -515,7 +524,8 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpCodeStyle/DEFAULT_INTERNAL_MODIFIER/@EntryValue">Implicit</s:String>
         	<s:String x:Key="/Default/CodeStyle/CodeFormatting/CSharpCodeStyle/DEFAULT_PRIVATE_MODIFIER/@EntryValue">Implicit</s:String>
         	<s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/PredefinedNamingRules/=PrivateInstanceFields/@EntryIndexedValue">&lt;Policy Inspect="True" Prefix="" Suffix="" Style="AaBb"&gt;&lt;ExtraRule Prefix="_" Suffix="" Style="aaBb" /&gt;&lt;ExtraRule Prefix="" Suffix="" Style="aaBb" /&gt;&lt;/Policy&gt;</s:String>
-        	<s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/UserRules/=4a98fdf6_002D7d98_002D4f5a_002Dafeb_002Dea44ad98c70c/@EntryIndexedValue">&lt;Policy&gt;&lt;Descriptor Staticness="Instance" AccessRightKinds="Private" Description="Instance fields (private)"&gt;&lt;ElementKinds&gt;&lt;Kind Name="FIELD" /&gt;&lt;Kind Name="READONLY_FIELD" /&gt;&lt;/ElementKinds&gt;&lt;/Descriptor&gt;&lt;Policy Inspect="True" Prefix="" Suffix="" Style="AaBb"&gt;&lt;ExtraRule Prefix="_" Suffix="" Style="aaBb" /&gt;&lt;ExtraRule Prefix="" Suffix="" Style="aaBb" /&gt;&lt;/Policy&gt;&lt;/Policy&gt;</s:String>
+        	<s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/UserRules/=4a98fdf6_002D7d98_002D4f5a_002Dafeb_002Dea44ad98c70c/@EntryIndexedValue">&lt;Policy&gt;&lt;Descriptor Staticness="Instance" AccessRightKinds="Private" Description="Instance fields (private)"&gt;&lt;ElementKinds&gt;&lt;Kind Name="FIELD" /&gt;&lt;Kind Name="READONLY_FIELD" /&gt;&lt;/ElementKinds&gt;&lt;/Descriptor&gt;&lt;Policy Inspect="True" WarnAboutPrefixesAndSuffixes="False" Prefix="" Suffix="" Style="AaBb"&gt;&lt;ExtraRule Prefix="_" Suffix="" Style="aaBb" /&gt;&lt;ExtraRule Prefix="" Suffix="" Style="aaBb" /&gt;&lt;/Policy&gt;&lt;/Policy&gt;</s:String>
+        	<s:Boolean x:Key="/Default/Environment/SettingsMigration/IsMigratorApplied/=JetBrains_002EReSharper_002EPsi_002ECSharp_002ECodeStyle_002ESettingsUpgrade_002EPredefinedNamingRulesToUserRulesUpgrade/@EntryIndexedValue">True</s:Boolean>
         </wpf:ResourceDictionary>
 
         """;
