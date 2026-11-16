@@ -12,12 +12,7 @@ namespace Baun;
 /// <c>(AbsolutePath)"/tmp/output"</c>. Paths are compared case-insensitively on Windows and macOS.
 /// </remarks>
 [DebuggerDisplay($"{{{nameof(_path)}}}")]
-#if BAUN_CLI
-internal
-#else
-public
-#endif
-sealed partial class AbsolutePath : IEquatable<AbsolutePath>
+public sealed partial class AbsolutePath : IEquatable<AbsolutePath>
 {
     private static readonly StringComparison _comparison =
         OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;

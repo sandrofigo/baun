@@ -9,7 +9,6 @@
     <PackageId>Baun.Cli</PackageId>
     <Description>The baun command-line tool. Runs single-file and project baun builds with the same command.</Description>
     <PackageTags>build;ci;cd;pipeline;automation;tool</PackageTags>
-    <DefineConstants>$(DefineConstants);BAUN_CLI</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
