@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-16
+
 ### Added
 
 - `ChangelogRelease.Link` returns the link of a release at the end of the changelog, such as `[1.2.3]: https://github.com/sandrofigo/baun/compare/v1.2.2...v1.2.3`, or `null` if it has none.
@@ -85,7 +87,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Single-file (`Build.cs`) and project (`build/Build.csproj`) builds, with Spectre.Console output.
 - `baun` tool (`Baun.Cli`) that runs builds and creates or updates them with `baun init`, including bootstrap scripts that install the .NET SDK locally when it's missing.
 
-[Unreleased]: https://github.com/sandrofigo/baun/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/sandrofigo/baun/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/sandrofigo/baun/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/sandrofigo/baun/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/sandrofigo/baun/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/sandrofigo/baun/compare/v0.1.0...v0.2.0
