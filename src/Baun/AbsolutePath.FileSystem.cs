@@ -258,8 +258,13 @@ partial class AbsolutePath
     /// <summary>
     /// Returns whether <paramref name="path"/> is inside this directory, at any depth. A path doesn't contain itself.
     /// </summary>
-    internal bool Contains(AbsolutePath path) =>
-        path._path.StartsWith(_path + Path.DirectorySeparatorChar, _comparison);
+    internal bool Contains(AbsolutePath path)
+    {
+        // A root such as C:\ or / already ends in a separator.
+        string prefix = Path.EndsInDirectorySeparator(_path) ? _path : _path + Path.DirectorySeparatorChar;
+
+        return path != this && path._path.StartsWith(prefix, _comparison);
+    }
 
     private static void ClearReadOnly(string directory)
     {
