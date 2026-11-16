@@ -272,7 +272,7 @@ internal static class ParameterResolver
         {
             if (underlying == typeof(AbsolutePath))
             {
-                return ToAbsolutePath(value);
+                return ToAbsolutePath(value, item is not null);
             }
 
             return TypeDescriptor.GetConverter(type).ConvertFromString(null, CultureInfo.InvariantCulture, value);
@@ -289,8 +289,17 @@ internal static class ParameterResolver
 
     /// <summary>
     /// Converts <paramref name="value"/> to an absolute path. A relative path is relative to
-    /// <see cref="BaunBuild.RootDirectory"/>, so it doesn't depend on the folder the build runs from.
+    /// <see cref="BaunBuild.RootDirectory"/>, so it doesn't depend on the folder the build runs from. An empty value
+    /// is <see langword="null"/>, not the root directory, so an empty <c>--output</c> can't make a build clean the
+    /// whole repository. An array item can't be <see langword="null"/>, so an empty one throws.
     /// </summary>
-    private static AbsolutePath ToAbsolutePath(string value) =>
-        Path.IsPathFullyQualified(value) ? (AbsolutePath)value : BaunBuild.RootDirectory / value;
+    private static AbsolutePath? ToAbsolutePath(string value, bool isArrayItem)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return isArrayItem ? throw new FormatException("An array item can't be an empty path.") : null;
+        }
+
+        return Path.IsPathFullyQualified(value) ? (AbsolutePath)value : BaunBuild.RootDirectory / value;
+    }
 }

@@ -200,7 +200,7 @@ Names are case-insensitive and ignore `-` and `_`, so `NuGetApiKey` is set by `-
 
 On the command line, a value follows the option, as in `--configuration Release` or `--configuration=Release`. A `bool` parameter given alone, such as `--verbose`, is `true`.
 
-Parameters can be `string`, `bool`, `char`, any number type, an enum, `Guid`, `Uri`, `TimeSpan`, `AbsolutePath`, a nullable of these, or an array of them. Enum values are case-insensitive. A relative path for an `AbsolutePath` parameter is relative to `RootDirectory`, so `--output artifacts` means the same from any folder. An array takes its values from the first source that has any, without merging sources:
+Parameters can be `string`, `bool`, `char`, any number type, an enum, `Guid`, `Uri`, `TimeSpan`, `AbsolutePath`, a nullable of these, or an array of them. Enum values are case-insensitive. A relative path for an `AbsolutePath` parameter is relative to `RootDirectory`, so `--output artifacts` means the same from any folder. An empty value makes it `null`, not `RootDirectory`. An array takes its values from the first source that has any, without merging sources:
 
 - On the command line, repeat the option: `--projects src/App --projects src/Lib`
 - In an environment variable, separate them with commas: `PROJECTS=src/App,src/Lib`

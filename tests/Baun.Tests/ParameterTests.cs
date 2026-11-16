@@ -359,6 +359,30 @@ public sealed class ParameterTests : IDisposable
         Assert.Equal(BaunBuild.RootDirectory / "artifacts", build.Output);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task Treats_an_empty_path_as_null(string value)
+    {
+        var (cli, cliBuild) = await RunAsync(["--output", value]);
+        var (file, fileBuild) = await RunAsync([], json: $$"""{ "Output": "{{value}}" }""");
+
+        Assert.Equal(0, cli.ExitCode);
+        Assert.Null(cliBuild.Output);
+        Assert.Equal(0, file.ExitCode);
+        Assert.Null(fileBuild.Output);
+    }
+
+    [Fact]
+    public async Task Fails_for_an_empty_path_in_an_array()
+    {
+        var (result, build) = await RunAsync(["--inputs", "src", "--inputs", ""]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Empty(build.Executed);
+        Assert.Contains("Parameter Inputs: item 2 \"\" from option --inputs is not a valid AbsolutePath.", result.Output);
+    }
+
     [Fact]
     public void Registers_parameters_in_declaration_order()
     {
