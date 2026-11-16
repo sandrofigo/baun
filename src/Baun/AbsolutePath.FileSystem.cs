@@ -150,18 +150,34 @@ partial class AbsolutePath
         {
             File.Move(_path, target._path);
         }
-        else if (string.Equals(Path.GetPathRoot(_path), Path.GetPathRoot(target._path), StringComparison.OrdinalIgnoreCase))
-        {
-            Directory.Move(_path, target._path);
-        }
         else
         {
-            // Directory.Move can't move a directory to another volume.
-            CopyTo(target);
-            Delete();
+            try
+            {
+                Directory.Move(_path, target._path);
+            }
+            catch (IOException exception) when (IsOtherVolume(target, exception))
+            {
+                // Directory.Move can't move a directory to another volume.
+                CopyTo(target);
+                Delete();
+            }
         }
 
         return target;
+    }
+
+    /// <summary>
+    /// Returns whether <paramref name="exception"/> from <see cref="Directory.Move"/> means that <paramref name="target"/>
+    /// is on another volume. Unix paths all have the root <c>/</c>, so only the error tells there.
+    /// </summary>
+    private bool IsOtherVolume(AbsolutePath target, IOException exception)
+    {
+        const int crossDeviceUnix = 18; // EXDEV
+        const int notSameDeviceWindows = unchecked((int)0x80070011); // ERROR_NOT_SAME_DEVICE, such as for a mounted folder
+
+        return exception.HResult is crossDeviceUnix or notSameDeviceWindows ||
+               !string.Equals(Path.GetPathRoot(_path), Path.GetPathRoot(target._path), StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
