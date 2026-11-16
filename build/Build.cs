@@ -1,9 +1,8 @@
 [Entry(nameof(Test))]
 partial class Build
 {
-    static string Solution => Path.Combine(RootDirectory, "Baun.slnx");
-    static string ChangelogPath => Path.Combine(RootDirectory, Changelog.DefaultFileName);
-    static string ArtifactsDirectory => Path.Combine(RootDirectory, "artifacts");
+    static AbsolutePath Solution => RootDirectory / "Baun.slnx";
+    static AbsolutePath ArtifactsDirectory => RootDirectory / "artifacts";
 
     [Parameter("Configuration to test and pack")]
     string Configuration = "Release";
@@ -55,7 +54,7 @@ partial class Build
                 throw new InvalidOperationException($"The section [{version}] isn't the latest release in {Changelog.DefaultFileName}. It must come right after [Unreleased].");
             }
 
-            if (!HasVersionLink(version))
+            if (release.Link is null)
             {
                 throw new InvalidOperationException($"{Changelog.DefaultFileName} has no comparison link for [{version}]. Add one at the end of the file, for example: [{version}]: https://github.com/sandrofigo/baun/compare/vPREVIOUS...{Tag}");
             }
@@ -67,13 +66,13 @@ partial class Build
 
             Console.WriteLine($"{Changelog.DefaultFileName} is valid and has a section for {version}, dated today.");
         });
-    
+
     Step Clean() => _ => _
         .Executes(() =>
         {
-            if (Directory.Exists(ArtifactsDirectory))
+            if (ArtifactsDirectory.Exists)
             {
-                Directory.Delete(ArtifactsDirectory, recursive: true);
+                ArtifactsDirectory.Delete();
                 Console.WriteLine($"Deleted {ArtifactsDirectory}");
             }
         });
@@ -111,16 +110,16 @@ partial class Build
         .Executes(async () =>
         {
             string apiKey = Required(NuGetApiKey, "nuget-api-key");
-            string[] packages = Directory.GetFiles(ArtifactsDirectory, "*.nupkg");
+            IReadOnlyList<AbsolutePath> packages = ArtifactsDirectory.GlobFiles("*.nupkg");
 
-            if (packages.Length == 0)
+            if (packages.Count == 0)
             {
                 throw new InvalidOperationException($"{ArtifactsDirectory} has no packages to push. Run Pack first.");
             }
 
-            foreach (string package in packages)
+            foreach (AbsolutePath package in packages)
             {
-                using (LogGroup.Begin(Path.GetFileName(package)))
+                using (LogGroup.Begin(package.Name))
                 {
                     await Run(
                         "dotnet", "nuget", "push", package,

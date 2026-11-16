@@ -15,7 +15,7 @@ partial class Build
     string Configuration = "Release";
 
     // RootDirectory is the folder that contains .baun, so paths don't depend on where the build runs from.
-    string ArtifactsDirectory => Path.Combine(RootDirectory, "artifacts");
+    AbsolutePath ArtifactsDirectory => RootDirectory / "artifacts";
 
     Step Clean() => _ => _
         .Executes(() =>

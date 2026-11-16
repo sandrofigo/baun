@@ -51,11 +51,4 @@ partial class Build
 
         return Tag[1..];
     }
-
-    /// <summary>
-    /// Returns whether the changelog has a comparison link for <paramref name="version"/>, such as
-    /// <c>[1.2.3]: https://github.com/...</c>.
-    /// </summary>
-    static bool HasVersionLink(string version) =>
-        Regex.IsMatch(File.ReadAllText(ChangelogPath), $@"^\[{Regex.Escape(version)}\]:\s*\S+", RegexOptions.Multiline);
 }
