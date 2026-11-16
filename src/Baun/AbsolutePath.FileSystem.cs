@@ -124,12 +124,16 @@ partial class AbsolutePath
         ThrowIfMissing();
         ThrowIfInside(target, "move");
 
-        if (target == this)
+        if (string.Equals(_path, target._path, StringComparison.Ordinal))
         {
             return target;
         }
 
-        if (target.Exists)
+        // A path that equals this one but differs in case is a rename on Windows and macOS. Its target exists, because
+        // it's this file or directory, so it must not be deleted.
+        bool isCaseRename = target == this;
+
+        if (target.Exists && !isCaseRename)
         {
             if (!overwrite)
             {

@@ -161,6 +161,31 @@ public sealed class AbsolutePathFileSystemTests : IDisposable
         Assert.Equal("a", File.ReadAllText(moved / "sub" / "a.txt"));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Moving_renames_a_file_or_directory_that_differs_only_in_case(bool overwrite)
+    {
+        var file = Write("readme.md", "content");
+        Write("docs/a.txt", "a");
+
+        var movedFile = file.MoveTo(root / "README.md", overwrite);
+        var movedDirectory = (root / "docs").MoveTo(root / "Docs", overwrite);
+
+        Assert.Equal(["Docs", "README.md"], Directory.GetFileSystemEntries(root).Select(Path.GetFileName).Order(StringComparer.Ordinal));
+        Assert.Equal("content", File.ReadAllText(movedFile));
+        Assert.Equal("a", File.ReadAllText(movedDirectory / "a.txt"));
+    }
+
+    [Fact]
+    public void Moving_a_path_to_itself_does_nothing()
+    {
+        var file = Write("a.txt", "content");
+
+        Assert.Equal(file, file.MoveTo(file, overwrite: true));
+        Assert.Equal("content", File.ReadAllText(file));
+    }
+
     [Fact]
     public void Moves_a_directory_to_another_file_system()
     {
