@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Reflection;
 using Baun.CI;
 using Spectre.Console;
@@ -398,10 +399,10 @@ internal sealed class BuildRunner(
         }
     }
 
-    private static string Format(TimeSpan duration) =>
+    internal static string Format(TimeSpan duration) =>
         duration.TotalSeconds < 1
-            ? $"{duration.TotalMilliseconds:0}ms"
-            : $"{duration.TotalSeconds:0.0}s";
+            ? string.Create(CultureInfo.InvariantCulture, $"{duration.TotalMilliseconds:0}ms")
+            : string.Create(CultureInfo.InvariantCulture, $"{duration.TotalSeconds:0.0}s");
 
     private static string FormatSummaryDuration(TimeSpan duration) =>
         duration.TotalSeconds < 1 ? "<1s" : Format(duration);
