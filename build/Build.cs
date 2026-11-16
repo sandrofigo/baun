@@ -119,14 +119,11 @@ partial class Build
 
             foreach (AbsolutePath package in packages)
             {
-                using (LogGroup.Begin(package.Name))
-                {
-                    await Run(
-                        "dotnet", "nuget", "push", package,
-                        "--api-key", apiKey,
-                        "--source", "https://api.nuget.org/v3/index.json",
-                        "--skip-duplicate");
-                }
+                await Run(
+                    "dotnet", "nuget", "push", package,
+                    "--api-key", apiKey,
+                    "--source", "https://api.nuget.org/v3/index.json",
+                    "--skip-duplicate");
             }
         });
 
