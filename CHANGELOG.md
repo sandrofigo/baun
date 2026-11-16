@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `Solution` reads a `.sln` or `.slnx` file with `Solution.Read`. `GetProjects` returns its projects, `GetProject` and `TryGetProject` get a project by name, and `GlobProjects` returns the projects whose name matches patterns such as `*.Tests` and `!*.Integration.Tests`.
+- `Project` reads a project file with `Project.Read`. `Solution` and `Project` have the absolute `Path` of their file, its `Directory` and a `Name`, and they are in the new `Baun.DotNet` namespace, which builds import automatically.
+- `[Parameter]` fields and properties can be `Solution` and `Project`. A relative value is relative to `RootDirectory`, and a missing or invalid file is an error before any step runs.
+
 ### Changed
 
 - `baun init` creates a project build when it can't ask which kind of build to create, such as in a script. Pass `--single-file` for a single-file build.

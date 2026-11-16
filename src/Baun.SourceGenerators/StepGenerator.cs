@@ -79,7 +79,7 @@ public sealed class StepGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor ParameterTypeNotSupported = new(
         id: "BAUN009",
         title: "Parameter type is not supported",
-        messageFormat: "The parameter '{0}' has the type '{1}', which baun can't set. Use string, bool, char, a number type, an enum, Guid, Uri, TimeSpan, AbsolutePath, a nullable of these, or an array of them.",
+        messageFormat: "The parameter '{0}' has the type '{1}', which baun can't set. Use string, bool, char, a number type, an enum, Guid, Uri, TimeSpan, AbsolutePath, Solution, Project, a nullable of these, or an array of them.",
         category: "Baun",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -231,11 +231,12 @@ public sealed class StepGenerator : IIncrementalGenerator
                 return true;
         }
 
-        return type is INamedTypeSymbol { ContainingNamespace: { ContainingNamespace.IsGlobalNamespace: true } namespaceSymbol } named
-               && namespaceSymbol.Name switch
+        return type is INamedTypeSymbol { ContainingType: null } named
+               && named.ContainingNamespace.ToDisplayString() switch
                {
                    "System" => named.Name is "Guid" or "Uri" or "TimeSpan",
                    "Baun" => named.Name is "AbsolutePath",
+                   "Baun.DotNet" => named.Name is "Solution" or "Project",
                    _ => false,
                };
     }
