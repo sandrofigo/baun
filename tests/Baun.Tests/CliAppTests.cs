@@ -219,6 +219,21 @@ public sealed class CliAppTests : IDisposable
         Assert.Equal(new BuildLocation(buildFile, projectFile), BuildLocator.Find(root));
     }
 
+    [Fact]
+    public async Task Init_writes_the_dot_settings_as_rider_saves_them()
+    {
+        // Rider rewrites the file when it opens the project unless it's already in the form Rider saves it in.
+        await RunAsync("init", "--project");
+
+        byte[] bytes = File.ReadAllBytes(root / "build" / "_build.csproj.DotSettings");
+        string text = File.ReadAllText(root / "build" / "_build.csproj.DotSettings");
+
+        Assert.Equal([0xEF, 0xBB, 0xBF], bytes[..3]);
+        Assert.Contains("&lt;Policy Inspect=\"True\" WarnAboutPrefixesAndSuffixes=\"False\" Prefix=\"\"", text);
+        Assert.Contains("SettingsMigration/IsMigratorApplied/=JetBrains_002EReSharper_002EPsi_002ECSharp_002ECodeStyle_002ESettingsUpgrade_002EPredefinedNamingRulesToUserRulesUpgrade/@EntryIndexedValue\">True</s:Boolean>", text);
+        Assert.DoesNotContain('\r', text);
+    }
+
     [Theory]
     [InlineData(0, "build/_build.csproj", "Project")]
     [InlineData(1, "Build.cs", "Single file")]
