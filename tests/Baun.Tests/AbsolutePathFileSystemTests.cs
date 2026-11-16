@@ -177,6 +177,17 @@ public sealed class AbsolutePathFileSystemTests : IDisposable
     }
 
     [Fact]
+    public void Doesnt_replace_a_target_that_contains_the_moved_path()
+    {
+        var file = Write("out/tmp/pkg/a.txt", "a");
+
+        Assert.Throws<IOException>(() => (root / "out" / "tmp" / "pkg").MoveTo(root / "out", overwrite: true));
+        Assert.Throws<IOException>(() => file.MoveTo(root / "out", overwrite: true));
+
+        Assert.Equal("a", File.ReadAllText(file));
+    }
+
+    [Fact]
     public void Moving_a_missing_path_throws()
     {
         Assert.Throws<FileNotFoundException>(() => (root / "missing").MoveTo(root / "target"));

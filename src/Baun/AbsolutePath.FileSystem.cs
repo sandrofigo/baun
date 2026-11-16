@@ -114,7 +114,10 @@ partial class AbsolutePath
     /// </param>
     /// <returns><paramref name="target"/>.</returns>
     /// <exception cref="FileNotFoundException">Neither a file nor a directory exists at this path.</exception>
-    /// <exception cref="IOException">The target exists and <paramref name="overwrite"/> is <see langword="false"/>.</exception>
+    /// <exception cref="IOException">
+    /// The target exists and <paramref name="overwrite"/> is <see langword="false"/>, or the target is a directory that
+    /// contains this path.
+    /// </exception>
     public AbsolutePath MoveTo(AbsolutePath target, bool overwrite = false)
     {
         ArgumentNullException.ThrowIfNull(target);
@@ -131,6 +134,11 @@ partial class AbsolutePath
             if (!overwrite)
             {
                 throw new IOException($"Can't move {_path} to {target._path}, because it already exists.");
+            }
+
+            if (target.Contains(this))
+            {
+                throw new IOException($"Can't replace {target._path} with {_path}, because it contains it.");
             }
 
             target.Delete();
@@ -213,11 +221,17 @@ partial class AbsolutePath
 
     private void ThrowIfInside(AbsolutePath target, string action)
     {
-        if (DirectoryExists && target != this && target._path.StartsWith(_path + Path.DirectorySeparatorChar, _comparison))
+        if (DirectoryExists && Contains(target))
         {
             throw new IOException($"Can't {action} {_path} into itself ({target._path}).");
         }
     }
+
+    /// <summary>
+    /// Returns whether <paramref name="path"/> is inside this directory, at any depth. A path doesn't contain itself.
+    /// </summary>
+    internal bool Contains(AbsolutePath path) =>
+        path._path.StartsWith(_path + Path.DirectorySeparatorChar, _comparison);
 
     private static void ClearReadOnly(string directory)
     {
