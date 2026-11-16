@@ -162,6 +162,28 @@ public sealed class AbsolutePathFileSystemTests : IDisposable
     }
 
     [Fact]
+    public void Moves_a_directory_to_another_file_system()
+    {
+        // On Linux, /dev/shm is a tmpfs mount, separate from the temp directory, yet both paths have the root "/".
+        Assert.SkipUnless(OperatingSystem.IsLinux() && Directory.Exists("/dev/shm"), "Needs /dev/shm on Linux.");
+
+        Write("src/sub/a.txt", "a");
+        var target = (AbsolutePath)"/dev/shm" / $"baun-path-tests-{Guid.NewGuid():N}";
+
+        try
+        {
+            (root / "src").MoveTo(target);
+
+            Assert.False((root / "src").Exists);
+            Assert.Equal("a", File.ReadAllText(target / "sub" / "a.txt"));
+        }
+        finally
+        {
+            target.Delete();
+        }
+    }
+
+    [Fact]
     public void Moving_replaces_an_existing_target_only_when_asked()
     {
         Write("src/a.txt", "new");
