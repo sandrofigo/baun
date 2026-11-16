@@ -69,6 +69,18 @@ public sealed class AbsolutePathFileSystemTests : IDisposable
     }
 
     [Fact]
+    public void Deletes_a_directory_with_read_only_directories()
+    {
+        Write("dir/sub/a.txt");
+        File.SetAttributes(root / "dir" / "sub", FileAttributes.Directory | FileAttributes.ReadOnly);
+        File.SetAttributes(root / "dir", FileAttributes.Directory | FileAttributes.ReadOnly);
+
+        (root / "dir").Delete();
+
+        Assert.False((root / "dir").Exists);
+    }
+
+    [Fact]
     public void Deleting_a_missing_path_does_nothing()
     {
         (root / "missing").Delete();
