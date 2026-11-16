@@ -36,8 +36,6 @@ internal static class Theme
 
     public static string Cross(this IAnsiConsole console) => console.Profile.Capabilities.Unicode ? "✗" : "x";
 
-    public static string Circle(this IAnsiConsole console) => console.Profile.Capabilities.Unicode ? "○" : "-";
-
     public static string Chevron(this IAnsiConsole console) => console.Profile.Capabilities.Unicode ? "›" : ">";
 
     public static string Marker(this IAnsiConsole console) => console.Profile.Capabilities.Unicode ? "▸" : ">";

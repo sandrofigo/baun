@@ -123,9 +123,9 @@ internal sealed class BuildRunner(
         {
             string status = result.Status switch
             {
-                StepStatus.Succeeded => $"[green]{console.Check()} Succeeded[/]",
-                StepStatus.Failed => $"[red]{console.Cross()} Failed[/]",
-                _ => Theme.Faint($"{console.Circle()} Skipped")
+                StepStatus.Succeeded => "[green]Succeeded[/]",
+                StepStatus.Failed => "[red]Failed[/]",
+                _ => Theme.Faint("Skipped")
             };
 
             table.AddRow(
