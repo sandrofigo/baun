@@ -134,6 +134,20 @@ public sealed class AbsolutePathFileSystemTests : IDisposable
     }
 
     [Fact]
+    public void Tells_whether_a_directory_contains_a_path()
+    {
+        // Tests the check that keeps CopyTo and MoveTo from copying a directory into itself, without copying a whole drive.
+        var drive = (AbsolutePath)Path.GetPathRoot(root)!;
+
+        Assert.True(drive.Contains(root));
+        Assert.True(root.Contains(root / "a" / "b"));
+        Assert.False(root.Contains(root));
+        Assert.False(drive.Contains(drive));
+        Assert.False((root / "a").Contains(root / "ab"));
+        Assert.False((root / "a").Contains(root));
+    }
+
+    [Fact]
     public void Doesnt_copy_a_path_to_itself()
     {
         var file = Write("dir/a.txt", "content");
