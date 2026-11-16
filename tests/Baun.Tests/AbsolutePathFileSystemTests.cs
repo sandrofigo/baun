@@ -1,3 +1,7 @@
+using System.Runtime.Versioning;
+using System.Security.AccessControl;
+using System.Security.Principal;
+
 namespace Baun.Tests;
 
 public sealed class AbsolutePathFileSystemTests : IDisposable
@@ -310,10 +314,93 @@ public sealed class AbsolutePathFileSystemTests : IDisposable
     }
 
     [Fact]
+    public void Globbing_skips_directories_that_cant_be_read()
+    {
+        Write("src/a.txt");
+        Write("src/locked/b.txt");
+        var locked = root / "src" / "locked";
+
+        using (Deny(locked))
+        {
+            Assert.SkipWhen(CanRead(locked), "The current user can read any directory.");
+
+            Assert.Equal([root / "src" / "a.txt"], root.GlobFiles("**/*.txt"));
+            Assert.Equal([root / "src" / "a.txt"], root.GlobFiles("**/*.txt", "!**/locked/**"));
+            Assert.Equal([root / "src", locked], root.GlobDirectories("**"));
+        }
+    }
+
+    [Fact]
+    public void Globs_with_literal_patterns()
+    {
+        Write("src/App/App.csproj");
+
+        Assert.Equal([root / "src" / "App" / "App.csproj"], root.GlobFiles("src/App/App.csproj"));
+        Assert.Equal([root / "src" / "App"], root.GlobDirectories("src/App"));
+        Assert.Empty(root.GlobFiles("missing/App.csproj"));
+        Assert.Equal([root / "src" / "App" / "App.csproj"], (root / "src" / "App").GlobFiles("../App/*.csproj"));
+    }
+
+    [Fact]
     public void Globbing_a_missing_directory_finds_nothing()
     {
         Assert.Empty((root / "missing").GlobFiles("**/*"));
         Assert.Empty((root / "missing").GlobDirectories("**"));
+    }
+
+    /// <summary>
+    /// Denies the current user reading <paramref name="directory"/> until the result is disposed.
+    /// </summary>
+    private static IDisposable Deny(AbsolutePath directory) =>
+        OperatingSystem.IsWindows() ? DenyOnWindows(directory) : DenyOnUnix(directory);
+
+    [SupportedOSPlatform("windows")]
+    private static Restore DenyOnWindows(AbsolutePath directory)
+    {
+        var info = new DirectoryInfo(directory);
+        var security = info.GetAccessControl();
+        var rule = new FileSystemAccessRule(WindowsIdentity.GetCurrent().User!, FileSystemRights.ListDirectory, AccessControlType.Deny);
+        security.AddAccessRule(rule);
+        info.SetAccessControl(security);
+
+        return new Restore(() => AllowOnWindows(info, security, rule));
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static void AllowOnWindows(DirectoryInfo info, DirectorySecurity security, FileSystemAccessRule rule)
+    {
+        security.RemoveAccessRule(rule);
+        info.SetAccessControl(security);
+    }
+
+    [UnsupportedOSPlatform("windows")]
+    private static Restore DenyOnUnix(AbsolutePath directory)
+    {
+        UnixFileMode mode = File.GetUnixFileMode(directory);
+        File.SetUnixFileMode(directory, UnixFileMode.None);
+
+        return new Restore(() => AllowOnUnix(directory, mode));
+    }
+
+    [UnsupportedOSPlatform("windows")]
+    private static void AllowOnUnix(AbsolutePath directory, UnixFileMode mode) => File.SetUnixFileMode(directory, mode);
+
+    private static bool CanRead(AbsolutePath directory)
+    {
+        try
+        {
+            _ = Directory.EnumerateFileSystemEntries(directory).ToList();
+            return true;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    private sealed class Restore(Action restore) : IDisposable
+    {
+        public void Dispose() => restore();
     }
 
     private AbsolutePath Write(string relativePath, string content = "")

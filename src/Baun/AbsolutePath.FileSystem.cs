@@ -1,4 +1,5 @@
 using Microsoft.Extensions.FileSystemGlobbing;
+using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 
 namespace Baun;
 
@@ -198,11 +199,11 @@ partial class AbsolutePath
     /// <remarks>
     /// Patterns are relative to this directory and use <c>/</c> as the separator. <c>*</c> matches any characters in a
     /// name, and <c>**</c> matches any number of directories, as in <c>**/*.csproj</c>. A pattern that starts with
-    /// <c>!</c> excludes what it matches, as in <c>!**/bin/**</c>. A directory that doesn't exist has no files.
+    /// <c>!</c> excludes what it matches, as in <c>!**/bin/**</c>. A directory that doesn't exist has no files, and
+    /// subdirectories that can't be read are skipped.
     /// </remarks>
     /// <param name="patterns">The patterns to match, such as <c>src/**/*.cs</c>.</param>
-    public IReadOnlyList<AbsolutePath> GlobFiles(params string[] patterns) =>
-        Glob(patterns, Directory.Exists(_path) ? Directory.EnumerateFiles(_path, "*", SearchOption.AllDirectories) : []);
+    public IReadOnlyList<AbsolutePath> GlobFiles(params string[] patterns) => Glob(patterns, directories: false);
 
     /// <summary>
     /// Returns the directories in this directory and its subdirectories that match <paramref name="patterns"/>, sorted
@@ -210,10 +211,9 @@ partial class AbsolutePath
     /// </summary>
     /// <remarks>The patterns work as in <see cref="GlobFiles"/>.</remarks>
     /// <param name="patterns">The patterns to match, such as <c>**/bin</c>.</param>
-    public IReadOnlyList<AbsolutePath> GlobDirectories(params string[] patterns) =>
-        Glob(patterns, Directory.Exists(_path) ? Directory.EnumerateDirectories(_path, "*", SearchOption.AllDirectories) : []);
+    public IReadOnlyList<AbsolutePath> GlobDirectories(params string[] patterns) => Glob(patterns, directories: true);
 
-    private List<AbsolutePath> Glob(string[] patterns, IEnumerable<string> candidates)
+    private List<AbsolutePath> Glob(string[] patterns, bool directories)
     {
         ArgumentNullException.ThrowIfNull(patterns);
 
@@ -233,10 +233,78 @@ partial class AbsolutePath
             }
         }
 
-        return matcher.Match(_path, candidates).Files
+        if (!DirectoryExists)
+        {
+            return [];
+        }
+
+        // Executing the matcher on the directory, rather than matching a list of every path, skips the directories
+        // that no pattern can match, such as bin for !**/bin/**.
+        return matcher.Execute(new GlobDirectory(new DirectoryInfo(_path), parent: null, directories)).Files
             .Select(match => this / match.Path)
             .OrderBy(path => path._path, StringComparer.FromComparison(_comparison))
             .ToList();
+    }
+
+    /// <summary>
+    /// A directory for <see cref="Matcher"/> that skips subdirectories that can't be read. With
+    /// <paramref name="directoriesAsFiles"/>, it lists its subdirectories as files instead of its files, because the
+    /// matcher only matches files.
+    /// </summary>
+    private sealed class GlobDirectory(DirectoryInfo directory, DirectoryInfoBase? parent, bool directoriesAsFiles, bool isParentPath = false)
+        : DirectoryInfoBase
+    {
+        // Unlike the default, includes hidden and system entries, such as .git on Windows.
+        private static readonly EnumerationOptions _options = new() { IgnoreInaccessible = true, AttributesToSkip = 0 };
+
+        // The matcher compares the name of a parent directory with a .. segment of a pattern.
+        public override string Name => isParentPath ? ".." : directory.Name;
+
+        public override string FullName => directory.FullName;
+
+        public override DirectoryInfoBase? ParentDirectory =>
+            parent ?? (directory.Parent is { } info ? new GlobDirectory(info, null, directoriesAsFiles) : null);
+
+        public override IEnumerable<FileSystemInfoBase> EnumerateFileSystemInfos()
+        {
+            if (!directory.Exists)
+            {
+                yield break;
+            }
+
+            foreach (FileSystemInfo info in directory.EnumerateFileSystemInfos("*", _options))
+            {
+                if (info is DirectoryInfo subdirectory)
+                {
+                    yield return new GlobDirectory(subdirectory, this, directoriesAsFiles);
+
+                    if (directoriesAsFiles)
+                    {
+                        yield return new DirectoryAsFile(subdirectory, this);
+                    }
+                }
+                else if (!directoriesAsFiles)
+                {
+                    yield return new FileInfoWrapper((FileInfo)info);
+                }
+            }
+        }
+
+        public override DirectoryInfoBase GetDirectory(string path) =>
+            new GlobDirectory(new DirectoryInfo(Path.Combine(directory.FullName, path)), this, directoriesAsFiles, path == "..");
+
+        public override FileInfoBase? GetFile(string path) => directoriesAsFiles
+            ? new DirectoryAsFile(new DirectoryInfo(Path.Combine(directory.FullName, path)), this)
+            : new FileInfoWrapper(new FileInfo(Path.Combine(directory.FullName, path)));
+    }
+
+    private sealed class DirectoryAsFile(DirectoryInfo directory, DirectoryInfoBase parent) : FileInfoBase
+    {
+        public override string Name => directory.Name;
+
+        public override string FullName => directory.FullName;
+
+        public override DirectoryInfoBase ParentDirectory => parent;
     }
 
     private void ThrowIfMissing()
