@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RootDirectory` and `BaunBuild.RootDirectory` are an `AbsolutePath` instead of a `string`.
 - `Changelog.Read` takes an `AbsolutePath` instead of a `string`.
 - `GitHub.EventPath`, `GitHub.Workspace`, `GitHub.StepSummary`, `GitHub.RunnerTemp` and `GitHub.RunnerToolCache` are an `AbsolutePath` instead of a `string`.
+- The build summary shows a step's status as text only, such as `Succeeded`, without a symbol in front.
 
 ### Fixed
 
