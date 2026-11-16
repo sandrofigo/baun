@@ -53,7 +53,7 @@ partial class AbsolutePath
     /// <summary>
     /// Deletes the file or the directory, with everything in it, at this path. Does nothing if neither exists.
     /// </summary>
-    /// <remarks>Read-only files, such as those in a <c>.git</c> folder, are deleted too.</remarks>
+    /// <remarks>Read-only files and directories, such as those in a <c>.git</c> folder, are deleted too.</remarks>
     public void Delete()
     {
         if (FileExists)
@@ -334,16 +334,27 @@ partial class AbsolutePath
         return path != this && path._path.StartsWith(prefix, _comparison);
     }
 
+    /// <summary>
+    /// Clears the read-only flag of <paramref name="directory"/> and everything in it. A read-only directory can't be
+    /// deleted on Windows, and on Unix nothing can be deleted from it.
+    /// </summary>
     private static void ClearReadOnly(string directory)
     {
-        foreach (string file in Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
-        {
-            FileAttributes attributes = File.GetAttributes(file);
+        ClearReadOnlyEntry(directory);
 
-            if (attributes.HasFlag(FileAttributes.ReadOnly))
-            {
-                File.SetAttributes(file, attributes & ~FileAttributes.ReadOnly);
-            }
+        foreach (string entry in Directory.EnumerateFileSystemEntries(directory, "*", SearchOption.AllDirectories))
+        {
+            ClearReadOnlyEntry(entry);
+        }
+    }
+
+    private static void ClearReadOnlyEntry(string path)
+    {
+        FileAttributes attributes = File.GetAttributes(path);
+
+        if (attributes.HasFlag(FileAttributes.ReadOnly))
+        {
+            File.SetAttributes(path, attributes & ~FileAttributes.ReadOnly);
         }
     }
 }
