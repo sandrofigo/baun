@@ -12,7 +12,7 @@ Inspired by [NUKE](https://github.com/nuke-build/nuke), baun treats your build a
 
 - **Builds as code**: Define pipelines in strongly typed C# instead of YAML, PowerShell, or Bash.
 - **Any workflow**: Use it for CI/CD, packaging, publishing, code generation, or any other repeatable task.
-- **Single file or project**: Keep a whole build in one `Build.cs` file, or use a regular build project. Run either with `baun Test`. Both are fully supported.
+- **Project or single file**: Use a regular build project that grows with your repository, or keep a small build in one `Build.cs` file. Run either with `baun Test`.
 - **Simple by default**: Getting started takes little ceremony, and complex scenarios are still possible.
 - **Runs anywhere**: Run the same build locally and on any CI server, with the same results.
 - **First-class tooling**: Debug your build like any other .NET application.
@@ -37,7 +37,7 @@ Inspired by [NUKE](https://github.com/nuke-build/nuke), baun treats your build a
    baun init
    ```
 
-   baun asks whether to create a single-file build (`Build.cs`) or a project build (`build/_build.csproj` and `build/Build.cs`). If you're not sure, start with a single file. You can [convert it to a project](#project-builds) later. `baun init` also adds [bootstrap scripts](#running-without-the-net-sdk), so others can run the build without installing anything first.
+   baun asks whether to create a project build (`build/_build.csproj` and `build/Build.cs`) or a single-file build (`Build.cs`). A project build is the recommended choice: it works best with IDEs and lets you split the build across several files as it grows. A [single file](#single-file-builds) is a good fit for small builds. `baun init` also adds [bootstrap scripts](#running-without-the-net-sdk), so others can run the build without installing anything first.
 
 3. Run the build:
 
@@ -48,13 +48,13 @@ Inspired by [NUKE](https://github.com/nuke-build/nuke), baun treats your build a
 
    The new build has three sample steps, `Clean`, `Compile` and `Test`, that each print a message. baun runs them in dependency order and ends with a summary of each step's status and duration.
 
-4. Open `Build.cs` and replace the sample steps with your own work. Add a step by adding a method that returns a `Step`. The [Concept](#concept) section explains how steps work.
+4. Open `build/Build.cs` (or `Build.cs` in a single-file build) and replace the sample steps with your own work. Add a step by adding a method that returns a `Step`. The [Concept](#concept) section explains how steps work.
 
-5. Commit `Build.cs` (or the `build` folder) and the bootstrap scripts. On a CI server, run the same build with `./build.sh Test` or `./build.cmd Test`, or install the tool and run `baun Test`.
+5. Commit the `build` folder (or `Build.cs`) and the bootstrap scripts. On a CI server, run the same build with `./build.sh Test` or `./build.cmd Test`, or install the tool and run `baun Test`.
 
 ## Concept
 
-A baun build is either a single C# file, `Build.cs`, or a small build project that sits next to your code. Inside it you declare **steps**, which are named units of work. You also declare how they depend on each other. baun works out the execution order and runs only the steps that are needed.
+A baun build is a small build project that sits next to your code, or, for small builds, a single C# file, `Build.cs`. Inside it you declare **steps**, which are named units of work. You also declare how they depend on each other. baun works out the execution order and runs only the steps that are needed.
 
 `Build.cs` contains a `partial class Build` that holds the steps, and each step is a method that returns a `Step`. You don't write an entry point: baun adds one that runs the build.
 
@@ -63,8 +63,6 @@ A step's name is its method name, so you never repeat a name as a string. Steps 
 The example `Build.cs` below shows the intended style. The final API may differ.
 
 ```csharp
-#:package Baun@0.4.0
-
 [Entry(nameof(Test))]
 partial class Build
 {
@@ -294,42 +292,18 @@ using (LogGroup.Begin("Restore"))
 
 Groups don't nest. A group opened inside another one, such as inside a step, is written as a plain `› Restore` line, so the step stays one group. Outside CI, steps and groups are written as plain lines.
 
-## Single file or project
+## Project or single file
 
-baun supports two ways to set up a build. Both use the same API and the same `Build.cs` entry point, so you can switch between them at any time.
+baun supports two ways to set up a build. Both use the same API and the same `Build.cs` entry point, so you can switch between them at any time. A project build is the recommended choice for most repositories. A single-file build suits small builds that fit comfortably in one file.
 
-| | Single file | Project |
+| | Project | Single file |
 | --- | --- | --- |
-| Files | Only `Build.cs` | `Build.cs`, a `.csproj`, and any other files you add |
-| Package reference | `#:package` line in `Build.cs` | `PackageReference` in the `.csproj` |
-| Steps | `partial class Build` in `Build.cs` | `partial class Build` spread across any number of files |
+| Files | `Build.cs`, a `.csproj`, and any other files you add | Only `Build.cs` |
+| Package reference | `PackageReference` in the `.csproj` | `#:package` line in `Build.cs` |
+| Steps | `partial class Build` spread across any number of files | `partial class Build` in `Build.cs` |
 | Run | `baun Test` | `baun Test` |
 
-The [`examples`](examples) folder contains a sample of each: a [single-file build](examples/single-file/Build.cs) and a [project build](examples/project/build). They reference the latest Baun package.
-
-### Single-file builds
-
-Single-file builds use the file-based apps introduced in .NET 10: the `#:package` line at the top of `Build.cs` references baun, and the .NET SDK takes care of the rest. You don't need a `.csproj` file, a solution, or a separate build folder.
-
-Without the [baun tool](#the-baun-tool), you run a step with the .NET SDK directly:
-
-```shell
-dotnet run Build.cs -- Test
-```
-
-On Linux and macOS you can also make the build directly executable. Add a shebang as the first line of `Build.cs`:
-
-```csharp
-#!/usr/bin/env dotnet
-#:package Baun@0.4.0
-```
-
-Then mark the file as executable and run it:
-
-```shell
-chmod +x Build.cs
-./Build.cs Test
-```
+The [`examples`](examples) folder contains a sample of each: a [project build](examples/project/build) and a [single-file build](examples/single-file/Build.cs). They reference the latest Baun package.
 
 ### Project builds
 
@@ -352,13 +326,11 @@ A project build is a regular .NET console project, for example in a `build` fold
 </Project>
 ```
 
-`Build.cs` looks the same as in a single-file build, without the `#:` lines. `baun init` also adds a `build/.editorconfig` and, for Rider and ReSharper, a `build/_build.csproj.DotSettings`, so IDEs don't ask for `private` on steps, warn about using the `_` parameter in `_ => _` or flag PascalCase parameter fields such as `NuGetApiKey`. Like the bootstrap scripts, `baun init` always overwrites these files. The Baun package hides these files, along with `Directory.Build.props` and `Directory.Build.targets`, from the project's items, so they don't clutter the project in IDEs. Without the [baun tool](#the-baun-tool), you run a step with the .NET SDK directly:
+`build/Build.cs` holds the build class, as in the [Concept](#concept) section. `baun init` also adds a `build/.editorconfig` and, for Rider and ReSharper, a `build/_build.csproj.DotSettings`, so IDEs don't ask for `private` on steps, warn about using the `_` parameter in `_ => _` or flag PascalCase parameter fields such as `NuGetApiKey`. Like the bootstrap scripts, `baun init` always overwrites these files. The Baun package hides these files, along with `Directory.Build.props` and `Directory.Build.targets`, from the project's items, so they don't clutter the project in IDEs. Without the [baun tool](#the-baun-tool), you run a step with the .NET SDK directly:
 
 ```shell
 dotnet run --project build -- Test
 ```
-
-To turn an existing single-file build into a project, run `dotnet project convert Build.cs`.
 
 ### Organizing larger builds
 
@@ -420,6 +392,32 @@ partial class Build
 
 All parts form one class, so steps in any file can depend on steps in any other file without a prefix. The source generator finds steps in every part.
 
+### Single-file builds
+
+For a small build with a handful of steps, a single file is a valid alternative to a project. Single-file builds use the file-based apps introduced in .NET 10: the `#:package` line at the top of `Build.cs` references baun, and the .NET SDK takes care of the rest. You don't need a `.csproj` file, a solution, or a separate build folder. The rest of `Build.cs` looks the same as in a project build.
+
+Without the [baun tool](#the-baun-tool), you run a step with the .NET SDK directly:
+
+```shell
+dotnet run Build.cs -- Test
+```
+
+On Linux and macOS you can also make the build directly executable. Add a shebang as the first line of `Build.cs`:
+
+```csharp
+#!/usr/bin/env dotnet
+#:package Baun@0.4.0
+```
+
+Then mark the file as executable and run it:
+
+```shell
+chmod +x Build.cs
+./Build.cs Test
+```
+
+When a single-file build outgrows one file, turn it into a project with `dotnet project convert Build.cs`.
+
 ## The baun tool
 
 The `baun` command-line tool creates and runs builds of both kinds. Install it as a .NET tool:
@@ -434,11 +432,11 @@ Run `baun init` in your repository to create a new build:
 
 ```shell
 baun init                # asks which kind of build to create
-baun init --single-file  # creates Build.cs
 baun init --project      # creates build/_build.csproj and build/Build.cs
+baun init --single-file  # creates Build.cs
 ```
 
-The new build has a few sample steps and references the same version of baun as the tool. When `baun init` can't ask, for example in a script, it creates a single-file build. Creating a build never overwrites existing build files.
+The new build has a few sample steps and references the same version of baun as the tool. When `baun init` can't ask, for example in a script, it creates a project build. Creating a build never overwrites existing build files.
 
 `baun init` also creates an empty [`.baun/parameters.json`](#parameters), also when it updates an existing build. It uses the nearest existing `.baun` folder in the current folder or its parents, or creates `.baun` in the current folder. It never overwrites an existing `parameters.json`.
 

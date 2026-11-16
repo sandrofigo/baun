@@ -60,8 +60,8 @@ internal static class CliApp
             config.AddCommand<InitCommand>(InitCommandName)
                 .WithDescription("Creates a new build in the current folder, or updates the bootstrap scripts of an existing one.")
                 .WithExample("init")
-                .WithExample("init", "--single-file")
-                .WithExample("init", "--project");
+                .WithExample("init", "--project")
+                .WithExample("init", "--single-file");
         });
 
         return await app.RunAsync(arguments);

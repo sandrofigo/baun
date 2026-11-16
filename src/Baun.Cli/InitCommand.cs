@@ -132,7 +132,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             { SingleFile: true } => BuildKind.SingleFile,
             { Project: true } => BuildKind.Project,
             _ when console.Profile.Capabilities.Interactive => AskForKind(),
-            _ => BuildKind.SingleFile
+            _ => BuildKind.Project
         };
 
         var files = kind == BuildKind.SingleFile

@@ -369,13 +369,14 @@ public sealed class CliAppTests : IDisposable
     }
 
     [Fact]
-    public async Task Init_creates_a_single_file_build_when_it_cannot_ask()
+    public async Task Init_creates_a_project_build_when_it_cannot_ask()
     {
         var exitCode = await RunAsync("init");
 
         Assert.Equal(0, exitCode);
         Assert.DoesNotContain("Which kind of build", console.Output);
-        Assert.True(File.Exists(root / "Build.cs"));
+        Assert.True(File.Exists(root / "build" / "_build.csproj"));
+        Assert.False(File.Exists(root / "Build.cs"));
     }
 
     [Fact]
