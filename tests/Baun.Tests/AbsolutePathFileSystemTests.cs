@@ -134,6 +134,20 @@ public sealed class AbsolutePathFileSystemTests : IDisposable
     }
 
     [Fact]
+    public void Doesnt_copy_a_path_to_itself()
+    {
+        var file = Write("dir/a.txt", "content");
+        var directory = root / "dir";
+
+        var fileError = Assert.Throws<IOException>(() => file.CopyTo(file, overwrite: true));
+        var directoryError = Assert.Throws<IOException>(() => directory.CopyTo(directory, overwrite: true));
+
+        Assert.Equal($"Can't copy {file} to itself.", fileError.Message);
+        Assert.Equal($"Can't copy {directory} to itself.", directoryError.Message);
+        Assert.Equal("content", File.ReadAllText(file));
+    }
+
+    [Fact]
     public void Copying_a_missing_path_throws()
     {
         Assert.Throws<FileNotFoundException>(() => (root / "missing").CopyTo(root / "copy"));
