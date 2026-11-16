@@ -75,12 +75,20 @@ partial class AbsolutePath
     /// <param name="overwrite">Whether to overwrite existing files. Otherwise an existing file throws.</param>
     /// <returns><paramref name="target"/>.</returns>
     /// <exception cref="FileNotFoundException">Neither a file nor a directory exists at this path.</exception>
-    /// <exception cref="IOException">A file exists at the target and <paramref name="overwrite"/> is <see langword="false"/>.</exception>
+    /// <exception cref="IOException">
+    /// A file exists at the target and <paramref name="overwrite"/> is <see langword="false"/>, or the target is this
+    /// path or inside it.
+    /// </exception>
     public AbsolutePath CopyTo(AbsolutePath target, bool overwrite = false)
     {
         ArgumentNullException.ThrowIfNull(target);
         ThrowIfMissing();
         ThrowIfInside(target, "copy");
+
+        if (target == this)
+        {
+            throw new IOException($"Can't copy {_path} to itself.");
+        }
 
         if (FileExists)
         {
