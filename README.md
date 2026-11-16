@@ -140,7 +140,7 @@ Step Pack() => _ => _
 
 baun includes a source generator that completes the `partial class Build` at compile time. It finds every method that returns a `Step`, takes each step's name from its method name, and registers it with the build. This avoids scanning the build with reflection, and you don't need to register anything by hand. It also reports mistakes as compiler errors, such as a build class that isn't `partial` or an `[Entry]` that doesn't name a step. baun checks for circular dependencies before it runs any step.
 
-baun's types, such as `Step`, `Entry` and `BaunBuild`, are in the `Baun` namespace, and the types for CI servers, such as `GitHub`, are in `Baun.CI`. The Baun package imports both automatically, so a build never needs `using` lines for baun itself.
+baun's types, such as `Step`, `Entry` and `BaunBuild`, are in the `Baun` namespace, and the types for CI servers, such as `GitHub`, are in `Baun.CI`, and the types for .NET solutions and projects are in `Baun.DotNet`. The Baun package imports all three automatically, so a build never needs `using` lines for baun itself.
 
 The entry point comes from baun's source generator: when a build has no top-level statements and no `Main` method, the generator adds one that runs the build class. To run code before or after the build, write the entry point yourself with `BaunBuild.RunAsync`:
 
@@ -198,13 +198,35 @@ Names are case-insensitive and ignore `-` and `_`, so `NuGetApiKey` is set by `-
 
 On the command line, a value follows the option, as in `--configuration Release` or `--configuration=Release`. A `bool` parameter given alone, such as `--verbose`, is `true`.
 
-Parameters can be `string`, `bool`, `char`, any number type, an enum, `Guid`, `Uri`, `TimeSpan`, `AbsolutePath`, a nullable of these, or an array of them. Enum values are case-insensitive. A relative path for an `AbsolutePath` parameter is relative to `RootDirectory`, so `--output artifacts` means the same from any folder. An empty value makes it `null`, not `RootDirectory`. An array takes its values from the first source that has any, without merging sources:
+Parameters can be `string`, `bool`, `char`, any number type, an enum, `Guid`, `Uri`, `TimeSpan`, `AbsolutePath`, [`Solution`, `Project`](#solutions-and-projects), a nullable of these, or an array of them. Enum values are case-insensitive. A relative path for an `AbsolutePath`, `Solution` or `Project` parameter is relative to `RootDirectory`, so `--output artifacts` means the same from any folder. An empty value makes it `null`, not `RootDirectory`. A `Solution` or `Project` parameter reads its file when it's set, so a missing or invalid file is reported before any step runs. An array takes its values from the first source that has any, without merging sources:
 
 - On the command line, repeat the option: `--projects src/App --projects src/Lib`
 - In an environment variable, separate them with commas: `PROJECTS=src/App,src/Lib`
 - In `parameters.json`, use a JSON array, or a single value for an array with one item
 
 `baun --help` lists the parameters. baun reports an invalid value, such as `--retries many` for an `int`, as an error before it runs any step. An unknown key in `parameters.json` is also an error, so typos don't go unnoticed. The source generator reports parameters it can't set as compiler errors, such as a `readonly` field, a property without a setter or an unsupported type (`BAUN008` to `BAUN011`).
+
+## Solutions and projects
+
+`Solution.Read` reads a solution file in the `.sln` or `.slnx` format. `GetProjects()` returns its projects, including those in solution folders, sorted by path. `GetProject("App")` returns the project with a name and throws if there's none, while `TryGetProject` doesn't throw. `GlobProjects(patterns)` returns the projects whose name matches any of the patterns, where `*` matches any characters, `?` matches one character, and a pattern that starts with `!` excludes what it matches. Project names are the file names without the extension, such as `App.Tests` for `App.Tests.csproj`, and are compared case-insensitively:
+
+```csharp
+[Parameter("Solution to build")]
+Solution Solution = Solution.Read(RootDirectory / "App.slnx");
+
+Step Test() => _ => _
+    .Executes(() =>
+    {
+        foreach (Project project in Solution.GlobProjects("*.Tests", "!*.Integration.Tests"))
+        {
+            // dotnet test project.Path
+        }
+    });
+```
+
+`Project.Read` reads a single project file, such as `Project.Read(RootDirectory / "src" / "App" / "App.csproj")`. Both types have the absolute `Path` of their file, its `Directory` and a `Name`. A project from a solution has that `Solution`, and one read by itself has `null`. Like `AbsolutePath`, a `Solution` or `Project` converts to a `string` with its path implicitly, and two are equal when they have the same path.
+
+As a parameter, a path to a solution or project file becomes a `Solution` or `Project`: `baun Test --solution src/Other.sln`.
 
 ## CI
 

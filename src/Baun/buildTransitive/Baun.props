@@ -4,6 +4,7 @@
   <ItemGroup>
     <Using Include="Baun" />
     <Using Include="Baun.CI" />
+    <Using Include="Baun.DotNet" />
   </ItemGroup>
 
 </Project>

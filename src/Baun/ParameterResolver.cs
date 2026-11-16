@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using Baun.DotNet;
 
 namespace Baun;
 
@@ -275,6 +276,16 @@ internal static class ParameterResolver
                 return ToAbsolutePath(value, item is not null);
             }
 
+            if (underlying == typeof(Solution))
+            {
+                return ToAbsolutePath(value, item is not null) is { } path ? Solution.Read(path) : null;
+            }
+
+            if (underlying == typeof(Project))
+            {
+                return ToAbsolutePath(value, item is not null) is { } path ? Project.Read(path) : null;
+            }
+
             return TypeDescriptor.GetConverter(type).ConvertFromString(null, CultureInfo.InvariantCulture, value);
         }
         catch (Exception exception) when (exception is not BuildConfigurationException)
@@ -282,8 +293,11 @@ internal static class ParameterResolver
             string position = item is null ? string.Empty : $"item {item} ";
             string validValues = underlying.IsEnum ? $" Valid values: {string.Join(", ", Enum.GetNames(underlying))}." : string.Empty;
 
+            // A missing or invalid solution or project file says why.
+            string reason = underlying == typeof(Solution) || underlying == typeof(Project) ? $" {exception.Message}" : string.Empty;
+
             throw new BuildConfigurationException(
-                $"Parameter {parameter.Name}: {position}\"{value}\" from {source} is not a valid {underlying.Name}.{validValues}");
+                $"Parameter {parameter.Name}: {position}\"{value}\" from {source} is not a valid {underlying.Name}.{validValues}{reason}");
         }
     }
 

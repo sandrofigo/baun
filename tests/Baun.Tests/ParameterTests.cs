@@ -384,12 +384,61 @@ public sealed class ParameterTests : IDisposable
     }
 
     [Fact]
+    public async Task Reads_a_solution_and_projects()
+    {
+        var solution = root / "App.slnx";
+        File.WriteAllText(solution, """<Solution><Project Path="src/App/App.csproj" /></Solution>""");
+        var project = root / "src" / "App" / "App.csproj";
+        project.Parent!.CreateDirectory();
+        File.WriteAllText(project, "<Project />");
+
+        var (result, build) = await RunAsync(["--solution", solution, "--project-files", project, "--project-files", "Baun.slnx"]);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(solution, build.Solution!.Path);
+        Assert.Equal(project, build.Solution.GetProject("App").Path);
+        Assert.Equal([project, BaunBuild.RootDirectory / "Baun.slnx"], build.ProjectFiles.Select(item => item.Path));
+    }
+
+    [Fact]
+    public async Task Resolves_a_relative_solution_against_the_root_directory()
+    {
+        var (result, build) = await RunAsync([], json: """{ "Solution": "Baun.slnx" }""");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(BaunBuild.RootDirectory / "Baun.slnx", build.Solution!.Path);
+        Assert.Contains("Baun", build.Solution.GetProjects().Select(project => project.Name));
+    }
+
+    [Fact]
+    public async Task Treats_an_empty_solution_as_null()
+    {
+        var (result, build) = await RunAsync(["--solution", ""]);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Null(build.Solution);
+    }
+
+    [Theory]
+    [InlineData("--solution", "Missing.slnx", "Parameter Solution: \"Missing.slnx\" from option --solution is not a valid Solution. The solution")]
+    [InlineData("--solution", "README.md", "Parameter Solution: \"README.md\" from option --solution is not a valid Solution.")]
+    [InlineData("--project-files", "Missing.csproj", "Parameter ProjectFiles: item 1 \"Missing.csproj\" from option --project-files is not a valid Project. The project")]
+    public async Task Fails_for_a_missing_or_invalid_solution_or_project(string option, string value, string message)
+    {
+        var (result, build) = await RunAsync([option, value]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Empty(build.Executed);
+        Assert.Contains(message, result.Output);
+    }
+
+    [Fact]
     public void Registers_parameters_in_declaration_order()
     {
         var parameters = ((IBaunBuild)new ParameterBuild()).GetParameters();
 
         Assert.Equal(
-            ["Configuration", "NuGetApiKey", "Verbose", "Retries", "Target", "Projects", "Platforms", "nuget-source", "Output", "Inputs"],
+            ["Configuration", "NuGetApiKey", "Verbose", "Retries", "Target", "Projects", "Platforms", "nuget-source", "Output", "Inputs", "Solution", "ProjectFiles"],
             parameters.Select(parameter => parameter.Name));
         Assert.Equal(typeof(Platform?), parameters[4].Type);
         Assert.Equal("Configuration to build", parameters[0].Description);
@@ -459,6 +508,12 @@ internal sealed partial class ParameterBuild
 
     [Parameter]
     public AbsolutePath[] Inputs = [];
+
+    [Parameter]
+    public Baun.DotNet.Solution? Solution;
+
+    [Parameter]
+    public Baun.DotNet.Project[] ProjectFiles = [];
 
     public List<string> Executed { get; } = [];
 
