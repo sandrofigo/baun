@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Baun.CI;
 using Spectre.Console;
@@ -318,6 +319,25 @@ public class BuildRunnerTests
         var exitCode = await new BuildRunner(build, console, ParameterSources.None, provider).RunAsync(arguments);
 
         return new RunResult(exitCode, console.Output);
+    }
+
+    [Theory]
+    [InlineData(6.3, "6.3s")]
+    [InlineData(0.25, "250ms")]
+    public void Formats_durations_independently_of_the_culture(double seconds, string expected)
+    {
+        CultureInfo culture = CultureInfo.CurrentCulture;
+
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("de-DE");
+
+            Assert.Equal(expected, BuildRunner.Format(TimeSpan.FromSeconds(seconds)));
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = culture;
+        }
     }
 
     private static async Task<RunResult> RunAsync(IBaunBuild build, params string[] arguments)

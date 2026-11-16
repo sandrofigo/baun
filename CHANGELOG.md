@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `baun init` creates a project build when it can't ask which kind of build to create, such as in a script. Pass `--single-file` for a single-file build.
 
+### Fixed
+
+- Durations are written with a `.` as the decimal separator in every culture, such as `6.3s` instead of `6,3s`.
+
 ### Removed
 
 - `LogGroup.Begin`. Builds run their code in steps, which are already log groups, and groups don't nest, so a group opened in a step was only written as a plain line.
