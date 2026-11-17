@@ -27,7 +27,7 @@ partial class Build
             if (Tag is null)
             {
                 int unreleased = changelog.Unreleased?.Categories.Sum(category => category.Entries.Count) ?? 0;
-                Log.Information("{File} is valid. [Unreleased] has {Count} entries.", Changelog.DefaultFileName, unreleased);
+                Log.Information("{File} is valid with {Count} entries in [Unreleased]", Changelog.DefaultFileName, unreleased);
                 return;
             }
 
@@ -66,7 +66,7 @@ partial class Build
                 throw new InvalidOperationException($"The section [{version}] in {Changelog.DefaultFileName} has no entries.");
             }
 
-            Log.Information("{File} is valid and has a section for {Version}, dated today.", Changelog.DefaultFileName, version);
+            Log.Information("{File} is valid and has a section for {Version}, dated today", Changelog.DefaultFileName, version);
         });
 
     Step FormatChangelog() => _ => _
@@ -76,12 +76,12 @@ partial class Build
 
             if (KeepAChangelog.IO.Changelog.IsFormattedFile(path))
             {
-                Log.Information("{File} is already formatted.", Changelog.DefaultFileName);
+                Log.Information("{File} is already formatted", Changelog.DefaultFileName);
                 return;
             }
 
             KeepAChangelog.IO.Changelog.FormatFile(path);
-            Log.Information("Formatted {File}.", Changelog.DefaultFileName);
+            Log.Information("Formatted {File}", Changelog.DefaultFileName);
         });
 
     Step Clean() => _ => _
