@@ -160,10 +160,24 @@ public class LogTests
     [Fact]
     public void Writes_outside_of_a_build_without_failing()
     {
-        Log.Information("Outside {Build}", "nothing");
+        // Verbose isn't written by default, so this doesn't end up in the output of dotnet test.
+        Log.Verbose("Outside {Build}", "nothing");
 
         Assert.True(Log.IsEnabled(LogLevel.Debug));
         Assert.False(Log.IsEnabled(LogLevel.Verbose));
+    }
+
+    [Fact]
+    public async Task Doesnt_wrap_long_lines_at_the_console_width()
+    {
+        string text = string.Join(' ', Enumerable.Repeat("word", 40));
+        var console = new TestConsole().Width(80);
+        var build = new LongLineBuild(text);
+
+        var exitCode = await new BuildRunner(build, console, ParameterSources.None, CIProvider.None).RunAsync([]);
+
+        Assert.Equal(0, exitCode);
+        Assert.Matches(new Regex($@"^\d\d:\d\d:\d\d INF {text}$", RegexOptions.Multiline), console.Output);
     }
 
     private static Task<RunResult> RunAsync(IBaunBuild build, params string[] arguments) =>
@@ -232,4 +246,11 @@ internal sealed partial class TwoRequirementsBuild
     public Step Deploy() => _ => _
         .Requires(() => ApiKey)
         .Requires(() => Server);
+}
+
+[Entry(nameof(Write))]
+internal sealed partial class LongLineBuild(string text)
+{
+    public Step Write() => _ => _
+        .Executes(() => Log.Information(text));
 }

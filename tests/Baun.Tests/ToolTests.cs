@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Baun.CI;
+using Baun.Logging;
 using Spectre.Console.Testing;
 
 namespace Baun.Tests;
@@ -50,9 +51,17 @@ public class ToolTests
         AbsolutePath directory = (AbsolutePath)Path.GetTempPath() / Path.GetRandomFileName();
         directory.CreateDirectory();
 
+        // Outside a build, messages go to the real console, where they would end up in the output of dotnet test.
+        using var backend = SerilogBackend.ForConsole(new TestConsole(), LogLevel.Debug);
+        using IDisposable scope = Log.Use(backend);
+
         try
         {
-            ToolResult result = await Tool.RunAsync("dotnet", ["new", "globaljson", "--sdk-version", "10.0.100"], directory);
+            ToolResult result = await Tool.RunAsync(
+                "dotnet",
+                ["new", "globaljson", "--sdk-version", "10.0.100"],
+                directory,
+                TestContext.Current.CancellationToken);
 
             Assert.Equal(0, result.ExitCode);
             Assert.True((directory / "global.json").FileExists);
