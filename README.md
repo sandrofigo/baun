@@ -140,7 +140,7 @@ Step Pack() => _ => _
 
 baun includes a source generator that completes the `partial class Build` at compile time. It finds every method that returns a `Step`, takes each step's name from its method name, and registers it with the build. This avoids scanning the build with reflection, and you don't need to register anything by hand. It also reports mistakes as compiler errors, such as a build class that isn't `partial` or an `[Entry]` that doesn't name a step. baun checks for circular dependencies before it runs any step.
 
-baun's types, such as `Step`, `Entry` and `BaunBuild`, are in the `Baun` namespace, and the types for CI servers, such as `GitHub`, are in `Baun.CI`, the types for .NET solutions and projects are in `Baun.DotNet`, and `Log` is in `Baun.Logging`. The Baun package imports all four automatically, so a build never needs `using` lines for baun itself.
+baun's types, such as `Step`, `Entry` and `BaunBuild`, are in the `Baun` namespace, and the types for CI servers, such as `GitHub`, are in `Baun.CI`, the types for .NET solutions and projects and the `DotNet` tool are in `Baun.DotNet`, the `Git` tool is in `Baun.Git`, and `Log` is in `Baun.Logging`. The Baun package imports all five automatically, so a build never needs `using` lines for baun itself.
 
 The entry point comes from baun's source generator: when a build has no top-level statements and no `Main` method, the generator adds one that runs the build class. To run code before or after the build, write the entry point yourself with `BaunBuild.RunAsync`:
 
@@ -297,6 +297,73 @@ await Tool.Command("dotnet")
 The result still has the output as the tool wrote it, including secrets.
 
 The output of a tool is written without colors, because baun reads it instead of the terminal.
+
+### Tool loggers
+
+Each line a tool writes goes to a `ToolLogger`, which picks its level. The default one writes the standard output as `Debug` and the standard error as `Warning`, as described above. The `dotnet` and `git` tools below come with loggers of their own that write errors and warnings of the tool as `Error` and `Warning` messages. To change how a tool's output is logged, derive from `ToolLogger` (or from a tool's logger, such as `DotNetLogger`) and override `GetLevel`, calling the base method for the lines you don't handle. Override `Write` instead to skip or change lines:
+
+```csharp
+class TestLogger : DotNetLogger
+{
+    protected override LogLevel GetLevel(ToolOutputLine line) =>
+        line.Text.StartsWith("failed ") ? LogLevel.Error : base.GetLevel(line);
+}
+```
+
+Use it for one command with `Logger`, or for every command a tool creates from then on with the tool's `Logger` property, such as `DotNet.Logger`, `Git.Logger` or `Tool.Logger`:
+
+```csharp
+await DotNet.Test().Solution(Solution).Logger(new TestLogger()).RunAsync();
+
+DotNet.Logger = new TestLogger();
+```
+
+`ToolOutputLine` has the `Stream` the line comes from (`StandardOutput` or `StandardError`) and its `Text`, with secrets as `***`. The two streams are read at the same time, so a logger can be called from two threads at once: keep it without state, or make it thread-safe.
+
+### dotnet
+
+`DotNet` runs the .NET CLI with typed commands: `Build`, `Test`, `Pack`, `Publish`, `Restore`, `Clean` and `NuGetPush`. Each takes the project or solution (optional, except for the package of `NuGetPush`) and has methods for its options, such as `Configuration`, `Framework`, `Runtime`, `Property` (`-p:Name=Value`), `NoRestore` and `Verbosity` for the commands that run MSBuild, `Output` and `NoBuild` where they apply, `Version` for `Pack`, `Solution` and `Project` for `Test` with Microsoft.Testing.Platform, and `ApiKey`, `Source` and `SkipDuplicate` for `NuGetPush`. `ApiKey` adds the key as a secret. Like `Tool.Command`, each method returns a new command, and `Arguments`, `Secret`, `WorkingDirectory` and `Logger` work on typed commands too, for options without a method of their own:
+
+```csharp
+await DotNet.Pack(Solution)
+    .Configuration(Configuration)
+    .Output(ArtifactsDirectory)
+    .Version("1.2.3")
+    .Property("ContinuousIntegrationBuild", "true")
+    .RunAsync();
+
+await DotNet.NuGetPush(package)
+    .ApiKey(NuGetApiKey)
+    .Source("https://api.nuget.org/v3/index.json")
+    .SkipDuplicate()
+    .Arguments("--timeout", "600")
+    .RunAsync();
+```
+
+For other commands, `DotNet.Command("format", "--verify-no-changes")` returns a `ToolCommand`, and `DotNet.RunAsync(...)` runs one, like `Tool.Command` and `Tool.RunAsync`. All of them write the output with `DotNet.Logger`, a `DotNetLogger` by default, which writes MSBuild diagnostics such as `Program.cs(3,1): error CS1002: ; expected` as `Error` and `warning NETSDK1138: ...` as `Warning`, as well as NuGet's `error:` and `warn :` lines.
+
+### git
+
+`Git` runs git, with `Git.Command(...)` and `Git.RunAsync(...)` like `DotNet`, and reads information about the repository:
+
+- `Git.GetCurrentTagAsync()` returns the tag of the commit that is checked out, such as `v1.2.3`, or `null` if it has none. With several tags, it returns the one with the highest version.
+- `Git.GetCurrentBranchAsync()` returns the branch that is checked out, such as `main`, or `null` when no branch is checked out, such as when a CI server checks out a tag or a pull request.
+
+Both take an optional directory in the repository and a `CancellationToken`, and throw a `ToolException` outside a repository. Since they run git, use them in a step rather than as a parameter's initial value, for example to release the tag of the current commit unless `--tag` is passed:
+
+```csharp
+[Parameter("Tag to release. Defaults to the tag of the current commit")]
+string? Tag;
+
+Step Pack() => _ => _
+    .Executes(async () =>
+    {
+        Tag ??= await Git.GetCurrentTagAsync();
+        // ...
+    });
+```
+
+`Git.Logger`, a `GitLogger` by default, writes lines of the standard error that start with `fatal:` or `error:` as `Error` and `warning:` as `Warning`. Other lines, such as progress and hints, which git also writes to its standard error, are written as `Debug`.
 
 ## Solutions and projects
 

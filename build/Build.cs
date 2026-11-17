@@ -9,25 +9,22 @@ partial class Build
     [Parameter("Configuration to test and pack")]
     string Configuration = "Release";
 
-    [Parameter("Tag to release, such as v1.2.3. Defaults to the tag the GitHub Actions run is for")]
-    string? Tag = GitHub.Tag;
-
     [Parameter("API key for pushing the packages to nuget.org", Name = "nuget-api-key")]
     string? NuGetApiKey;
 
     Step ValidateChangelog() => _ => _
-        .Executes(() =>
+        .Executes(async () =>
         {
             Changelog changelog = Changelog.Read();
 
-            if (Tag is null)
+            if (await Git.GetCurrentTagAsync() is null)
             {
                 int unreleased = changelog.Unreleased?.Categories.Sum(category => category.Entries.Count) ?? 0;
                 Log.Information("{File} is valid with {Count} entries in [Unreleased]", Changelog.DefaultFileName, unreleased);
                 return;
             }
 
-            string version = GetVersion();
+            string version = await GetVersionAsync();
             ChangelogRelease release = changelog.GetRelease(version);
 
             DateOnly today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -54,7 +51,7 @@ partial class Build
 
             if (release.Link is null)
             {
-                throw new InvalidOperationException($"{Changelog.DefaultFileName} has no comparison link for [{version}]. Add one at the end of the file, for example: [{version}]: https://github.com/sandrofigo/baun/compare/vPREVIOUS...{Tag}");
+                throw new InvalidOperationException($"{Changelog.DefaultFileName} has no comparison link for [{version}]. Add one at the end of the file, for example: [{version}]: https://github.com/sandrofigo/baun/compare/vPREVIOUS...v{version}");
             }
 
             if (release.Notes.Length == 0)
@@ -81,22 +78,21 @@ partial class Build
         .DependsOn(Clean)
         .Executes(async () =>
         {
-            await Tool.RunAsync("dotnet", "test", "--solution", Solution, "--configuration", Configuration);
+            await DotNet.Test().Solution(Solution).Configuration(Configuration).RunAsync();
         });
 
     Step Pack() => _ => _
         .DependsOn(Clean, ValidateChangelog, Test)
         .Executes(async () =>
         {
-            List<string> arguments = ["pack", Solution, "--configuration", Configuration, "--output", ArtifactsDirectory];
+            DotNetPackCommand pack = DotNet.Pack(Solution).Configuration(Configuration).Output(ArtifactsDirectory);
 
-            if (Tag is not null)
+            if (await Git.GetCurrentTagAsync() is not null)
             {
-                arguments.Add($"-p:Version={GetVersion()}");
-                arguments.Add("-p:ContinuousIntegrationBuild=true");
+                pack = pack.Version(await GetVersionAsync()).Property("ContinuousIntegrationBuild", "true");
             }
 
-            await Tool.RunAsync("dotnet", arguments);
+            await pack.RunAsync();
         });
 
     Step PushPackages() => _ => _
@@ -113,10 +109,10 @@ partial class Build
 
             foreach (AbsolutePath package in packages)
             {
-                await Tool.Command("dotnet")
-                    .Arguments("nuget", "push", package)
-                    .Arguments("--api-key").Secret(apiKey)
-                    .Arguments("--source", "https://api.nuget.org/v3/index.json", "--skip-duplicate")
+                await DotNet.NuGetPush(package)
+                    .ApiKey(apiKey)
+                    .Source("https://api.nuget.org/v3/index.json")
+                    .SkipDuplicate()
                     .RunAsync();
             }
         });
@@ -125,10 +121,10 @@ partial class Build
         .DependsOn(PushPackages)
         .Executes(async () =>
         {
-            string version = GetVersion();
+            string version = await GetVersionAsync();
             string notes = Changelog.Read().GetReleaseNotes(version);
 
-            GitHubRelease release = await GitHub.CreateOrUpdateRelease(Tag!, notes: notes, prerelease: version.Contains('-'));
+            GitHubRelease release = await GitHub.CreateOrUpdateRelease($"v{version}", notes: notes, prerelease: version.Contains('-'));
 
             Log.Information("Released {Release}: {Url}", release.Name, release.Url);
 
