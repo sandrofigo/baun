@@ -73,6 +73,8 @@ partial class Build
                 ArtifactsDirectory.Delete();
                 Log.Information("Deleted {ArtifactsDirectory}", ArtifactsDirectory);
             }
+
+            Log.Information("Clean step successful");
         });
 
     Step Test() => _ => _
