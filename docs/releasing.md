@@ -63,6 +63,8 @@ The build rejects any other tag format. The tag is the only place the version is
    [0.1.0]: https://github.com/sandrofigo/baun/releases/tag/v0.1.0
    ```
 
+4. Format the file with `baun FormatChangelog` (or `./build.sh FormatChangelog`, `build FormatChangelog` on Windows), which normalizes its layout with the [KeepAChangelog.IO](https://www.nuget.org/packages/KeepAChangelog.IO) package. Review and commit the changes it makes.
+
 The build checks the changelog when the tag is pushed and fails before anything is published if:
 
 - the file isn't valid Keep a Changelog (the error names the line),

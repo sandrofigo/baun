@@ -67,6 +67,21 @@ partial class Build
             Console.WriteLine($"{Changelog.DefaultFileName} is valid and has a section for {version}, dated today.");
         });
 
+    Step FormatChangelog() => _ => _
+        .Executes(() =>
+        {
+            AbsolutePath path = RootDirectory / Changelog.DefaultFileName;
+
+            if (KeepAChangelog.IO.Changelog.IsFormattedFile(path))
+            {
+                Console.WriteLine($"{Changelog.DefaultFileName} is already formatted.");
+                return;
+            }
+
+            KeepAChangelog.IO.Changelog.FormatFile(path);
+            Console.WriteLine($"Formatted {Changelog.DefaultFileName}.");
+        });
+
     Step Clean() => _ => _
         .Executes(() =>
         {
