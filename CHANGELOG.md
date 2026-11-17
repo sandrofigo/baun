@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Parameters of a non-nullable reference type without an initial value, such as `Solution Solution;`, are required. A missing value is an error before any step runs, and `--help` marks them as required. They don't need `= null!`, because baun suppresses the nullable warning `CS8618` for parameters.
+- `Requires` declares a value that a step needs, such as `.Requires(() => NuGetApiKey)`. baun checks the requirements of all steps it is going to run before the first one starts, so a missing value can't stop a build halfway. `--help` lists what each step requires.
+
 ## [0.6.0] - 2026-11-17
 
 ### Added

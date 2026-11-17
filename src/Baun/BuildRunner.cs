@@ -59,6 +59,9 @@ internal sealed class BuildRunner(
             var steps = ResolveSteps();
             var requested = SelectRequestedSteps(steps, names);
             plan = CreateExecutionPlan(requested);
+
+            // Checked for the whole plan before the first step starts, so a missing value can't stop the build halfway.
+            CheckRequirements(plan, parameters);
         }
         catch (BuildConfigurationException exception)
         {
@@ -155,12 +158,28 @@ internal sealed class BuildRunner(
 
         Grid stepRows = Section();
 
+        var parameters = build.GetParameters();
+
         foreach (ResolvedStep step in steps)
         {
-            stepRows.AddRow(Markup.Escape(step.Name), step.IsEntry ? "Runs when no step is named" : string.Empty);
+            var notes = new List<string>();
+
+            if (step.IsEntry)
+            {
+                notes.Add("Runs when no step is named");
+            }
+
+            if (step.Builder.Requirements.Count > 0)
+            {
+                var required = step.Builder.Requirements.Select(requirement =>
+                    FindParameter(requirement, parameters) is { } parameter ? ParameterResolver.ToOption(parameter.Name) : requirement.Body);
+
+                notes.Add($"Requires {string.Join(", ", required)}");
+            }
+
+            stepRows.AddRow(Markup.Escape(step.Name), Markup.Escape(string.Join("; ", notes)));
         }
 
-        var parameters = build.GetParameters();
         Grid parameterRows = Section();
 
         foreach (BaunParameter parameter in parameters)
@@ -170,7 +189,14 @@ internal sealed class BuildRunner(
                 : ParameterResolver.IsFlag(parameter) ? option
                 : $"{option} <value>";
 
-            parameterRows.AddRow("    " + Markup.Escape(usage), Markup.Escape(parameter.Description ?? string.Empty));
+            string description = Markup.Escape(parameter.Description ?? string.Empty);
+
+            if (parameter.IsRequired)
+            {
+                description = $"{description} {Theme.Faint("(required)")}".TrimStart();
+            }
+
+            parameterRows.AddRow("    " + Markup.Escape(usage), description);
         }
 
         Grid optionRows = Section()
@@ -191,7 +217,7 @@ internal sealed class BuildRunner(
             console.Write(parameterRows);
             console.WriteLine();
             console.WriteLine(
-                $"    Also read from environment variables, such as {ToEnvironmentVariable(parameters[0].Name)}, " +
+                $"    Also read from environment variables, such as {ParameterResolver.ToEnvironmentVariable(parameters[0].Name)}, " +
                 $"and {ParameterResolver.ParametersFileDisplayName}.");
             console.WriteLine();
         }
@@ -248,10 +274,40 @@ internal sealed class BuildRunner(
     }
 
     /// <summary>
-    /// Returns the environment variable of a parameter, such as <c>NU_GET_API_KEY</c> for <c>NuGetApiKey</c>.
+    /// Throws if a step of <paramref name="plan"/> requires a value that isn't set, naming every missing value.
     /// </summary>
-    private static string ToEnvironmentVariable(string name) =>
-        ParameterResolver.ToOption(name)[2..].Replace('-', '_').ToUpperInvariant();
+    private static void CheckRequirements(List<ResolvedStep> plan, IReadOnlyList<BaunParameter> parameters)
+    {
+        var missing = new List<string>();
+
+        foreach (ResolvedStep step in plan)
+        {
+            foreach (StepRequirement requirement in step.Builder.Requirements)
+            {
+                if (!ParameterResolver.IsMissing(requirement.Value()))
+                {
+                    continue;
+                }
+
+                missing.Add(FindParameter(requirement, parameters) is { } parameter
+                    ? $"Step {step.Name} requires parameter {parameter.Name}. {ParameterResolver.DescribeSources(parameter)}"
+                    : $"Step {step.Name} requires {requirement.Body}, which isn't set.");
+            }
+        }
+
+        if (missing.Count > 0)
+        {
+            throw new BuildConfigurationException(string.Join(Environment.NewLine, missing));
+        }
+    }
+
+    /// <summary>
+    /// Returns the parameter <paramref name="requirement"/> reads, or <see langword="null"/> if it reads something else.
+    /// </summary>
+    private static BaunParameter? FindParameter(StepRequirement requirement, IReadOnlyList<BaunParameter> parameters) =>
+        requirement.MemberName is { } name
+            ? parameters.FirstOrDefault(parameter => parameter.MemberName == name)
+            : null;
 
     /// <summary>
     /// Splits the command-line arguments into step names and parameter values.

@@ -39,5 +39,15 @@ public sealed record BaunStep(string Name, Func<Step> Definition, bool IsEntry =
 /// <param name="Type">The type of the field or property.</param>
 /// <param name="Description">The description shown in the build's help, if any.</param>
 /// <param name="Set">Sets the field or property to a value of <paramref name="Type"/>.</param>
+/// <param name="IsRequired">
+/// Whether every run needs a value: the field or property has a non-nullable reference type and no initial value.
+/// </param>
+/// <param name="MemberName">The name of the field or property, which <see cref="StepBuilder.Requires"/> refers to.</param>
 [EditorBrowsable(EditorBrowsableState.Never)]
-public sealed record BaunParameter(string Name, Type Type, string? Description, Action<object?> Set);
+public sealed record BaunParameter(
+    string Name,
+    Type Type,
+    string? Description,
+    Action<object?> Set,
+    bool IsRequired = false,
+    string? MemberName = null);

@@ -184,9 +184,34 @@ public sealed class StepGenerator : IIncrementalGenerator
             Type: type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             TypeDisplayName: type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
             IsWritable: isWritable,
+            IsRequired: IsRequiredParameter(context.TargetNode, type),
             IsTypeSupported: IsSupportedParameterType(type),
             Location: LocationInfo.From(context.TargetSymbol.Locations.FirstOrDefault()));
     }
+
+    /// <summary>
+    /// Returns whether a parameter is required: a field or auto-property of a non-nullable reference type without an
+    /// initial value, such as <c>Solution Solution;</c>. Without nullable reference types, no parameter is required.
+    /// </summary>
+    private static bool IsRequiredParameter(SyntaxNode declaration, ITypeSymbol type)
+    {
+        if (!type.IsReferenceType || type.NullableAnnotation != NullableAnnotation.NotAnnotated)
+        {
+            return false;
+        }
+
+        return declaration switch
+        {
+            VariableDeclaratorSyntax field => field.Initializer is null,
+            PropertyDeclarationSyntax property => property.Initializer is null && IsAutoProperty(property),
+            _ => false,
+        };
+    }
+
+    private static bool IsAutoProperty(PropertyDeclarationSyntax property) =>
+        property.ExpressionBody is null
+        && property.AccessorList is { } accessors
+        && accessors.Accessors.All(accessor => accessor.Body is null && accessor.ExpressionBody is null);
 
     /// <summary>
     /// Returns whether baun can convert text to <paramref name="type"/>: a supported scalar, or a one-dimensional array
@@ -543,7 +568,9 @@ public sealed class StepGenerator : IIncrementalGenerator
         {
             var name = SymbolDisplay.FormatLiteral(parameter.Name, quote: true);
             var description = parameter.Description is null ? "null" : SymbolDisplay.FormatLiteral(parameter.Description, quote: true);
-            source.AppendLine($"            new global::Baun.BaunParameter({name}, typeof({parameter.Type}), {description}, value => this.{parameter.MemberName} = ({parameter.Type})value!),");
+            var isRequired = parameter.IsRequired ? "IsRequired: true, " : string.Empty;
+            var memberName = SymbolDisplay.FormatLiteral(parameter.MemberName, quote: true);
+            source.AppendLine($"            new global::Baun.BaunParameter({name}, typeof({parameter.Type}), {description}, value => this.{parameter.MemberName} = ({parameter.Type})value!, {isRequired}MemberName: {memberName}),");
         }
 
         source.AppendLine("        };");
@@ -573,8 +600,10 @@ public sealed class StepGenerator : IIncrementalGenerator
         string Type,
         string TypeDisplayName,
         bool IsWritable,
+        bool IsRequired,
         bool IsTypeSupported,
         LocationInfo? Location);
+
 
     private sealed record EntryInfo(string? StepName, LocationInfo? Location);
 
