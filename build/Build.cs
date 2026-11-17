@@ -137,11 +137,11 @@ partial class Build
 
             foreach (AbsolutePath package in packages)
             {
-                await Tool.RunAsync(
-                    "dotnet", "nuget", "push", package,
-                    "--api-key", apiKey,
-                    "--source", "https://api.nuget.org/v3/index.json",
-                    "--skip-duplicate");
+                await Tool.Command("dotnet")
+                    .Arguments("nuget", "push", package)
+                    .Arguments("--api-key").Secret(apiKey)
+                    .Arguments("--source", "https://api.nuget.org/v3/index.json", "--skip-duplicate")
+                    .RunAsync();
             }
         });
 

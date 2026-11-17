@@ -263,7 +263,7 @@ baun writes its own errors, such as an unknown step, a missing parameter or the 
 
 ### Running tools
 
-`Tool.RunAsync` runs a command-line tool, such as `dotnet` or `git`, and writes its output to the log: each line of its standard output as a `Debug` message, and each line of its standard error as a `Warning`, because many tools write progress there. If the tool exits with a code other than 0, it throws a `ToolException`, which fails the step:
+`Tool.RunAsync` runs a command-line tool, such as `dotnet` or `git`, and writes it to the log as an `Information` message, such as `14:03:52 INF > dotnet test --no-build`, followed by its output: each line of its standard output as a `Debug` message, and each line of its standard error as a `Warning`, because many tools write progress there. If the tool exits with a code other than 0, it throws a `ToolException`, which fails the step:
 
 ```csharp
 Step Test() => _ => _
@@ -280,6 +280,19 @@ Each argument is passed as it is, so an argument with spaces, such as a path, do
 ToolResult result = await Tool.RunAsync("git", "rev-parse", "HEAD");
 string commit = result.StandardOutput[0];
 ```
+
+`Tool.Command` builds a command step by step instead: `Arguments` adds arguments, `Secret` adds an argument such as an API key, `WorkingDirectory` sets the directory to run in, and `RunAsync` runs it. A secret is passed to the tool as it is, but written to the log as `***`, both in the command and in the output of the tool. Each method returns a new command, so a command can be the base of others:
+
+```csharp
+await Tool.Command("dotnet")
+    .Arguments("nuget", "push", package)
+    .Arguments("--api-key").Secret(NuGetApiKey)
+    .Arguments("--source", "https://api.nuget.org/v3/index.json")
+    .RunAsync();
+// 14:03:52 INF > dotnet nuget push App.1.0.0.nupkg --api-key *** --source https://api.nuget.org/v3/index.json
+```
+
+The result still has the output as the tool wrote it, including secrets.
 
 The output of a tool is written without colors, because baun reads it instead of the terminal.
 
