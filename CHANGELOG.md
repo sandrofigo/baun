@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-17
+
 ### Added
 
 - `Solution` reads a `.sln` or `.slnx` file with `Solution.Read`. `GetProjects` returns its projects, `GetProject` and `TryGetProject` get a project by name, and `GlobProjects` returns the projects whose name matches patterns such as `*.Tests` and `!*.Integration.Tests`.
@@ -17,13 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `baun init` creates a project build when it can't ask which kind of build to create, such as in a script. Pass `--single-file` for a single-file build.
 
-### Fixed
-
-- Durations are written with a `.` as the decimal separator in every culture, such as `6.3s` instead of `6,3s`.
-
 ### Removed
 
 - `LogGroup.Begin`. Builds run their code in steps, which are already log groups, and groups don't nest, so a group opened in a step was only written as a plain line.
+
+### Fixed
+
+- Durations are written with a `.` as the decimal separator in every culture, such as `6.3s` instead of `6,3s`.
 
 ## [0.5.0] - 2026-11-16
 
@@ -105,7 +107,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Single-file (`Build.cs`) and project (`build/Build.csproj`) builds, with Spectre.Console output.
 - `baun` tool (`Baun.Cli`) that runs builds and creates or updates them with `baun init`, including bootstrap scripts that install the .NET SDK locally when it's missing.
 
-[Unreleased]: https://github.com/sandrofigo/baun/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/sandrofigo/baun/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/sandrofigo/baun/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/sandrofigo/baun/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/sandrofigo/baun/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/sandrofigo/baun/compare/v0.2.0...v0.3.0
