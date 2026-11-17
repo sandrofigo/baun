@@ -98,7 +98,7 @@ partial class Build
         .DependsOn(Clean)
         .Executes(async () =>
         {
-            await Run("dotnet", "test", "--solution", Solution, "--configuration", Configuration);
+            await Tool.RunAsync("dotnet", "test", "--solution", Solution, "--configuration", Configuration);
         });
 
     Step Pack() => _ => _
@@ -113,7 +113,7 @@ partial class Build
                 arguments.Add("-p:ContinuousIntegrationBuild=true");
             }
 
-            await Run("dotnet", [.. arguments]);
+            await Tool.RunAsync("dotnet", arguments);
         });
 
     /// <summary>
@@ -137,7 +137,7 @@ partial class Build
 
             foreach (AbsolutePath package in packages)
             {
-                await Run(
+                await Tool.RunAsync(
                     "dotnet", "nuget", "push", package,
                     "--api-key", apiKey,
                     "--source", "https://api.nuget.org/v3/index.json",

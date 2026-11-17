@@ -43,7 +43,7 @@ internal sealed class BuildRunner(
         ParameterSources sources = parameterSources ?? ParameterSources.Default();
 
         // The verbosity is read first, so every message of the run, including errors in the arguments, is logged with it.
-        LogLevel verbosity = LogLevel.Information;
+        LogLevel verbosity = Log.DefaultLevel;
         BuildConfigurationException? verbosityError = null;
 
         try
@@ -224,7 +224,7 @@ internal sealed class BuildRunner(
         {
             if (!sources.Environment.TryGetValue(VerbosityVariable, out value) || string.IsNullOrWhiteSpace(value))
             {
-                return (remaining, LogLevel.Information);
+                return (remaining, Log.DefaultLevel);
             }
         }
 
@@ -298,7 +298,7 @@ internal sealed class BuildRunner(
             .AddRow("    --step <name>", "Runs a step whose name is also a command of the baun tool, such as init")
             .AddRow(
                 "    --verbosity <level>",
-                $"Sets the minimum log level: Verbose, Debug, Information (default), Warning, Error or Fatal. Also read from {VerbosityVariable}");
+                $"Sets the minimum log level: Verbose, Debug (default), Information, Warning, Error or Fatal. Also read from {VerbosityVariable}");
 
         console.MarkupLine(Theme.Accent("USAGE:"));
         console.MarkupLine($"    baun {Theme.Faint("[steps] [OPTIONS]")}");
