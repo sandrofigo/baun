@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Baun.SourceGenerators;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Baun.Tests;
 
@@ -319,10 +320,10 @@ public class StepGeneratorTests
 
         Assert.Empty(diagnostics);
         var source = Assert.Single(sources);
-        Assert.Contains("new global::Baun.BaunParameter(\"Configuration\", typeof(string), \"Configuration to build\", value => this.Configuration = (string)value!),", source);
-        Assert.Contains("new global::Baun.BaunParameter(\"api-key\", typeof(string), null, value => this.ApiKey = (string)value!),", source);
-        Assert.Contains("new global::Baun.BaunParameter(\"Retries\", typeof(int?), null, value => this.Retries = (int?)value!),", source);
-        Assert.Contains("new global::Baun.BaunParameter(\"Projects\", typeof(string[]), \"Say \\\"hi\\\"\", value => this.Projects = (string[])value!),", source);
+        Assert.Contains("new global::Baun.BaunParameter(\"Configuration\", typeof(string), \"Configuration to build\", value => this.Configuration = (string)value!, MemberName: \"Configuration\"),", source);
+        Assert.Contains("new global::Baun.BaunParameter(\"api-key\", typeof(string), null, value => this.ApiKey = (string)value!, MemberName: \"ApiKey\"),", source);
+        Assert.Contains("new global::Baun.BaunParameter(\"Retries\", typeof(int?), null, value => this.Retries = (int?)value!, MemberName: \"Retries\"),", source);
+        Assert.Contains("new global::Baun.BaunParameter(\"Projects\", typeof(string[]), \"Say \\\"hi\\\"\", value => this.Projects = (string[])value!, MemberName: \"Projects\"),", source);
     }
 
     [Fact]
@@ -510,20 +511,109 @@ public class StepGeneratorTests
         Assert.Equal(["Configuration", "Environment"], parameters.Select(parameter => parameter.Name));
     }
 
-    private static (ImmutableArray<Diagnostic> Diagnostics, string[] Sources) RunGenerator(
-        string source,
-        OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary)
+    [Fact]
+    public void Infers_required_parameters_from_nullability()
+    {
+        var (diagnostics, sources) = RunGenerator("""
+            partial class Build
+            {
+                [Parameter] string Required;
+                [Parameter] AbsolutePath RequiredProperty { get; set; }
+                [Parameter] string[] RequiredArray;
+                [Parameter] string WithInitialValue = "Debug";
+                [Parameter] string WithInitialProperty { get; set; } = "Debug";
+                [Parameter] string? Nullable;
+                [Parameter] int ValueType;
+                [Parameter] string Computed { get => ""; set { } }
+
+                Step Compile() => _ => _;
+            }
+            """);
+
+        Assert.Empty(diagnostics);
+        var source = Assert.Single(sources);
+        string[] required = ["Required", "RequiredProperty", "RequiredArray"];
+        string[] optional = ["WithInitialValue", "WithInitialProperty", "Nullable", "ValueType", "Computed"];
+        Assert.All(required, name => Assert.Contains($"IsRequired: true, MemberName: \"{name}\")", source));
+        Assert.All(optional, name => Assert.Contains($"value!, MemberName: \"{name}\")", source));
+    }
+
+    [Fact]
+    public void Infers_no_required_parameters_without_nullable_reference_types()
+    {
+        var (_, sources) = RunGenerator("""
+            partial class Build
+            {
+                [Parameter] string Configuration;
+
+                Step Compile() => _ => _;
+            }
+            """,
+            nullable: NullableContextOptions.Disable);
+
+        Assert.DoesNotContain("IsRequired", Assert.Single(sources));
+    }
+
+    [Fact]
+    public async Task Suppresses_the_nullable_warning_for_parameters_without_an_initial_value()
+    {
+        var diagnostics = await CompileWithSuppressorAsync("""
+            partial class Build
+            {
+                [Parameter] string Configuration;
+                [Parameter] AbsolutePath Output { get; set; }
+                string NotAParameter;
+
+                Step Compile() => _ => _.Executes(() => System.Console.WriteLine($"{Configuration} {Output} {NotAParameter}"));
+            }
+            """);
+
+        var warning = Assert.Single(diagnostics, diagnostic => diagnostic.Id == "CS8618");
+        Assert.Contains("'NotAParameter'", warning.GetMessage());
+    }
+
+    [Fact]
+    public void A_build_class_with_required_parameters_can_be_created_with_new()
+    {
+        static T Create<T>() where T : new() => new();
+
+        var build = Create<RequiredParameterBuild>();
+
+        Assert.Null(build.Configuration); // set by baun, not by the constructor
+        Assert.True(((IBaunBuild)build).GetParameters().Single(parameter => parameter.Name == "Configuration").IsRequired);
+    }
+
+    private static async Task<ImmutableArray<Diagnostic>> CompileWithSuppressorAsync(string source)
+    {
+        var compilation = CreateCompilation(source, OutputKind.DynamicallyLinkedLibrary, NullableContextOptions.Enable);
+
+        CSharpGeneratorDriver.Create(new StepGenerator()).RunGeneratorsAndUpdateCompilation(compilation, out var generated, out _);
+
+        return await generated
+            .WithAnalyzers([new ParameterNullabilitySuppressor()])
+            .GetAllDiagnosticsAsync();
+    }
+
+    private static CSharpCompilation CreateCompilation(string source, OutputKind outputKind, NullableContextOptions nullable)
     {
         var references = AppDomain.CurrentDomain.GetAssemblies()
             .Where(assembly => !assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location))
             .Select(assembly => MetadataReference.CreateFromFile(assembly.Location))
             .Append(MetadataReference.CreateFromFile(typeof(Step).Assembly.Location));
 
-        var compilation = CSharpCompilation.Create(
+        return CSharpCompilation.Create(
             "GeneratorTest",
             [CSharpSyntaxTree.ParseText("global using Baun;"), CSharpSyntaxTree.ParseText(source)],
             references,
-            new CSharpCompilationOptions(outputKind));
+            new CSharpCompilationOptions(outputKind, nullableContextOptions: nullable));
+    }
+
+    private static (ImmutableArray<Diagnostic> Diagnostics, string[] Sources) RunGenerator(
+        string source,
+        OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary,
+        NullableContextOptions nullable = NullableContextOptions.Enable)
+    {
+        var compilation = CreateCompilation(source, outputKind, nullable);
 
         var driver = CSharpGeneratorDriver.Create(new StepGenerator()).RunGenerators(compilation);
         var result = driver.GetRunResult();

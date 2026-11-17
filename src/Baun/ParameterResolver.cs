@@ -102,6 +102,25 @@ internal static class ParameterResolver
     }
 
     /// <summary>
+    /// Returns the environment variable of a parameter, such as <c>NU_GET_API_KEY</c> for <c>NuGetApiKey</c>.
+    /// </summary>
+    public static string ToEnvironmentVariable(string name) =>
+        ToOption(name)[2..].Replace('-', '_').ToUpperInvariant();
+
+    /// <summary>
+    /// Returns how to set <paramref name="parameter"/>, such as
+    /// <c>Pass --solution, set SOLUTION or add it to .baun/parameters.json.</c>
+    /// </summary>
+    public static string DescribeSources(BaunParameter parameter) =>
+        $"Pass {ToOption(parameter.Name)}, set {ToEnvironmentVariable(parameter.Name)} or add it to {ParametersFileDisplayName}.";
+
+    /// <summary>
+    /// Returns whether <paramref name="value"/> counts as not set for a required parameter: <see langword="null"/>, an
+    /// empty string or an empty array.
+    /// </summary>
+    public static bool IsMissing(object? value) => value is null or string { Length: 0 } or Array { Length: 0 };
+
+    /// <summary>
     /// Returns whether <paramref name="parameter"/> takes several values.
     /// </summary>
     public static bool IsArray(BaunParameter parameter) => parameter.Type.IsArray;
@@ -119,7 +138,9 @@ internal static class ParameterResolver
     /// <param name="parameters">The parameters of the build.</param>
     /// <param name="commandLine">The values given on the command line, by parameter.</param>
     /// <param name="sources">The environment variables and the parameters file.</param>
-    /// <exception cref="BuildConfigurationException">A value is invalid, or the parameters file is.</exception>
+    /// <exception cref="BuildConfigurationException">
+    /// A value is invalid, the parameters file is, or a required parameter has no value.
+    /// </exception>
     public static void Apply(
         IReadOnlyList<BaunParameter> parameters,
         IReadOnlyDictionary<BaunParameter, List<string>> commandLine,
@@ -130,6 +151,28 @@ internal static class ParameterResolver
             return;
         }
 
+        var values = SetValues(parameters, commandLine, sources);
+
+        var missing = parameters
+            .Where(parameter => parameter.IsRequired && (!values.TryGetValue(parameter, out object? value) || IsMissing(value)))
+            .Select(parameter => $"Parameter {parameter.Name} is required. {DescribeSources(parameter)}")
+            .ToList();
+
+        if (missing.Count > 0)
+        {
+            throw new BuildConfigurationException(string.Join(Environment.NewLine, missing));
+        }
+    }
+
+    /// <summary>
+    /// Sets the parameters that have a value, and returns the value each of them got.
+    /// </summary>
+    private static Dictionary<BaunParameter, object?> SetValues(
+        IReadOnlyList<BaunParameter> parameters,
+        IReadOnlyDictionary<BaunParameter, List<string>> commandLine,
+        ParameterSources sources)
+    {
+        var values = new Dictionary<BaunParameter, object?>();
         var byName = parameters.ToDictionary(parameter => Normalize(parameter.Name));
         var fileValues = ReadParametersFile(sources.ParametersFile, byName);
 
@@ -144,9 +187,9 @@ internal static class ParameterResolver
         {
             string key = Normalize(parameter.Name);
 
-            if (commandLine.TryGetValue(parameter, out List<string>? values))
+            if (commandLine.TryGetValue(parameter, out List<string>? arguments))
             {
-                Set(parameter, values, $"option {ToOption(parameter.Name)}");
+                values[parameter] = Set(parameter, arguments, $"option {ToOption(parameter.Name)}");
             }
             else if (environment.TryGetValue(key, out var variable) && variable.Value.Length > 0)
             {
@@ -155,13 +198,15 @@ internal static class ParameterResolver
                     ? [.. variable.Value.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)]
                     : [variable.Value];
 
-                Set(parameter, items, $"environment variable {variable.Name}");
+                values[parameter] = Set(parameter, items, $"environment variable {variable.Name}");
             }
             else if (fileValues.TryGetValue(parameter, out List<string>? items))
             {
-                Set(parameter, items, ParametersFileDisplayName);
+                values[parameter] = Set(parameter, items, ParametersFileDisplayName);
             }
         }
+
+        return values;
     }
 
     /// <summary>
@@ -244,14 +289,15 @@ internal static class ParameterResolver
     };
 
     /// <summary>
-    /// Converts <paramref name="values"/> to the type of <paramref name="parameter"/> and sets it.
+    /// Converts <paramref name="values"/> to the type of <paramref name="parameter"/>, sets it and returns the value.
     /// </summary>
-    private static void Set(BaunParameter parameter, List<string> values, string source)
+    private static object? Set(BaunParameter parameter, List<string> values, string source)
     {
         if (!IsArray(parameter))
         {
-            parameter.Set(Convert(parameter, parameter.Type, values.Single(), source, item: null));
-            return;
+            object? value = Convert(parameter, parameter.Type, values.Single(), source, item: null);
+            parameter.Set(value);
+            return value;
         }
 
         Type elementType = parameter.Type.GetElementType()!;
@@ -263,6 +309,7 @@ internal static class ParameterResolver
         }
 
         parameter.Set(array);
+        return array;
     }
 
     private static object? Convert(BaunParameter parameter, Type type, string value, string source, int? item)

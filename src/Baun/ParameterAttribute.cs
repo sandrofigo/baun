@@ -20,6 +20,11 @@ namespace Baun;
 /// }
 /// </code>
 /// baun reports a compiler error for a parameter it can't set, such as a <c>readonly</c> field or an unsupported type.
+/// <para>
+/// A parameter of a non-nullable reference type without an initial value, such as <c>Solution Solution;</c>, is
+/// required: baun fails before any step runs if it has no value, and it doesn't need <c>= null!</c>. When only some steps
+/// need a parameter, make it nullable and declare it on those steps with <see cref="StepBuilder.Requires"/>.
+/// </para>
 /// </remarks>
 /// <param name="description">The description shown in the build's help.</param>
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, Inherited = false)]

@@ -206,6 +206,37 @@ Parameters can be `string`, `bool`, `char`, any number type, an enum, `Guid`, `U
 
 `baun --help` lists the parameters. baun reports an invalid value, such as `--retries many` for an `int`, as an error before it runs any step. An unknown key in `parameters.json` is also an error, so typos don't go unnoticed. The source generator reports parameters it can't set as compiler errors, such as a `readonly` field, a property without a setter or an unsupported type (`BAUN008` to `BAUN011`).
 
+### Required parameters
+
+A parameter of a non-nullable reference type without an initial value is required, so every run needs a value for it:
+
+```csharp
+[Parameter("Solution to build")]
+Solution Solution;                  // required
+
+[Parameter("Configuration to build")]
+string Configuration = "Release";   // optional, has an initial value
+
+[Parameter("NuGet API key")]
+string? NuGetApiKey;                // optional, nullable
+```
+
+baun checks required parameters after it reads the parameters and before any step runs. If one has no value, or an empty one, the build fails and names every missing parameter and how to set it: `Parameter Solution is required. Pass --solution, set SOLUTION or add it to .baun/parameters.json.` Set shared values such as the solution in `parameters.json`. A required parameter doesn't need `= null!`: baun suppresses the nullable warning `CS8618` for parameters. If the build class declares its own constructor, the compiler reports the warning on the constructor, which baun doesn't suppress. Value types such as `int` and builds without nullable reference types have no required parameters.
+
+When only some steps need a parameter, such as an API key for publishing, declare it on those steps with `Requires`:
+
+```csharp
+[Parameter("NuGet API key")]
+string? NuGetApiKey;
+
+Step Publish() => _ => _
+    .DependsOn(Pack)
+    .Requires(() => NuGetApiKey)
+    .Executes(() => ...);
+```
+
+baun checks the requirements of every step it is going to run, including dependencies, before the first step starts. `baun Publish` without an API key fails before `Pack` runs, so a build never stops halfway because of a missing value. A value is missing if it's `null`, an empty string or an empty array. Because of this, an earlier step of the same run can't set a required value; check values that steps compute in the step that uses them. Chain `Requires` to require several values. `baun --help` marks required parameters and lists what each step requires.
+
 ## Solutions and projects
 
 `Solution.Read` reads a solution file in the `.sln` or `.slnx` format. `GetProjects()` returns its projects, including those in solution folders, sorted by path. `GetProject("App")` returns the project with a name and throws if there's none, while `TryGetProject` doesn't throw. `GlobProjects(patterns)` returns the projects whose name matches any of the patterns, where `*` matches any characters, `?` matches one character, and a pattern that starts with `!` excludes what it matches. Project names are the file names without the extension, such as `App.Tests` for `App.Tests.csproj`, and are compared case-insensitively:
