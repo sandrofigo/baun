@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-17
+
 ### Added
 
 - Parameters of a non-nullable reference type without an initial value, such as `Solution Solution;`, are required. A missing value is an error before any step runs, and `--help` marks them as required. They don't need `= null!`, because baun suppresses the nullable warning `CS8618` for parameters.
@@ -125,7 +127,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Single-file (`Build.cs`) and project (`build/Build.csproj`) builds, with Spectre.Console output.
 - `baun` tool (`Baun.Cli`) that runs builds and creates or updates them with `baun init`, including bootstrap scripts that install the .NET SDK locally when it's missing.
 
-[Unreleased]: https://github.com/sandrofigo/baun/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/sandrofigo/baun/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/sandrofigo/baun/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/sandrofigo/baun/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/sandrofigo/baun/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/sandrofigo/baun/compare/v0.3.0...v0.4.0
