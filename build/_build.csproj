@@ -1,5 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <!-- Imports baun's namespaces, as the Baun package does. -->
+  <Import Project="..\src\Baun\buildTransitive\Baun.props" />
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
@@ -9,8 +12,13 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <!-- Builds with baun from source, so changes are used without a release. -->
   <ItemGroup>
-    <PackageReference Include="Baun" Version="0.6.0" />
+    <ProjectReference Include="..\src\Baun\Baun.csproj" />
+    <ProjectReference Include="..\src\Baun.SourceGenerators\Baun.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
+
+  <!-- Hides settings files, as the Baun package does. -->
+  <Import Project="..\src\Baun\buildTransitive\Baun.targets" />
 
 </Project>

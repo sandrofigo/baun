@@ -27,14 +27,6 @@ partial class Build
     }
 
     /// <summary>
-    /// Returns the value of a parameter that a step needs, and throws if it isn't set.
-    /// </summary>
-    static string Required(string? value, string option) =>
-        value is { Length: > 0 }
-            ? value
-            : throw new InvalidOperationException($"The parameter --{option} isn't set. Pass it on the command line or as the environment variable {option.Replace('-', '_').ToUpperInvariant()}.");
-
-    /// <summary>
     /// Gets the version from the tag, for example 1.2.3 from v1.2.3.
     /// </summary>
     string GetVersion()

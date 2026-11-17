@@ -2,7 +2,7 @@
 partial class Build
 {
     [Parameter("Solution to test and pack")]
-    Solution Solution = null!;
+    Solution Solution;
 
     static AbsolutePath ArtifactsDirectory => RootDirectory / "artifacts";
 
@@ -124,9 +124,10 @@ partial class Build
     /// packages were built, and the changelog's date was already checked then.
     /// </remarks>
     Step PushPackages() => _ => _
+        .Requires(() => NuGetApiKey)
         .Executes(async () =>
         {
-            string apiKey = Required(NuGetApiKey, "nuget-api-key");
+            string apiKey = NuGetApiKey!;
             IReadOnlyList<AbsolutePath> packages = ArtifactsDirectory.GlobFiles("*.nupkg");
 
             if (packages.Count == 0)
