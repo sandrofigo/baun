@@ -1,7 +1,7 @@
 using Serilog;
 using Serilog.Events;
 
-namespace Baun;
+namespace Baun.Logging;
 
 /// <summary>
 /// Writes the messages of <see cref="Log"/> with Serilog.

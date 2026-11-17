@@ -5,7 +5,7 @@ using Serilog.Events;
 using Serilog.Parsing;
 using Spectre.Console;
 
-namespace Baun;
+namespace Baun.Logging;
 
 /// <summary>
 /// Writes log events to a console, one line each, as <c>HH:mm:ss LVL message</c> in the theme's colors.

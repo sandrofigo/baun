@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
 using Baun.CI;
+using Baun.Logging;
 using Spectre.Console;
 
 namespace Baun;

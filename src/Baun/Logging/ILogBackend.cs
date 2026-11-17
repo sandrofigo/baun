@@ -1,4 +1,4 @@
-namespace Baun;
+namespace Baun.Logging;
 
 /// <summary>
 /// Writes the messages of <see cref="Log"/>, so the logging library behind it can be replaced.
