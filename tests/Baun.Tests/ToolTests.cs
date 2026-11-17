@@ -79,6 +79,22 @@ public class ToolTests
     }
 
     [Fact]
+    public async Task Writes_the_output_with_the_logger_of_the_command()
+    {
+        var result = await RunAsync(new ToolBuild(), "CustomLogger");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Matches(new Regex(@"^\d\d:\d\d:\d\d ERR v\d+\.\d+\.\d+", RegexOptions.Multiline), result.Output);
+    }
+
+    [Fact]
+    public void Rejects_a_null_logger()
+    {
+        Assert.Throws<ArgumentNullException>(() => Tool.Command("dotnet").Logger(null!));
+        Assert.Throws<ArgumentNullException>(() => Tool.Logger = null!);
+    }
+
+    [Fact]
     public void Rejects_an_empty_secret()
     {
         Assert.Throws<ArgumentException>(() => Tool.Command("dotnet").Secret(""));
@@ -173,4 +189,15 @@ internal sealed partial class ToolBuild
 
     public Step Unknown() => _ => _
         .Executes(async () => Result = await Tool.RunAsync("dotnet", "no-such-command-for-baun"));
+
+    public Step CustomLogger() => _ => _
+        .Executes(async () => Result = await Tool.Command("dotnet").Arguments("--version").Logger(new PrefixLogger()).RunAsync());
+
+    // Writes each line as an error with a "v" in front, to show that a logger picks the level and can change the line.
+    private sealed class PrefixLogger : ToolLogger
+    {
+        protected internal override LogLevel GetLevel(ToolOutputLine line) => LogLevel.Error;
+
+        protected internal override void Write(ToolOutputLine line) => WriteLine(GetLevel(line), "v" + line.Text);
+    }
 }

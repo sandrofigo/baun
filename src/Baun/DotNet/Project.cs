@@ -4,7 +4,7 @@ namespace Baun.DotNet;
 /// A .NET project file, such as <c>src/App/App.csproj</c>.
 /// </summary>
 /// <remarks>
-/// Read a project with <see cref="Read"/>, or get the projects of a solution with <see cref="DotNet.Solution.GetProjects"/>.
+/// Read a project with <see cref="Read"/>, or get the projects of a solution with <see cref="Solution.GetProjects"/>.
 /// A project converts to a <see cref="string"/> with its path implicitly, so it can be passed to a process, as in
 /// <c>dotnet build {project}</c>.
 /// </remarks>
