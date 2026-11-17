@@ -1,7 +1,9 @@
 [Entry(nameof(Test))]
 partial class Build
 {
-    static AbsolutePath Solution => RootDirectory / "Baun.slnx";
+    [Parameter("Solution to test and pack")]
+    Solution Solution = null!;
+
     static AbsolutePath ArtifactsDirectory => RootDirectory / "artifacts";
 
     [Parameter("Configuration to test and pack")]

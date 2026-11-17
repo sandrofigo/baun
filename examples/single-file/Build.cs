@@ -1,5 +1,5 @@
 #!/usr/bin/env dotnet
-#:package Baun@0.5.0
+#:package Baun@0.6.0
 
 // A single-file baun build.
 //
