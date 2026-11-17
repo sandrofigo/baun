@@ -573,14 +573,11 @@ public class StepGeneratorTests
     }
 
     [Fact]
-    public void A_build_class_with_required_parameters_can_be_created_with_new()
+    public void Registers_the_inferred_required_parameters_of_a_compiled_build()
     {
-        static T Create<T>() where T : new() => new();
+        var parameters = ((IBaunBuild)new RequiredParameterBuild()).GetParameters();
 
-        var build = Create<RequiredParameterBuild>();
-
-        Assert.Null(build.Configuration); // set by baun, not by the constructor
-        Assert.True(((IBaunBuild)build).GetParameters().Single(parameter => parameter.Name == "Configuration").IsRequired);
+        Assert.Equal(["Configuration", "Output"], parameters.Where(parameter => parameter.IsRequired).Select(parameter => parameter.Name));
     }
 
     private static async Task<ImmutableArray<Diagnostic>> CompileWithSuppressorAsync(string source)

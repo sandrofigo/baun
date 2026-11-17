@@ -284,7 +284,18 @@ internal sealed class BuildRunner(
         {
             foreach (StepRequirement requirement in step.Builder.Requirements)
             {
-                if (!ParameterResolver.IsMissing(requirement.Value()))
+                object? value;
+
+                try
+                {
+                    value = requirement.Value();
+                }
+                catch (Exception exception)
+                {
+                    throw new BuildConfigurationException($"Step {step.Name} requires {requirement.Body}, which failed: {exception.Message}");
+                }
+
+                if (!ParameterResolver.IsMissing(value))
                 {
                     continue;
                 }
