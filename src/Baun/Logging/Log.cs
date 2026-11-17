@@ -10,14 +10,19 @@ namespace Baun.Logging;
 /// highlighted in the output. Use <c>{{</c> and <c>}}</c> for literal braces.
 /// </para>
 /// <para>
-/// Builds write messages of <see cref="LogLevel.Information"/> and above. Pass <c>--verbosity &lt;level&gt;</c> or set
-/// <c>BAUN_VERBOSITY</c> to change that, such as <c>--verbosity debug</c>.
+/// Builds write messages of <see cref="LogLevel.Debug"/> and above. Pass <c>--verbosity &lt;level&gt;</c> or set
+/// <c>BAUN_VERBOSITY</c> to change that, such as <c>--verbosity information</c> to hide the output of tools.
 /// </para>
 /// </remarks>
 public static class Log
 {
     private static readonly Lazy<ILogBackend> defaultBackend =
-        new(() => SerilogBackend.ForConsole(BaunConsole.Create(), LogLevel.Information));
+        new(() => SerilogBackend.ForConsole(BaunConsole.Create(), DefaultLevel));
+
+    /// <summary>
+    /// The lowest level a build writes when no verbosity is set.
+    /// </summary>
+    internal const LogLevel DefaultLevel = LogLevel.Debug;
 
     /// <summary>
     /// The backend of the build that runs in the current asynchronous flow, so builds that run in parallel, such as in

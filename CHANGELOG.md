@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Parameters of a non-nullable reference type without an initial value, such as `Solution Solution;`, are required. A missing value is an error before any step runs, and `--help` marks them as required. They don't need `= null!`, because baun suppresses the nullable warning `CS8618` for parameters.
 - `Requires` declares a value that a step needs, such as `.Requires(() => NuGetApiKey)`. baun checks the requirements of all steps it is going to run before the first one starts, so a missing value can't stop a build halfway. `--help` lists what each step requires.
 - `Log` writes messages from steps with `Log.Verbose`, `Debug`, `Information`, `Warning`, `Error` and `Fatal`. Each line starts with the time and the level, such as `14:03:52 INF Building App`. Messages are message templates, such as `Log.Information("Building {Project}", project.Name)`, whose values are highlighted.
-- `--verbosity <level>` sets the lowest level of messages a build writes, such as `--verbosity debug`. Without it, baun reads `BAUN_VERBOSITY`. The default is `Information`.
+- `--verbosity <level>` sets the lowest level of messages a build writes, such as `--verbosity information`. Without it, baun reads `BAUN_VERBOSITY`. The default is `Debug`.
+- `Tool.RunAsync` runs a tool such as `dotnet` and writes its output to the log: its standard output as `Debug` messages and its standard error as warnings. It returns the exit code and the output, and throws a `ToolException` if the tool fails.
 
 ### Changed
 

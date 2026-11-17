@@ -257,9 +257,31 @@ Step Compile() => _ => _
 
 Messages are message templates, as in [Serilog](https://serilog.net), which baun uses to write them: name each value in braces and pass the values in the same order, instead of using an interpolated string. The values are highlighted in the output, numbers and dates are written the same in every culture, and strings are written without quotes. Use `{{` and `}}` for literal braces. Each method also takes an exception as its first argument, such as `Log.Error(exception, "Upload of {File} failed", file)`, and writes it after the message. `Log.IsEnabled(LogLevel.Debug)` tells whether a level is written, so you can skip work that only prepares a message.
 
-A build writes messages of `Information` and above. Pass `--verbosity <level>` to change that, such as `--verbosity debug` to also write `Debug` messages, or `--verbosity warning` to write only warnings and errors. Without the option, baun reads the level from the environment variable `BAUN_VERBOSITY`. Because of the option, a build can't have a parameter named `Verbosity`.
+A build writes messages of `Debug` and above, which includes the output of tools (see [Running tools](#running-tools)). Pass `--verbosity <level>` to change that, such as `--verbosity information` to hide `Debug` messages, or `--verbosity warning` to write only warnings and errors. Without the option, baun reads the level from the environment variable `BAUN_VERBOSITY`. Because of the option, a build can't have a parameter named `Verbosity`.
 
 baun writes its own errors, such as an unknown step, a missing parameter or the exception of a failing step, as `Error` messages too.
+
+### Running tools
+
+`Tool.RunAsync` runs a command-line tool, such as `dotnet` or `git`, and writes its output to the log: each line of its standard output as a `Debug` message, and each line of its standard error as a `Warning`, because many tools write progress there. If the tool exits with a code other than 0, it throws a `ToolException`, which fails the step:
+
+```csharp
+Step Test() => _ => _
+    .DependsOn(Compile)
+    .Executes(async () =>
+    {
+        await Tool.RunAsync("dotnet", "test", "--no-build", "--configuration", Configuration);
+    });
+```
+
+Each argument is passed as it is, so an argument with spaces, such as a path, doesn't need quotes. Pass a list of arguments, a working directory and a `CancellationToken` with `Tool.RunAsync("dotnet", arguments, RootDirectory / "src")`. The result has the `ExitCode` and the lines of the `StandardOutput` and `StandardError`, so you can use what a tool writes:
+
+```csharp
+ToolResult result = await Tool.RunAsync("git", "rev-parse", "HEAD");
+string commit = result.StandardOutput[0];
+```
+
+The output of a tool is written without colors, because baun reads it instead of the terminal.
 
 ## Solutions and projects
 

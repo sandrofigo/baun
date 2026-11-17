@@ -26,12 +26,12 @@ public class LogTests
     }
 
     [Fact]
-    public async Task Writes_messages_of_information_and_above_by_default()
+    public async Task Writes_messages_of_debug_and_above_by_default()
     {
         var result = await RunAsync(new LoggingBuild(), "Levels");
 
         Assert.DoesNotContain("VRB", result.Output);
-        Assert.DoesNotContain("DBG", result.Output);
+        Assert.Contains("DBG debug", result.Output);
         Assert.Contains("INF information", result.Output);
         Assert.Contains("WRN warning", result.Output);
         Assert.Contains("ERR error", result.Output);
@@ -39,16 +39,15 @@ public class LogTests
     }
 
     [Theory]
-    [InlineData("--verbosity", "debug")]
-    [InlineData("--verbosity=Debug")]
-    [InlineData("--VERBOSITY", "DEBUG")]
-    public async Task Writes_debug_messages_with_verbosity_debug(params string[] options)
+    [InlineData("--verbosity", "information")]
+    [InlineData("--verbosity=Information")]
+    [InlineData("--VERBOSITY", "INFORMATION")]
+    public async Task Hides_debug_messages_with_verbosity_information(params string[] options)
     {
         var result = await RunAsync(new LoggingBuild(), ["Levels", .. options]);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.DoesNotContain("VRB", result.Output);
-        Assert.Contains("DBG debug", result.Output);
+        Assert.DoesNotContain("DBG", result.Output);
         Assert.Contains("INF information", result.Output);
     }
 
@@ -163,8 +162,8 @@ public class LogTests
     {
         Log.Information("Outside {Build}", "nothing");
 
-        Assert.True(Log.IsEnabled(LogLevel.Information));
-        Assert.False(Log.IsEnabled(LogLevel.Debug));
+        Assert.True(Log.IsEnabled(LogLevel.Debug));
+        Assert.False(Log.IsEnabled(LogLevel.Verbose));
     }
 
     private static Task<RunResult> RunAsync(IBaunBuild build, params string[] arguments) =>

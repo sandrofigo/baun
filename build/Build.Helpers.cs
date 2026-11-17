@@ -1,31 +1,7 @@
-using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 partial class Build
 {
-    /// <summary>
-    /// Runs a program with the console's output, and throws if it fails.
-    /// </summary>
-    static async Task Run(string fileName, params string[] arguments)
-    {
-        var startInfo = new ProcessStartInfo(fileName);
-
-        foreach (string argument in arguments)
-        {
-            startInfo.ArgumentList.Add(argument);
-        }
-
-        using Process process = Process.Start(startInfo)
-            ?? throw new InvalidOperationException($"Couldn't start {fileName}.");
-
-        await process.WaitForExitAsync();
-
-        if (process.ExitCode != 0)
-        {
-            throw new InvalidOperationException($"{fileName} {arguments.FirstOrDefault()} failed with exit code {process.ExitCode}.");
-        }
-    }
-
     /// <summary>
     /// Gets the version from the tag, for example 1.2.3 from v1.2.3.
     /// </summary>
