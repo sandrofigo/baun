@@ -604,7 +604,6 @@ public sealed class StepGenerator : IIncrementalGenerator
         bool IsTypeSupported,
         LocationInfo? Location);
 
-
     private sealed record EntryInfo(string? StepName, LocationInfo? Location);
 
     private sealed record LocationInfo(string FilePath, TextSpan TextSpan, LinePositionSpan LineSpan)

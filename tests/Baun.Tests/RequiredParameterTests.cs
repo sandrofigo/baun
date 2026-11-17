@@ -105,6 +105,16 @@ public sealed class RequiredParameterTests : IDisposable
         Assert.Contains("Step Mirror requires Fallback ?? NuGetApiKey, which isn't set.", result.Output);
     }
 
+    [Fact]
+    public async Task Reports_a_requirement_that_throws_as_an_error()
+    {
+        var (result, build) = await RunAsync(["Inspect"], json: RequiredOptions);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Empty(build.Executed);
+        Assert.Contains("Step Inspect requires Fallback!.Length, which failed:", result.Output);
+    }
+
     [Theory]
     [InlineData("() => NuGetApiKey", "NuGetApiKey")]
     [InlineData("()=>this.NuGetApiKey!", "NuGetApiKey")]
@@ -177,6 +187,10 @@ internal sealed partial class RequiredParameterBuild
     public Step Release() => _ => _
         .DependsOn(Publish)
         .Executes(() => Executed.Add(nameof(Release)));
+
+    public Step Inspect() => _ => _
+        .Requires(() => Fallback!.Length)
+        .Executes(() => Executed.Add(nameof(Inspect)));
 
     public Step Mirror() => _ => _
         .Requires(() => Fallback ?? NuGetApiKey)
