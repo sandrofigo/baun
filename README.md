@@ -406,8 +406,6 @@ baun supports two ways to set up a build. Both use the same API and the same `Bu
 | Steps | `partial class Build` spread across any number of files | `partial class Build` in `Build.cs` |
 | Run | `baun Test` | `baun Test` |
 
-The [`examples`](examples) folder contains a sample of each: a [project build](examples/project/build) and a [single-file build](examples/single-file/Build.cs). They reference the latest Baun package.
-
 ### Project builds
 
 A project build is a regular .NET console project, for example in a `build` folder, that references baun as a NuGet package:
