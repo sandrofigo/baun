@@ -38,7 +38,12 @@ internal static class Theme
 
     public static string Chevron(this IAnsiConsole console) => console.Profile.Capabilities.Unicode ? "›" : ">";
 
-    public static string Marker(this IAnsiConsole console) => console.Profile.Capabilities.Unicode ? "▸" : ">";
+    /// <summary>
+    /// Returns a line to write under <paramref name="text"/>, as long as the text but at least
+    /// <paramref name="minWidth"/> characters.
+    /// </summary>
+    public static string Underline(this IAnsiConsole console, string text, int minWidth = 20) =>
+        new(console.Profile.Capabilities.Unicode ? '─' : '-', Math.Max(text.GetCellWidth(), minWidth));
 
     /// <summary>
     /// Writes a line that reports something done, such as a created file.

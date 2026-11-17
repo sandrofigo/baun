@@ -81,7 +81,7 @@ internal sealed class BuildRunner(
                 console,
                 provider,
                 step.Name,
-                Theme.Faint($"{console.Marker()} {step.Name}"),
+                $" {Markup.Escape(step.Name)}\n{Theme.Faint(console.Underline($" {step.Name}"))}",
                 padFallback: true);
 
             try
@@ -119,9 +119,9 @@ internal sealed class BuildRunner(
         Table table = new Table()
             .Border(TableBorder.Simple)
             .BorderStyle(Theme.FaintStyle)
-            .AddColumn(new TableColumn(Theme.Faint("Step")))
+            .AddColumn(new TableColumn(Theme.Faint("Step")).PadLeft(0))
             .AddColumn(new TableColumn(Theme.Faint("Status")))
-            .AddColumn(new TableColumn(Theme.Faint("Duration")).RightAligned());
+            .AddColumn(new TableColumn(Theme.Faint("Duration")).RightAligned().PadRight(0));
 
         foreach (StepResult result in results)
         {
@@ -135,7 +135,7 @@ internal sealed class BuildRunner(
             table.AddRow(
                 result.Status == StepStatus.Skipped ? Theme.Faint(result.Name) : Markup.Escape(result.Name),
                 status,
-                result.Duration is { } duration ? FormatSummaryDuration(duration) : Theme.Faint("-"));
+                result.Duration is { } duration ? Format(duration) : Theme.Faint("-"));
         }
 
         // The simple border starts with an empty line, which separates the table from the step output.
@@ -466,13 +466,13 @@ internal sealed class BuildRunner(
         }
     }
 
+    /// <summary>
+    /// Returns <paramref name="duration"/> in whole seconds, rounded down, or <c>&lt; 1s</c>.
+    /// </summary>
     internal static string Format(TimeSpan duration) =>
         duration.TotalSeconds < 1
-            ? string.Create(CultureInfo.InvariantCulture, $"{duration.TotalMilliseconds:0}ms")
-            : string.Create(CultureInfo.InvariantCulture, $"{duration.TotalSeconds:0.0}s");
-
-    private static string FormatSummaryDuration(TimeSpan duration) =>
-        duration.TotalSeconds < 1 ? "<1s" : Format(duration);
+            ? "< 1s"
+            : string.Create(CultureInfo.InvariantCulture, $"{Math.Floor(duration.TotalSeconds):0}s");
 
     private sealed class ResolvedStep(string name, MethodInfo method, bool isEntry, StepBuilder builder)
     {

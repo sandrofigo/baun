@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - A parameter of a non-nullable reference type without an initial value, such as `string Configuration;`, is now required, so a build fails if nothing sets it. Before, it kept `null` despite its type. Give it an initial value or make it nullable to keep it optional.
+- Outside CI, a step's name is underlined instead of starting with `▸`.
+- Build durations are rounded down to whole seconds, such as `12s`, both in the summary and in the line that reports the result. Durations under one second show as `< 1s`.
 
 ## [0.6.0] - 2026-11-17
 

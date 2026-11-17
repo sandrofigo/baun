@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.RegularExpressions;
 using Baun.CI;
 using Spectre.Console;
@@ -243,19 +242,29 @@ public class BuildRunnerTests
     }
 
     [Fact]
-    public async Task Writes_an_empty_line_before_and_after_each_step_name()
+    public async Task Writes_each_step_name_underlined_between_empty_lines()
     {
         var build = new FailingBuild();
 
         var result = await RunAsync(build, "First");
 
         string[] lines = result.Output.ReplaceLineEndings("\n").Split('\n');
-        int header = Array.IndexOf(lines, "▸ First");
+        int header = Array.IndexOf(lines, " First");
 
         Assert.Equal(0, result.ExitCode);
         Assert.Equal(1, header);
         Assert.Equal(string.Empty, lines[header - 1]);
-        Assert.Equal(string.Empty, lines[header + 1]);
+        Assert.Equal(new string('─', 20), lines[header + 1]);
+        Assert.Equal(string.Empty, lines[header + 2]);
+    }
+
+    [Fact]
+    public void Underlines_a_long_step_name_across_its_whole_length()
+    {
+        var console = new TestConsole();
+        console.Profile.Capabilities.Unicode = true;
+
+        Assert.Equal(new string('─', 25), console.Underline(new string('a', 25)));
     }
 
     [Fact]
@@ -266,9 +275,8 @@ public class BuildRunnerTests
         var result = await RunInCIAsync(build, CIProvider.GitHubActions, "Compile");
 
         Assert.Equal(0, result.ExitCode);
-        Assert.DoesNotContain("▸", result.Output);
-
         string[] lines = result.Output.ReplaceLineEndings("\n").Split('\n');
+        Assert.DoesNotContain(new string('─', 20), lines);
         Assert.Equal(
             ["::group::Clean", "::endgroup::", "::group::Restore", "::endgroup::", "::group::Compile", "::endgroup::"],
             lines.Where(line => line.StartsWith("::", StringComparison.Ordinal)));
@@ -322,23 +330,12 @@ public class BuildRunnerTests
     }
 
     [Theory]
-    [InlineData(6.3, "6.3s")]
-    [InlineData(0.25, "250ms")]
-    public void Formats_durations_independently_of_the_culture(double seconds, string expected)
-    {
-        CultureInfo culture = CultureInfo.CurrentCulture;
-
-        try
-        {
-            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("de-DE");
-
-            Assert.Equal(expected, BuildRunner.Format(TimeSpan.FromSeconds(seconds)));
-        }
-        finally
-        {
-            CultureInfo.CurrentCulture = culture;
-        }
-    }
+    [InlineData(0.9, "< 1s")]
+    [InlineData(1.0, "1s")]
+    [InlineData(1.9, "1s")]
+    [InlineData(72.6, "72s")]
+    public void Rounds_durations_down_to_whole_seconds(double seconds, string expected) =>
+        Assert.Equal(expected, BuildRunner.Format(TimeSpan.FromSeconds(seconds)));
 
     private static async Task<RunResult> RunAsync(IBaunBuild build, params string[] arguments)
     {
