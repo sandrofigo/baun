@@ -9,10 +9,6 @@ partial class Build
     [Parameter("Configuration to test and pack")]
     string Configuration = "Release";
 
-    /// <summary>
-    /// The tag being released, for example v1.2.3, or null when the build doesn't run for a tag. On GitHub Actions,
-    /// it's the tag the workflow runs for.
-    /// </summary>
     [Parameter("Tag to release, such as v1.2.3. Defaults to the tag the GitHub Actions run is for")]
     string? Tag = GitHub.Tag;
 
@@ -34,7 +30,7 @@ partial class Build
             string version = GetVersion();
             ChangelogRelease release = changelog.GetRelease(version);
 
-            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            DateOnly today = DateOnly.FromDateTime(DateTime.UtcNow);
 
             if (release.Date is not { } date)
             {
@@ -69,21 +65,6 @@ partial class Build
             Log.Information("{File} is valid and has a section for {Version}, dated today", Changelog.DefaultFileName, version);
         });
 
-    Step FormatChangelog() => _ => _
-        .Executes(() =>
-        {
-            AbsolutePath path = RootDirectory / Changelog.DefaultFileName;
-
-            if (KeepAChangelog.IO.Changelog.IsFormattedFile(path))
-            {
-                Log.Information("{File} is already formatted", Changelog.DefaultFileName);
-                return;
-            }
-
-            KeepAChangelog.IO.Changelog.FormatFile(path);
-            Log.Information("Formatted {File}", Changelog.DefaultFileName);
-        });
-
     Step Clean() => _ => _
         .Executes(() =>
         {
@@ -116,13 +97,6 @@ partial class Build
             await Tool.RunAsync("dotnet", arguments);
         });
 
-    /// <summary>
-    /// Pushes the packages in the artifacts folder to nuget.org, along with their symbol packages (.snupkg).
-    /// </summary>
-    /// <remarks>
-    /// Doesn't depend on <see cref="ValidateChangelog"/>: the publish job can be approved on a later day than the
-    /// packages were built, and the changelog's date was already checked then.
-    /// </remarks>
     Step PushPackages() => _ => _
         .Requires(() => NuGetApiKey)
         .Executes(async () =>
@@ -145,9 +119,6 @@ partial class Build
             }
         });
 
-    /// <summary>
-    /// Creates the GitHub release for the tag, with the changelog entries of the released version as its notes.
-    /// </summary>
     Step GitHubRelease() => _ => _
         .DependsOn(PushPackages)
         .Executes(async () =>
@@ -163,5 +134,20 @@ partial class Build
             {
                 await File.AppendAllTextAsync(summary, $"## [{release.Name}]({release.Url})\n\n{notes}\n");
             }
+        });
+
+    Step FormatChangelog() => _ => _
+        .Executes(() =>
+        {
+            AbsolutePath path = RootDirectory / Changelog.DefaultFileName;
+
+            if (KeepAChangelog.IO.Changelog.IsFormattedFile(path))
+            {
+                Log.Information("{File} is already formatted", Changelog.DefaultFileName);
+                return;
+            }
+
+            KeepAChangelog.IO.Changelog.FormatFile(path);
+            Log.Information("Formatted {File}", Changelog.DefaultFileName);
         });
 }
