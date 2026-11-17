@@ -4,6 +4,7 @@ using Serilog.Core;
 using Serilog.Events;
 using Serilog.Parsing;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace Baun.Logging;
 
@@ -32,7 +33,8 @@ internal sealed class AnsiConsoleSink(IAnsiConsole console) : ILogEventSink
 
         lock (gate)
         {
-            console.MarkupLine(line.ReplaceLineEndings("\n" + Indent));
+            console.Write(new Unwrapped(new Markup(line.ReplaceLineEndings("\n" + Indent))));
+            console.WriteLine();
 
             if (logEvent.Exception is { } exception)
             {
@@ -88,4 +90,17 @@ internal sealed class AnsiConsoleSink(IAnsiConsole console) : ILogEventSink
         alignment is not { } value ? text
         : value.Direction == AlignmentDirection.Left ? text.PadRight(value.Width)
         : text.PadLeft(value.Width);
+
+    /// <summary>
+    /// Renders <paramref name="inner"/> without wrapping it at the console width, so a long line, such as a path in a
+    /// tool's output, stays one line. Terminals wrap it themselves, and CI logs, whose width is a guess, don't break it.
+    /// </summary>
+    private sealed class Unwrapped(IRenderable inner) : IRenderable
+    {
+        private const int Unlimited = 1_000_000;
+
+        public Measurement Measure(RenderOptions options, int maxWidth) => inner.Measure(options, Unlimited);
+
+        public IEnumerable<Segment> Render(RenderOptions options, int maxWidth) => inner.Render(options, Unlimited);
+    }
 }
