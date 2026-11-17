@@ -1,4 +1,4 @@
-namespace Baun;
+namespace Baun.Logging;
 
 /// <summary>
 /// Writes log messages, each on a line that starts with the time and the level, such as <c>14:03:52 INF Restoring</c>.

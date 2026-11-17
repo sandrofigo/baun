@@ -1,4 +1,4 @@
-namespace Baun;
+namespace Baun.Logging;
 
 /// <summary>
 /// Marks a method whose parameter <see cref="MessageTemplateParameterName"/> is a message template, so IDEs and

@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Baun.CI;
+using Baun.Logging;
 using Spectre.Console.Testing;
 
 namespace Baun.Tests;

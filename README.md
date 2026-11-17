@@ -140,7 +140,7 @@ Step Pack() => _ => _
 
 baun includes a source generator that completes the `partial class Build` at compile time. It finds every method that returns a `Step`, takes each step's name from its method name, and registers it with the build. This avoids scanning the build with reflection, and you don't need to register anything by hand. It also reports mistakes as compiler errors, such as a build class that isn't `partial` or an `[Entry]` that doesn't name a step. baun checks for circular dependencies before it runs any step.
 
-baun's types, such as `Step`, `Entry` and `BaunBuild`, are in the `Baun` namespace, and the types for CI servers, such as `GitHub`, are in `Baun.CI`, and the types for .NET solutions and projects are in `Baun.DotNet`. The Baun package imports all three automatically, so a build never needs `using` lines for baun itself.
+baun's types, such as `Step`, `Entry` and `BaunBuild`, are in the `Baun` namespace, and the types for CI servers, such as `GitHub`, are in `Baun.CI`, the types for .NET solutions and projects are in `Baun.DotNet`, and `Log` is in `Baun.Logging`. The Baun package imports all four automatically, so a build never needs `using` lines for baun itself.
 
 The entry point comes from baun's source generator: when a build has no top-level statements and no `Main` method, the generator adds one that runs the build class. To run code before or after the build, write the entry point yourself with `BaunBuild.RunAsync`:
 

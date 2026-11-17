@@ -1,4 +1,4 @@
-namespace Baun;
+namespace Baun.Logging;
 
 /// <summary>
 /// The level of a log message, from the most detailed to the most severe.
