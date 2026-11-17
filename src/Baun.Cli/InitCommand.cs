@@ -537,21 +537,21 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             Step Clean() => _ => _
                 .Executes(() =>
                 {
-                    Console.WriteLine("Cleaning");
+                    Log.Information("Cleaning");
                 });
 
             Step Compile() => _ => _
                 .DependsOn(Clean)
                 .Executes(() =>
                 {
-                    Console.WriteLine("Compiling");
+                    Log.Information("Compiling");
                 });
 
             Step Test() => _ => _
                 .DependsOn(Compile)
                 .Executes(() =>
                 {
-                    Console.WriteLine("Testing");
+                    Log.Information("Testing");
                 });
         }
 
