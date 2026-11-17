@@ -263,7 +263,7 @@ baun writes its own errors, such as an unknown step, a missing parameter or the 
 
 ### Running tools
 
-`Tool.RunAsync` runs a command-line tool, such as `dotnet` or `git`, and writes it to the log as an `Information` message, such as `14:03:52 INF > dotnet test --no-build`, followed by its output: each line of its standard output as a `Debug` message, and each line of its standard error as a `Warning`, because many tools write progress there. If the tool exits with a code other than 0, it throws a `ToolException`, which fails the step:
+`Tool.RunAsync` runs a command-line tool, such as `dotnet` or `git`, and writes it to the log as an `Information` message, such as `14:03:52 INF › dotnet test --no-build` (with `>` on consoles without Unicode), followed by its output: each line of its standard output as a `Debug` message, and each line of its standard error as a `Warning`, because many tools write progress there. If the tool exits with a code other than 0, it throws a `ToolException`, which fails the step:
 
 ```csharp
 Step Test() => _ => _
@@ -289,7 +289,7 @@ await Tool.Command("dotnet")
     .Arguments("--api-key").Secret(NuGetApiKey)
     .Arguments("--source", "https://api.nuget.org/v3/index.json")
     .RunAsync();
-// 14:03:52 INF > dotnet nuget push App.1.0.0.nupkg --api-key *** --source https://api.nuget.org/v3/index.json
+// 14:03:52 INF › dotnet nuget push App.1.0.0.nupkg --api-key *** --source https://api.nuget.org/v3/index.json
 ```
 
 The result still has the output as the tool wrote it, including secrets.

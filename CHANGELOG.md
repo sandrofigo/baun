@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Requires` declares a value that a step needs, such as `.Requires(() => NuGetApiKey)`. baun checks the requirements of all steps it is going to run before the first one starts, so a missing value can't stop a build halfway. `--help` lists what each step requires.
 - `Log` writes messages from steps with `Log.Verbose`, `Debug`, `Information`, `Warning`, `Error` and `Fatal`. Each line starts with the time and the level, such as `14:03:52 INF Building App`. Messages are message templates, such as `Log.Information("Building {Project}", project.Name)`, whose values are highlighted.
 - `--verbosity <level>` sets the lowest level of messages a build writes, such as `--verbosity information`. Without it, baun reads `BAUN_VERBOSITY`. The default is `Debug`.
-- `Tool.RunAsync` runs a tool such as `dotnet` and writes the command to the log as an `Information` message, such as `INF > dotnet test`, followed by its output: its standard output as `Debug` messages and its standard error as warnings. It returns the exit code and the output, and throws a `ToolException` if the tool fails.
+- `Tool.RunAsync` runs a tool such as `dotnet` and writes the command to the log as an `Information` message, such as `INF › dotnet test`, followed by its output: its standard output as `Debug` messages and its standard error as warnings. It returns the exit code and the output, and throws a `ToolException` if the tool fails.
 - `Tool.Command` builds a tool command with `Arguments`, `Secret` and `WorkingDirectory`, and runs it with `RunAsync`. A secret, such as an API key, is written to the log as `***`, both in the command and in the output of the tool.
 
 ### Changed

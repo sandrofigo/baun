@@ -56,7 +56,7 @@ internal sealed class AnsiConsoleSink(IAnsiConsole console) : ILogEventSink
     /// <summary>
     /// Returns the message of <paramref name="logEvent"/> as markup.
     /// </summary>
-    internal static string RenderMessage(LogEvent logEvent)
+    private string RenderMessage(LogEvent logEvent)
     {
         var markup = new StringBuilder();
 
@@ -65,7 +65,9 @@ internal sealed class AnsiConsoleSink(IAnsiConsole console) : ILogEventSink
             if (token is PropertyToken property)
             {
                 markup.Append(logEvent.Properties.TryGetValue(property.PropertyName, out LogEventPropertyValue? value)
-                    ? Theme.Accent(Align(Render(value, property.Format), property.Alignment))
+                    ? value is ScalarValue { Value: CommandLine command }
+                        ? $"{Theme.Faint(console.Chevron())} {Theme.Accent(command.Text)}"
+                        : Theme.Accent(Align(Render(value, property.Format), property.Alignment))
                     : Markup.Escape(property.ToString() ?? string.Empty));
             }
             else
