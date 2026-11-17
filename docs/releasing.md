@@ -159,7 +159,7 @@ Pushing the tag starts the `Release` workflow. Don't create the GitHub release y
    ```
 
    `baun init` references the Baun package with the same version as the tool, so this checks both packages together.
-3. Optionally, update the `Baun` package in [`build/_build.csproj`](../build/_build.csproj) to the new version, so baun's own build uses it.
+3. Optionally, update the `Baun` package in the [examples](../examples) to the new version. baun's own build in [`build/`](../build) uses baun from source, so it needs no update.
 
 ## If something goes wrong
 
