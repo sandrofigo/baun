@@ -21,6 +21,57 @@ public class ToolTests
     }
 
     [Fact]
+    public async Task Logs_the_command_as_information()
+    {
+        var result = await RunAsync(new ToolBuild(), "Version", "--verbosity", "information");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Matches(new Regex(@"^\d\d:\d\d:\d\d INF > dotnet --version\s*$", RegexOptions.Multiline), result.Output);
+    }
+
+    [Fact]
+    public async Task Logs_secrets_as_asterisks_in_the_command_and_the_output()
+    {
+        var build = new ToolBuild();
+
+        var result = await RunAsync(build, "Secret");
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("INF > dotnet ***", result.Output);
+        Assert.Contains(
+            build.Result!.StandardOutput.Concat(build.Result.StandardError),
+            line => line.Contains(ToolBuild.SecretValue));
+        Assert.DoesNotContain(ToolBuild.SecretValue, result.Output);
+    }
+
+    [Fact]
+    public void Writes_the_command_with_quotes_around_arguments_with_spaces_and_secrets_as_asterisks()
+    {
+        ToolCommand command = Tool.Command("dotnet")
+            .Arguments("pack", "C:/My Projects/App.slnx", "")
+            .Arguments("--api-key").Secret("key with spaces");
+
+        Assert.Equal("""dotnet pack "C:/My Projects/App.slnx" "" --api-key ***""", command.ToString());
+    }
+
+    [Fact]
+    public void Leaves_the_command_it_adds_to_unchanged()
+    {
+        ToolCommand command = Tool.Command("git").Arguments("status");
+
+        ToolCommand other = command.Arguments("--short").Secret("token");
+
+        Assert.Equal("git status", command.ToString());
+        Assert.Equal("git status --short ***", other.ToString());
+    }
+
+    [Fact]
+    public void Rejects_an_empty_secret()
+    {
+        Assert.Throws<ArgumentException>(() => Tool.Command("dotnet").Secret(""));
+    }
+
+    [Fact]
     public async Task Hides_the_standard_output_with_verbosity_information()
     {
         var build = new ToolBuild();
@@ -89,6 +140,23 @@ internal sealed partial class ToolBuild
 
     public Step Version() => _ => _
         .Executes(async () => Result = await Tool.RunAsync("dotnet", "--version"));
+
+    public const string SecretValue = "baun-test-secret-4f2a";
+
+    // dotnet writes the name of an unknown command, so the secret is in the output too.
+    public Step Secret() => _ => _
+        .Executes(async () =>
+        {
+            try
+            {
+                await Tool.Command("dotnet").Secret(SecretValue).RunAsync();
+            }
+            catch (ToolException exception)
+            {
+                Result = exception.Result;
+                throw;
+            }
+        });
 
     public Step Unknown() => _ => _
         .Executes(async () => Result = await Tool.RunAsync("dotnet", "no-such-command-for-baun"));
