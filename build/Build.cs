@@ -27,7 +27,7 @@ partial class Build
             if (Tag is null)
             {
                 int unreleased = changelog.Unreleased?.Categories.Sum(category => category.Entries.Count) ?? 0;
-                Console.WriteLine($"{Changelog.DefaultFileName} is valid. [Unreleased] has {unreleased} entries.");
+                Log.Information("{File} is valid. [Unreleased] has {Count} entries.", Changelog.DefaultFileName, unreleased);
                 return;
             }
 
@@ -66,7 +66,7 @@ partial class Build
                 throw new InvalidOperationException($"The section [{version}] in {Changelog.DefaultFileName} has no entries.");
             }
 
-            Console.WriteLine($"{Changelog.DefaultFileName} is valid and has a section for {version}, dated today.");
+            Log.Information("{File} is valid and has a section for {Version}, dated today.", Changelog.DefaultFileName, version);
         });
 
     Step FormatChangelog() => _ => _
@@ -76,12 +76,12 @@ partial class Build
 
             if (KeepAChangelog.IO.Changelog.IsFormattedFile(path))
             {
-                Console.WriteLine($"{Changelog.DefaultFileName} is already formatted.");
+                Log.Information("{File} is already formatted.", Changelog.DefaultFileName);
                 return;
             }
 
             KeepAChangelog.IO.Changelog.FormatFile(path);
-            Console.WriteLine($"Formatted {Changelog.DefaultFileName}.");
+            Log.Information("Formatted {File}.", Changelog.DefaultFileName);
         });
 
     Step Clean() => _ => _
@@ -90,7 +90,7 @@ partial class Build
             if (ArtifactsDirectory.Exists)
             {
                 ArtifactsDirectory.Delete();
-                Console.WriteLine($"Deleted {ArtifactsDirectory}");
+                Log.Information("Deleted {ArtifactsDirectory}", ArtifactsDirectory);
             }
         });
 
@@ -157,7 +157,7 @@ partial class Build
 
             GitHubRelease release = await GitHub.CreateOrUpdateRelease(Tag!, notes: notes, prerelease: version.Contains('-'));
 
-            Console.WriteLine($"Released {release.Name}: {release.Url}");
+            Log.Information("Released {Release}: {Url}", release.Name, release.Url);
 
             if (GitHub.StepSummary is { } summary)
             {

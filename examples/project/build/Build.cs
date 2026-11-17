@@ -20,27 +20,27 @@ partial class Build
     Step Clean() => _ => _
         .Executes(() =>
         {
-            Console.WriteLine($"Deleting {ArtifactsDirectory}");
+            Log.Information("Deleting {ArtifactsDirectory}", ArtifactsDirectory);
         });
 
     Step Restore() => _ => _
         .Executes(() =>
         {
-            Console.WriteLine("dotnet restore");
+            Log.Information("dotnet restore");
         });
 
     Step Compile() => _ => _
         .DependsOn(Clean, Restore)
         .Executes(() =>
         {
-            Console.WriteLine($"dotnet build --no-restore --configuration {Configuration}");
+            Log.Information("dotnet build --no-restore --configuration {Configuration}", Configuration);
         });
 
     Step Test() => _ => _
         .DependsOn(Compile)
         .Executes(async () =>
         {
-            Console.WriteLine($"dotnet test --no-build --configuration {Configuration}");
+            Log.Information("dotnet test --no-build --configuration {Configuration}", Configuration);
             await Task.CompletedTask;
         });
 
@@ -48,6 +48,6 @@ partial class Build
         .DependsOn(Test)
         .Executes(() =>
         {
-            Console.WriteLine($"dotnet publish --no-build --configuration {Configuration} --output {ArtifactsDirectory}");
+            Log.Information("dotnet publish --no-build --configuration {Configuration} --output {ArtifactsDirectory}", Configuration, ArtifactsDirectory);
         });
 }

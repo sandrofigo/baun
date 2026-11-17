@@ -39,10 +39,38 @@ internal sealed class BuildRunner(
             return 0;
         }
 
+        ParameterSources sources = parameterSources ?? ParameterSources.Default();
+
+        // The verbosity is read first, so every message of the run, including errors in the arguments, is logged with it.
+        LogLevel verbosity = LogLevel.Information;
+        BuildConfigurationException? verbosityError = null;
+
+        try
+        {
+            (arguments, verbosity) = ReadVerbosity(arguments, sources);
+        }
+        catch (BuildConfigurationException exception)
+        {
+            verbosityError = exception;
+        }
+
+        using SerilogBackend backend = SerilogBackend.ForConsole(console, verbosity);
+        using IDisposable logScope = Log.Use(backend);
+
+        return await RunAsync(arguments, sources, verbosityError);
+    }
+
+    private async Task<int> RunAsync(IReadOnlyList<string> arguments, ParameterSources sources, BuildConfigurationException? verbosityError)
+    {
         List<ResolvedStep> plan;
 
         try
         {
+            if (verbosityError is not null)
+            {
+                throw verbosityError;
+            }
+
             if (HasOption(arguments, "--help", "-h"))
             {
                 // Parameters aren't set for the help, so an invalid value can't hide it.
@@ -51,10 +79,17 @@ internal sealed class BuildRunner(
             }
 
             var parameters = build.GetParameters();
+
+            if (parameters.FirstOrDefault(parameter => ParameterResolver.Normalize(parameter.Name) == ParameterResolver.Normalize("verbosity")) is { } reserved)
+            {
+                throw new BuildConfigurationException(
+                    $"Parameter {reserved.Name} can't be used, because --verbosity is an option of baun. Give it another name with [Parameter(Name = ...)].");
+            }
+
             var (names, parameterValues) = ParseArguments(arguments, parameters);
 
             // Parameters are set before the steps are resolved, so step definitions can already use them.
-            ParameterResolver.Apply(parameters, parameterValues, parameterSources ?? ParameterSources.Default());
+            ParameterResolver.Apply(parameters, parameterValues, sources);
 
             var steps = ResolveSteps();
             var requested = SelectRequestedSteps(steps, names);
@@ -65,7 +100,12 @@ internal sealed class BuildRunner(
         }
         catch (BuildConfigurationException exception)
         {
-            console.WriteError(Markup.Escape(exception.Message));
+            // Each line is its own message, such as each missing requirement.
+            foreach (string line in exception.Message.ReplaceLineEndings("\n").Split('\n'))
+            {
+                Log.WriteText(LogLevel.Error, line);
+            }
+
             return 1;
         }
 
@@ -97,7 +137,7 @@ internal sealed class BuildRunner(
                 group.Dispose();
 
                 results.Add(new StepResult(step.Name, StepStatus.Failed, stopwatch.Elapsed));
-                console.WriteException(exception, Theme.ExceptionSettings(ExceptionFormats.ShortenPaths));
+                Log.Error(exception, "Step {Step} failed", step.Name);
                 results.AddRange(plan.Skip(results.Count).Select(skipped => new StepResult(skipped.Name, StepStatus.Skipped, null)));
 
                 WriteSummary(results);
@@ -140,6 +180,58 @@ internal sealed class BuildRunner(
 
         // The simple border starts with an empty line, which separates the table from the step output.
         console.Write(table);
+    }
+
+    /// <summary>
+    /// The environment variable that sets the verbosity when <c>--verbosity</c> isn't passed.
+    /// </summary>
+    internal const string VerbosityVariable = "BAUN_VERBOSITY";
+
+    /// <summary>
+    /// Reads the minimum log level from <c>--verbosity &lt;level&gt;</c> or <c>--verbosity=&lt;level&gt;</c>, or else from
+    /// <see cref="VerbosityVariable"/>, and returns the arguments without the option.
+    /// </summary>
+    private static (IReadOnlyList<string> Arguments, LogLevel Verbosity) ReadVerbosity(IReadOnlyList<string> arguments, ParameterSources sources)
+    {
+        var remaining = new List<string>(arguments.Count);
+        string? value = null;
+
+        for (int i = 0; i < arguments.Count; i++)
+        {
+            string argument = arguments[i];
+
+            if (string.Equals(argument, "--verbosity", StringComparison.OrdinalIgnoreCase))
+            {
+                if (i + 1 >= arguments.Count || arguments[i + 1].StartsWith('-'))
+                {
+                    throw new BuildConfigurationException("Option --verbosity requires a level: Verbose, Debug, Information, Warning, Error or Fatal.");
+                }
+
+                value = arguments[++i];
+            }
+            else if (argument.StartsWith("--verbosity=", StringComparison.OrdinalIgnoreCase))
+            {
+                value = argument["--verbosity=".Length..];
+            }
+            else
+            {
+                remaining.Add(argument);
+            }
+        }
+
+        if (value is null)
+        {
+            if (!sources.Environment.TryGetValue(VerbosityVariable, out value) || string.IsNullOrWhiteSpace(value))
+            {
+                return (remaining, LogLevel.Information);
+            }
+        }
+
+        // Only names are accepted, so a number such as 3 isn't taken as a level.
+        string name = Enum.GetNames<LogLevel>().FirstOrDefault(name => string.Equals(name, value.Trim(), StringComparison.OrdinalIgnoreCase))
+                      ?? throw new BuildConfigurationException($"Unknown verbosity {value}. Use Verbose, Debug, Information, Warning, Error or Fatal.");
+
+        return (remaining, Enum.Parse<LogLevel>(name));
     }
 
     private static bool HasOption(IReadOnlyList<string> arguments, string name, string shortName) =>
@@ -202,7 +294,10 @@ internal sealed class BuildRunner(
         Grid optionRows = Section()
             .AddRow("-h, --help", "Prints help information")
             .AddRow("-v, --version", "Prints version information")
-            .AddRow("    --step <name>", "Runs a step whose name is also a command of the baun tool, such as init");
+            .AddRow("    --step <name>", "Runs a step whose name is also a command of the baun tool, such as init")
+            .AddRow(
+                "    --verbosity <level>",
+                $"Sets the minimum log level: Verbose, Debug, Information (default), Warning, Error or Fatal. Also read from {VerbosityVariable}");
 
         console.MarkupLine(Theme.Accent("USAGE:"));
         console.MarkupLine($"    baun {Theme.Faint("[steps] [OPTIONS]")}");

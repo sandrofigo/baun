@@ -8,7 +8,7 @@ namespace Baun;
 /// the baun source generator adds an entry point that calls <see cref="RunAsync{TBuild}"/> for its build class.
 /// Call it yourself to run code before or after the build:
 /// <code>
-/// Console.WriteLine("Starting");
+/// Log.Information("Starting");
 /// await BaunBuild.RunAsync&lt;Build&gt;();
 /// </code>
 /// </remarks>

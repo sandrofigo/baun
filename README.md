@@ -145,7 +145,7 @@ baun's types, such as `Step`, `Entry` and `BaunBuild`, are in the `Baun` namespa
 The entry point comes from baun's source generator: when a build has no top-level statements and no `Main` method, the generator adds one that runs the build class. To run code before or after the build, write the entry point yourself with `BaunBuild.RunAsync`:
 
 ```csharp
-Console.WriteLine("Starting");
+Log.Information("Starting");
 await BaunBuild.RunAsync<Build>();
 
 [Entry(nameof(Test))]
@@ -237,6 +237,30 @@ Step Publish() => _ => _
 
 baun checks the requirements of every step it is going to run, including dependencies, before the first step starts. `baun Publish` without an API key fails before `Pack` runs, so a build never stops halfway because of a missing value. A value is missing if it's `null`, an empty string or an empty array. Because of this, an earlier step of the same run can't set a required value; check values that steps compute in the step that uses them. Chain `Requires` to require several values. `baun --help` marks required parameters and lists what each step requires.
 
+## Logging
+
+Write messages from steps with `Log`, which has a method for each level: `Verbose`, `Debug`, `Information`, `Warning`, `Error` and `Fatal`. Each message is a line that starts with the time and the level:
+
+```csharp
+Step Compile() => _ => _
+    .Executes(() =>
+    {
+        Log.Information("Building {Project} in {Configuration}", project.Name, Configuration);
+        Log.Warning("Skipping {Count} projects", skipped.Count);
+    });
+```
+
+```text
+14:03:52 INF Building App in Release
+14:03:52 WRN Skipping 2 projects
+```
+
+Messages are message templates, as in [Serilog](https://serilog.net), which baun uses to write them: name each value in braces and pass the values in the same order, instead of using an interpolated string. The values are highlighted in the output, numbers and dates are written the same in every culture, and strings are written without quotes. Use `{{` and `}}` for literal braces. Each method also takes an exception as its first argument, such as `Log.Error(exception, "Upload of {File} failed", file)`, and writes it after the message. `Log.IsEnabled(LogLevel.Debug)` tells whether a level is written, so you can skip work that only prepares a message.
+
+A build writes messages of `Information` and above. Pass `--verbosity <level>` to change that, such as `--verbosity debug` to also write `Debug` messages, or `--verbosity warning` to write only warnings and errors. Without the option, baun reads the level from the environment variable `BAUN_VERBOSITY`. Because of the option, a build can't have a parameter named `Verbosity`.
+
+baun writes its own errors, such as an unknown step, a missing parameter or the exception of a failing step, as `Error` messages too.
+
 ## Solutions and projects
 
 `Solution.Read` reads a solution file in the `.sln` or `.slnx` format. `GetProjects()` returns its projects, including those in solution folders, sorted by path. `GetProject("App")` returns the project with a name and throws if there's none, while `TryGetProject` doesn't throw. `GlobProjects(patterns)` returns the projects whose name matches any of the patterns, where `*` matches any characters, `?` matches one character, and a pattern that starts with `!` excludes what it matches. Project names are the file names without the extension, such as `App.Tests` for `App.Tests.csproj`, and are compared case-insensitively:
@@ -290,7 +314,7 @@ Step Release() => _ => _
     .Executes(async () =>
     {
         GitHubRelease release = await GitHub.CreateOrUpdateRelease(GitHub.Tag!, notes: "- Fixed a bug");
-        Console.WriteLine(release.Url);
+        Log.Information("Released {Url}", release.Url);
     });
 ```
 
@@ -511,7 +535,7 @@ baun Test
 
 Step names are case-insensitive, so `baun test` runs the `Test` step. Running `baun` without a step name runs the entry step. The tool looks for a `Build.cs` file or a build project in the current folder and its `build` subfolder, and runs it. You don't need to remember whether a repository uses a single-file or a project build, and CI scripts stay short.
 
-baun uses [Spectre.Console](https://spectreconsole.net) for its output. Each step starts with a heading, failures show the exception, and the build ends with a summary table of every step's status and duration.
+baun uses [Spectre.Console](https://spectreconsole.net) for its output. Each step starts with a heading, messages from `Log` start with their time and level (see [Logging](#logging)), failures show the exception, and the build ends with a summary table of every step's status and duration.
 
 The tool passes all arguments to the build, except for its own commands such as `init`, which always run as commands. To run a step with the same name as a command, use `--step`, which works for any step:
 
