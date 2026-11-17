@@ -9,7 +9,7 @@ namespace Baun;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Each run first logs the command as <see cref="LogLevel.Information"/>, such as <c>&gt; dotnet test</c>. Arguments
+/// Each run first logs the command as <see cref="LogLevel.Information"/>, such as <c>› dotnet test</c>. Arguments
 /// added with <see cref="ToolCommand.Secret"/> are logged as <c>***</c>, also where the tool writes them.
 /// </para>
 /// <para>
@@ -159,7 +159,7 @@ public sealed class ToolCommand
             startInfo.ArgumentList.Add(argument.Value);
         }
 
-        Log.Information("> {Command}", ToString());
+        Log.WriteCommand(ToString());
 
         using Process process = Process.Start(startInfo)
             ?? throw new InvalidOperationException($"Couldn't start {FileName}.");

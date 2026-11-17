@@ -26,7 +26,20 @@ public class ToolTests
         var result = await RunAsync(new ToolBuild(), "Version", "--verbosity", "information");
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Matches(new Regex(@"^\d\d:\d\d:\d\d INF > dotnet --version\s*$", RegexOptions.Multiline), result.Output);
+        Assert.Matches(new Regex(@"^\d\d:\d\d:\d\d INF › dotnet --version\s*$", RegexOptions.Multiline), result.Output);
+    }
+
+    [Fact]
+    public async Task Logs_the_command_after_a_greater_than_sign_where_the_console_lacks_unicode()
+    {
+        var console = new TestConsole().Width(250);
+        console.Profile.Capabilities.Unicode = false;
+
+        var exitCode = await new BuildRunner(new ToolBuild(), console, ParameterSources.None, CIProvider.None)
+            .RunAsync(["Version"]);
+
+        Assert.Equal(0, exitCode);
+        Assert.Contains("INF > dotnet --version", console.Output);
     }
 
     [Fact]
@@ -37,7 +50,7 @@ public class ToolTests
         var result = await RunAsync(build, "Secret");
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("INF > dotnet ***", result.Output);
+        Assert.Contains("INF › dotnet ***", result.Output);
         Assert.Contains(
             build.Result!.StandardOutput.Concat(build.Result.StandardError),
             line => line.Contains(ToolBuild.SecretValue));

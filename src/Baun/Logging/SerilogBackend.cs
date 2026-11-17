@@ -15,6 +15,7 @@ internal sealed class SerilogBackend(ILogger logger) : ILogBackend, IDisposable
     public static SerilogBackend ForConsole(Spectre.Console.IAnsiConsole console, LogLevel minimumLevel) =>
         new(new LoggerConfiguration()
             .MinimumLevel.Is(ToSerilog(minimumLevel))
+            .Destructure.AsScalar<CommandLine>()
             .WriteTo.Sink(new AnsiConsoleSink(console))
             .CreateLogger());
 

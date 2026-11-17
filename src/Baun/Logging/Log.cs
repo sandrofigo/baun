@@ -158,6 +158,13 @@ public static class Log
         Write(level, null, text.Replace("{", "{{").Replace("}", "}}"), []);
 
     /// <summary>
+    /// Writes <paramref name="commandLine"/>, a command that runs, as <see cref="LogLevel.Information"/>, such as
+    /// <c>› dotnet test</c>.
+    /// </summary>
+    internal static void WriteCommand(string commandLine) =>
+        Write(LogLevel.Information, null, "{Command}", [new CommandLine(commandLine)]);
+
+    /// <summary>
     /// Writes the messages of the current asynchronous flow to <paramref name="backend"/> until the returned scope is
     /// disposed.
     /// </summary>
