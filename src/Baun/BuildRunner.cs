@@ -81,10 +81,20 @@ internal sealed class BuildRunner(
 
             var parameters = build.GetParameters();
 
-            if (parameters.FirstOrDefault(parameter => ParameterResolver.Normalize(parameter.Name) == ParameterResolver.Normalize("verbosity")) is { } reserved)
+            foreach (string option in ReservedOptions)
             {
-                throw new BuildConfigurationException(
-                    $"Parameter {reserved.Name} can't be used, because --verbosity is an option of baun. Give it another name with [Parameter(Name = ...)].");
+                if (parameters.FirstOrDefault(parameter => ParameterResolver.Normalize(parameter.Name) == ParameterResolver.Normalize(option)) is { } reserved)
+                {
+                    throw new BuildConfigurationException(
+                        $"Parameter {reserved.Name} can't be used, because --{option} is an option of baun. Give it another name with [Parameter(Name = ...)].");
+                }
+            }
+
+            bool showPlan = HasOption(arguments, PlanOption, PlanOption);
+
+            if (showPlan)
+            {
+                arguments = [.. arguments.Where(argument => !string.Equals(argument, PlanOption, StringComparison.OrdinalIgnoreCase))];
             }
 
             var (names, parameterValues) = ParseArguments(arguments, parameters);
@@ -98,6 +108,12 @@ internal sealed class BuildRunner(
 
             // Checked for the whole plan before the first step starts, so a missing value can't stop the build halfway.
             CheckRequirements(plan, parameters);
+
+            if (showPlan)
+            {
+                WritePlan(plan);
+                return 0;
+            }
         }
         catch (BuildConfigurationException exception)
         {
@@ -153,6 +169,40 @@ internal sealed class BuildRunner(
         WriteSummary(results);
         console.MarkupLine($"[green]{console.Check()} Build succeeded in {Format(total.Elapsed)}[/]");
         return 0;
+    }
+
+    /// <summary>
+    /// The option that prints the execution plan instead of running it.
+    /// </summary>
+    private const string PlanOption = "--plan";
+
+    /// <summary>
+    /// The options of baun that a parameter can't use as its name, without the leading <c>--</c>.
+    /// </summary>
+    private static readonly string[] ReservedOptions = ["verbosity", "plan"];
+
+    /// <summary>
+    /// Writes the steps of <paramref name="plan"/> in the order they run, each with the steps it depends on.
+    /// </summary>
+    private void WritePlan(List<ResolvedStep> plan)
+    {
+        Grid rows = new Grid()
+            .AddColumn(new GridColumn().PadLeft(4).PadRight(2).RightAligned().NoWrap())
+            .AddColumn(new GridColumn().PadRight(4).NoWrap())
+            .AddColumn();
+
+        for (int i = 0; i < plan.Count; i++)
+        {
+            ResolvedStep step = plan[i];
+            string dependencies = step.Dependencies.Count > 0
+                ? Theme.Faint($"Depends on {string.Join(", ", step.Dependencies.Select(dependency => dependency.Name))}")
+                : string.Empty;
+
+            rows.AddRow(Theme.Faint($"{i + 1}."), Markup.Escape(step.Name), dependencies);
+        }
+
+        console.MarkupLine(Theme.Accent("PLAN:"));
+        console.Write(rows);
     }
 
     private void WriteSummary(List<StepResult> results)
@@ -295,6 +345,7 @@ internal sealed class BuildRunner(
         Grid optionRows = Section()
             .AddRow("-h, --help", "Prints help information")
             .AddRow("-v, --version", "Prints version information")
+            .AddRow("    --plan", "Prints the steps that would run, in order, without running them")
             .AddRow("    --step <name>", "Runs a step whose name is also a command of the baun tool, such as init")
             .AddRow(
                 "    --verbosity <level>",

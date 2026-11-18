@@ -578,7 +578,17 @@ baun --step Init
 
 The source generator warns about such steps (`BAUN007`).
 
-Run `baun --help` to list the steps and parameters of the build, with the entry step marked, and `baun --version` to show the version of baun the build uses. Both also work with the bootstrap scripts, such as `./build.sh --help`. In a folder without a build, they show the help and version of the tool.
+Run `baun --plan` to print the steps a run would execute, in order and with their dependencies, without running them. Name steps to see their plan, such as `baun Pack --plan`. baun reads the parameters and checks the requirements as it does for a run, so the plan fails for the same mistakes, such as an unknown step or a missing required parameter. Because of the option, a build can't have a parameter named `Plan`.
+
+```text
+PLAN:
+    1.  Clean
+    2.  Restore
+    3.  Compile    Depends on Clean, Restore
+    4.  Test       Depends on Compile
+```
+
+Run `baun --help` to list the steps and parameters of the build, with the entry step marked, and `baun --version` to show the version of baun the build uses. These options also work with the bootstrap scripts, such as `./build.sh --help`. In a folder without a build, they show the help and version of the tool.
 
 ## Development
 
