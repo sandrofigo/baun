@@ -123,6 +123,73 @@ public class BuildRunnerTests
     }
 
     [Theory]
+    [InlineData("--plan")]
+    [InlineData("Test", "--PLAN")]
+    public async Task Shows_the_plan_instead_of_running_steps(params string[] arguments)
+    {
+        var build = new SampleBuild();
+
+        var result = await RunAsync(build, arguments);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Empty(build.Executed);
+        Assert.Contains("PLAN:", result.Output);
+        Assert.Matches(@"1\.\s+Clean\s*\n\s+2\.\s+Restore\s*\n\s+3\.\s+Compile\s+Depends on Clean, Restore\s*\n\s+4\.\s+Test\s+Depends on Compile", result.Output);
+        Assert.DoesNotContain("Pack", result.Output);
+        Assert.DoesNotContain("Build succeeded", result.Output);
+    }
+
+    [Fact]
+    public async Task Shows_the_plan_of_several_requested_steps()
+    {
+        var build = new SampleBuild();
+
+        var result = await RunAsync(build, "--plan", "Clean", "Pack");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Empty(build.Executed);
+        Assert.Matches(@"1\.\s+Clean\s*\n\s+2\.\s+Restore\s*\n\s+3\.\s+Compile.*\n\s+4\.\s+Test.*\n\s+5\.\s+Pack\s+Depends on Test, Compile", result.Output);
+    }
+
+    [Fact]
+    public async Task Fails_the_plan_for_an_unknown_step()
+    {
+        var build = new SampleBuild();
+
+        var result = await RunAsync(build, "--plan", "Deploy");
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("Unknown step Deploy.", result.Output);
+        Assert.DoesNotContain("PLAN:", result.Output);
+    }
+
+    [Fact]
+    public async Task Fails_the_plan_for_a_circular_dependency()
+    {
+        var result = await RunAsync(new CircularBuild(), "--plan");
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("Circular dependency: A -> B -> C -> A.", result.Output);
+    }
+
+    [Fact]
+    public async Task Fails_for_a_parameter_named_plan()
+    {
+        var result = await RunAsync(new PlanParameterBuild(), "Compile");
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("Parameter Plan can't be used, because --plan is an option of baun.", result.Output);
+    }
+
+    [Fact]
+    public async Task Lists_the_plan_option_in_the_help()
+    {
+        var result = await RunAsync(new SampleBuild(), "--help");
+
+        Assert.Contains("--plan", result.Output);
+    }
+
+    [Theory]
     [InlineData("--version")]
     [InlineData("-v")]
     public async Task Shows_the_version_instead_of_running_steps(string argument)
@@ -439,5 +506,13 @@ internal sealed partial class ForeignDependencyBuild
 
 internal sealed partial class NoEntryBuild
 {
+    public Step Compile() => _ => _;
+}
+
+internal sealed partial class PlanParameterBuild
+{
+    [Parameter]
+    public bool Plan { get; set; }
+
     public Step Compile() => _ => _;
 }
