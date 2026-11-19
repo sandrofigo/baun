@@ -16,6 +16,12 @@ internal static class RepositoryRoot
     public const string ParametersFileName = "parameters.json";
 
     /// <summary>
+    /// The folder in <see cref="FolderName"/> for files baun creates while it runs, such as the plan page. It's ignored by
+    /// git.
+    /// </summary>
+    public const string TempFolderName = "temp";
+
+    /// <summary>
     /// Returns the first of <paramref name="directory"/> and its parents that contains a <c>.baun</c> folder, or
     /// <see langword="null"/> when there is none.
     /// </summary>

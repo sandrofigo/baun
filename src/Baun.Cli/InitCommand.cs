@@ -80,7 +80,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         }
 
         await WriteBootstrapScriptsAsync(cancellationToken);
-        AddToGitIgnore(BootstrapScripts.DotnetFolder);
+        AddToGitIgnore(context.Directory / ".gitignore", BootstrapScripts.DotnetFolder);
         await CreateParametersFileAsync(cancellationToken);
         await MarkExecutableAsync([context.Directory / BootstrapScripts.ShellScriptName]);
 
@@ -90,21 +90,24 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
     /// <summary>
     /// Creates an empty <c>.baun/parameters.json</c> unless it already exists: in the nearest <c>.baun</c> folder of the
     /// current folder or its parents, where the build reads it, or in a new <c>.baun</c> folder in the current folder.
-    /// It holds the user's parameter values, so it's never overwritten.
+    /// It holds the user's parameter values, so it's never overwritten. Also ignores the temp folder of baun in
+    /// <c>.baun/.gitignore</c>.
     /// </summary>
     private async Task CreateParametersFileAsync(CancellationToken cancellationToken)
     {
         AbsolutePath root = RepositoryRoot.TryFind(context.Directory) ?? context.Directory;
-        AbsolutePath path = root / RepositoryRoot.FolderName / RepositoryRoot.ParametersFileName;
+        AbsolutePath folder = root / RepositoryRoot.FolderName;
+        AbsolutePath path = folder / RepositoryRoot.ParametersFileName;
 
-        if (File.Exists(path))
+        Directory.CreateDirectory(folder);
+
+        if (!File.Exists(path))
         {
-            return;
+            await File.WriteAllTextAsync(path, "{}\n", cancellationToken);
+            console.WriteSuccess($"Created {Markup.Escape(Relative(path))}");
         }
 
-        Directory.CreateDirectory(path.Parent!);
-        await File.WriteAllTextAsync(path, "{}\n", cancellationToken);
-        console.WriteSuccess($"Created {Markup.Escape(Relative(path))}");
+        AddToGitIgnore(folder / ".gitignore", RepositoryRoot.TempFolderName + "/");
     }
 
     /// <summary>
@@ -171,7 +174,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         if (!settings.NoBootstrap)
         {
             await WriteBootstrapScriptsAsync(cancellationToken);
-            AddToGitIgnore(BootstrapScripts.DotnetFolder);
+            AddToGitIgnore(context.Directory / ".gitignore", BootstrapScripts.DotnetFolder);
             executables.Add(context.Directory / BootstrapScripts.ShellScriptName);
         }
 
@@ -206,16 +209,14 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
     }
 
     /// <summary>
-    /// Adds <paramref name="entry"/> to the <c>.gitignore</c> in the build's folder, creating the file if needed.
+    /// Adds <paramref name="entry"/> to the <c>.gitignore</c> at <paramref name="path"/>, creating the file if needed.
     /// </summary>
-    private void AddToGitIgnore(string entry)
+    private void AddToGitIgnore(AbsolutePath path, string entry)
     {
-        AbsolutePath path = context.Directory / ".gitignore";
-
         if (!File.Exists(path))
         {
             File.WriteAllText(path, entry + "\n");
-            console.WriteSuccess("Created .gitignore");
+            console.WriteSuccess($"Created {Markup.Escape(Relative(path))}");
             return;
         }
 
@@ -233,7 +234,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
         string separator = content.Length == 0 || content.EndsWith('\n') ? string.Empty : "\n";
         File.AppendAllText(path, separator + entry + "\n");
-        console.WriteSuccess("Updated .gitignore");
+        console.WriteSuccess($"Updated {Markup.Escape(Relative(path))}");
     }
 
     /// <summary>

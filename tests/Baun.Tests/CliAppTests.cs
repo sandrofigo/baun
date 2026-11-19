@@ -495,6 +495,30 @@ public sealed class CliAppTests : IDisposable
     }
 
     [Theory]
+    [InlineData("--single-file")]
+    [InlineData("--project")]
+    public async Task Init_ignores_the_temp_folder_in_the_baun_folder(string kind)
+    {
+        var exitCode = await RunAsync("init", kind);
+
+        Assert.Equal(0, exitCode);
+        Assert.Equal("temp/\n", File.ReadAllText(root / ".baun" / ".gitignore"));
+        Assert.Contains("Created " + Path.Combine(".baun", ".gitignore"), console.Output);
+    }
+
+    [Fact]
+    public async Task Init_in_an_existing_build_adds_the_temp_folder_to_the_gitignore_of_the_baun_folder_once()
+    {
+        Write("Build.cs", "#:package Baun@0.1.0\n");
+        Write(".baun/.gitignore", "secrets.json\n");
+
+        await RunAsync("init");
+        await RunAsync("init");
+
+        Assert.Equal("secrets.json\ntemp/\n", File.ReadAllText(root / ".baun" / ".gitignore"));
+    }
+
+    [Theory]
     [InlineData("bin/\nobj/", "bin/\nobj/\n.dotnet/\n")]
     [InlineData("bin/\n", "bin/\n.dotnet/\n")]
     [InlineData("bin/\n/.dotnet\n", "bin/\n/.dotnet\n")]

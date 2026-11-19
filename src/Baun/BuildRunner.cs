@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Reflection;
 using Baun.CI;
 using Baun.Logging;
+using Baun.Plan;
 using Spectre.Console;
 
 namespace Baun;
@@ -19,13 +20,23 @@ namespace Baun;
 /// <param name="ciProvider">
 /// The CI server whose log groups each step is written in. Defaults to the one detected from the environment variables.
 /// </param>
+/// <param name="openInBrowser">
+/// Opens a file in the browser and returns whether it could. Defaults to <see cref="Browser.TryOpen"/>.
+/// </param>
+/// <param name="planFolder">
+/// The folder the plan page is written to. Defaults to <c>.baun/temp</c> in the repository root of the current directory.
+/// </param>
 internal sealed class BuildRunner(
     IBaunBuild build,
     IAnsiConsole console,
     ParameterSources? parameterSources = null,
-    CIProvider? ciProvider = null)
+    CIProvider? ciProvider = null,
+    Func<string, bool>? openInBrowser = null,
+    AbsolutePath? planFolder = null)
 {
     private readonly CIProvider provider = ciProvider ?? CIProviders.Detect();
+
+    private readonly Func<string, bool> openInBrowser = openInBrowser ?? Browser.TryOpen;
 
     /// <summary>
     /// Runs the build.
@@ -111,7 +122,7 @@ internal sealed class BuildRunner(
 
             if (showPlan)
             {
-                WritePlan(plan);
+                ShowPlan(steps, plan);
                 return 0;
             }
         }
@@ -180,6 +191,42 @@ internal sealed class BuildRunner(
     /// The options of baun that a parameter can't use as its name, without the leading <c>--</c>.
     /// </summary>
     private static readonly string[] ReservedOptions = ["verbosity", "plan"];
+
+    /// <summary>
+    /// Opens all <paramref name="steps"/> of the build as a graph in the browser, with the steps of <paramref name="plan"/>
+    /// numbered in the order they run, or writes <paramref name="plan"/> to the console when the browser can't open.
+    /// </summary>
+    private void ShowPlan(List<ResolvedStep> steps, List<ResolvedStep> plan)
+    {
+        AbsolutePath path;
+
+        try
+        {
+            AbsolutePath folder = planFolder ?? PlanPage.GetFolder((AbsolutePath)Environment.CurrentDirectory);
+            var pageSteps = steps
+                .Select(step => new PlanStep(
+                    step.Name,
+                    [.. step.Dependencies.Select(dependency => dependency.Name)],
+                    plan.IndexOf(step) is var index and >= 0 ? index + 1 : null))
+                .ToList();
+            path = PlanPage.Write(pageSteps, folder);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            Log.Debug(exception, "Could not write the plan page");
+            WritePlan(plan);
+            return;
+        }
+
+        if (!openInBrowser(path))
+        {
+            WritePlan(plan);
+            return;
+        }
+
+        console.MarkupLine(Theme.Accent("PLAN:"));
+        console.MarkupLine($"    Opened in the browser {Theme.Faint(path)}");
+    }
 
     /// <summary>
     /// Writes the steps of <paramref name="plan"/> in the order they run, each with the steps it depends on.
@@ -345,7 +392,7 @@ internal sealed class BuildRunner(
         Grid optionRows = Section()
             .AddRow("-h, --help", "Prints help information")
             .AddRow("-v, --version", "Prints version information")
-            .AddRow("    --plan", "Prints the steps that would run, in order, without running them")
+            .AddRow("    --plan", "Shows the steps that would run, in order, without running them, in the browser when possible")
             .AddRow("    --step <name>", "Runs a step whose name is also a command of the baun tool, such as init")
             .AddRow(
                 "    --verbosity <level>",

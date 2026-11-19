@@ -12,6 +12,11 @@
     <InternalsVisibleTo Include="Baun.Tests" />
   </ItemGroup>
 
+  <!-- The plan page that baun opens in the browser. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Plan/PlanPage.html" LogicalName="Baun.Plan.PlanPage.html" />
+  </ItemGroup>
+
   <!-- Console helpers and the theme, shared by the library and the tool. -->
   <ItemGroup>
     <Compile Include="..\Shared\*.cs" Link="Shared\%(Filename)%(Extension)" />

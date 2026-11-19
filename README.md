@@ -539,7 +539,7 @@ baun init --single-file  # creates Build.cs
 
 The new build has a few sample steps and references the same version of baun as the tool. When `baun init` can't ask, for example in a script, it creates a project build. Creating a build never overwrites existing build files.
 
-`baun init` also creates an empty [`.baun/parameters.json`](#parameters), also when it updates an existing build. It uses the nearest existing `.baun` folder in the current folder or its parents, or creates `.baun` in the current folder. It never overwrites an existing `parameters.json`.
+`baun init` also creates an empty [`.baun/parameters.json`](#parameters), also when it updates an existing build. It uses the nearest existing `.baun` folder in the current folder or its parents, or creates `.baun` in the current folder. It never overwrites an existing `parameters.json`. It also adds `temp/` to `.baun/.gitignore`, so files baun creates while it runs, such as the [plan](#running-a-build) page, stay out of git.
 
 When you create a project build and there is a solution (`.sln` or `.slnx`) in the current folder or up to three levels of subfolders, such as `src/MyApp.sln`, `baun init` asks whether to add `build/_build.csproj` to it. If you agree, it runs `dotnet sln add --in-root`, so the build project sits at the root of the solution. With several solutions, you pick one. When `baun init` can't ask, it leaves the solution alone.
 
@@ -578,7 +578,9 @@ baun --step Init
 
 The source generator warns about such steps (`BAUN007`).
 
-Run `baun --plan` to print the steps a run would execute, in order and with their dependencies, without running them. Name steps to see their plan, such as `baun Pack --plan`. baun reads the parameters and checks the requirements as it does for a run, so the plan fails for the same mistakes, such as an unknown step or a missing required parameter. Because of the option, a build can't have a parameter named `Plan`.
+Run `baun --plan` to see the steps a run would execute, in order and with their dependencies, without running them. Name steps to see their plan, such as `baun Pack --plan`. baun reads the parameters and checks the requirements as it does for a run, so the plan fails for the same mistakes, such as an unknown step or a missing required parameter. Because of the option, a build can't have a parameter named `Plan`.
+
+The plan opens in the browser as a graph of all steps and their dependencies on a canvas. The steps that run are numbered in the order they run, and the others are dimmed. Drag to pan, scroll to zoom and hover a step to highlight the steps that would run for it. baun writes the page to `.baun/temp/plan.html`, overwriting it each time, and `baun init` ignores `.baun/temp` in git. On a CI server, in an SSH session, without a display, with redirected output, such as `baun --plan | cat`, or when the browser can't start, baun prints the plan instead:
 
 ```text
 PLAN:

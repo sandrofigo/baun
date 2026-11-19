@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>baun · plan</title>
+<style>
+  :root {
+    --accent: #6b81ff;
+    --bg: #f7f7f9;
+    --dot: #d4d6de;
+    --card: #ffffff;
+    --border: #d9dbe3;
+    --text: #1d1f27;
+    --faint: #80838f;
+    --edge: #a3a7b5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15161b;
+      --dot: #2c2e37;
+      --card: #1e2027;
+      --border: #33363f;
+      --text: #e6e7ec;
+      --faint: #8b8e9a;
+      --edge: #5a5e6c;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.4 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  #canvas {
+    position: fixed;
+    inset: 0;
+    cursor: grab;
+    touch-action: none;
+    background-image: radial-gradient(var(--dot) 1px, transparent 1px);
+  }
+  #canvas.panning { cursor: grabbing; }
+  #world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  #edges { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+  #edges path { fill: none; stroke: var(--edge); stroke-width: 1.5; }
+  #edges path.highlight { stroke: var(--accent); stroke-width: 2; }
+  #arrow path { fill: var(--edge); stroke: none; }
+  #arrow-highlight path { fill: var(--accent); stroke: none; }
+  .step {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 40px;
+    padding: 0 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    white-space: nowrap;
+    user-select: none;
+  }
+  .step.highlight { border-color: var(--accent); }
+  .step .order { color: var(--faint); font-variant-numeric: tabular-nums; }
+  .step.skipped { color: var(--faint); background: transparent; border-style: dashed; }
+  #edges path.skipped { stroke-dasharray: 4 4; opacity: 0.6; }
+  #edges path.skipped.highlight { opacity: 1; }
+  .step.skipped.highlight { color: var(--text); }
+  header {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    top: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    pointer-events: none;
+  }
+  header h1 { margin: 0; font-size: 14px; font-weight: normal; color: var(--accent); }
+  .tool {
+    pointer-events: auto;
+    font: inherit;
+    color: var(--text);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    cursor: pointer;
+  }
+  .tool:hover { border-color: var(--accent); color: var(--accent); }
+  #fit { margin-left: auto; }
+  #zoom { position: fixed; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 6px; }
+</style>
+</head>
+<body>
+<div id="canvas">
+  <div id="world">
+    <svg id="edges" width="1" height="1">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
+        <marker id="arrow-highlight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+    </svg>
+  </div>
+</div>
+<header>
+  <h1>baun · plan</h1>
+  <button id="fit" class="tool" type="button" title="Fit to screen" aria-label="Fit to screen">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg>
+  </button>
+</header>
+<div id="zoom">
+  <button id="zoom-in" class="tool" type="button" title="Zoom in" aria-label="Zoom in">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>
+  </button>
+  <button id="zoom-out" class="tool" type="button" title="Zoom out" aria-label="Zoom out">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M3 8h10"/></svg>
+  </button>
+</div>
+<script>
+(() => {
+  const plan = /*PLAN*/null;
+  const steps = plan ? plan.steps : [];
+  // Sizes and positions of the steps are multiples of the grid spacing, so the steps line up with the dots.
+  const grid = 20;
+  const columnGap = 4 * grid;
+  const rowGap = grid;
+  const stepHeight = 2 * grid;
+
+
+  const canvas = document.getElementById("canvas");
+  const world = document.getElementById("world");
+  const svg = document.getElementById("edges");
+
+  // All steps of the build are shown. The steps that run are numbered in the order they run, the others are dimmed.
+  const byName = new Map();
+  for (const step of steps) {
+    const element = document.createElement("div");
+    element.className = step.order ? "step" : "step skipped";
+    if (step.order) {
+      const order = document.createElement("span");
+      order.className = "order";
+      order.textContent = step.order + ".";
+      element.append(order);
+    }
+    const name = document.createElement("span");
+    name.textContent = step.name;
+    element.append(name);
+    world.appendChild(element);
+    byName.set(step.name, { step, element, edges: [] });
+  }
+
+  // A step's column is one after its deepest dependency. A step in a cycle stops the search, so a cycle can't hang it.
+  function columnOf(node, visiting = new Set()) {
+    if (node.column !== undefined) return node.column;
+    if (visiting.has(node)) return 0;
+    visiting.add(node);
+    const column = node.step.dependencies.reduce(
+      (max, name) => byName.has(name) ? Math.max(max, columnOf(byName.get(name), visiting) + 1) : max, 0);
+    visiting.delete(node);
+    return node.column = column;
+  }
+  for (const node of byName.values()) columnOf(node);
+
+  const columns = [];
+  for (const node of byName.values()) {
+    (columns[node.column] ??= []).push(node);
+    node.width = Math.ceil(node.element.offsetWidth / grid) * grid;
+    node.element.style.width = node.width + "px";
+  }
+
+  const columnWidths = columns.map(nodes => Math.max(...nodes.map(node => node.width)));
+  const tallest = Math.max(0, ...columns.map(nodes => nodes.length * stepHeight + (nodes.length - 1) * rowGap));
+  let x = 0;
+  columns.forEach((nodes, column) => {
+    const height = nodes.length * stepHeight + (nodes.length - 1) * rowGap;
+    nodes.forEach((node, row) => {
+      node.x = x;
+      node.y = Math.round((tallest - height) / 2 / grid) * grid + row * (stepHeight + rowGap);
+      node.element.style.left = node.x + "px";
+      node.element.style.top = node.y + "px";
+    });
+    x += columnWidths[column] + columnGap;
+  });
+
+  // Edges that skip columns run in lanes above or below the steps they pass, so they don't cross them.
+  let top = 0, bottom = Math.max(stepHeight, tallest);
+  const lanes = { above: 0, below: 0 };
+
+  for (const node of byName.values()) {
+    for (const name of node.step.dependencies) {
+      const from = byName.get(name);
+      if (!from) continue;
+      const x1 = from.x + from.width, y1 = from.y + stepHeight / 2;
+      const x2 = node.x - 2, y2 = node.y + stepHeight / 2;
+      let d;
+
+      if (node.column - from.column > 1) {
+        const passed = columns.slice(from.column + 1, node.column).flat();
+        const minY = Math.min(...passed.map(step => step.y));
+        const maxY = Math.max(...passed.map(step => step.y + stepHeight));
+        const above = (y1 + y2) / 2 - minY <= maxY - (y1 + y2) / 2;
+        const lane = above
+          ? minY - rowGap / 2 - lanes.above++ * 10
+          : maxY + rowGap / 2 + lanes.below++ * 10;
+        top = Math.min(top, lane);
+        bottom = Math.max(bottom, lane);
+        const r = columnGap / 2;
+        d = `M${x1},${y1} C${x1 + r},${y1} ${x1 + r},${lane} ${x1 + 2 * r},${lane} ` +
+            `L${x2 - 2 * r},${lane} C${x2 - r},${lane} ${x2 - r},${y2} ${x2},${y2}`;
+      } else {
+        const bend = Math.max(40, (x2 - x1) / 2);
+        d = `M${x1},${y1} C${x1 + bend},${y1} ${x2 - bend},${y2} ${x2},${y2}`;
+      }
+
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", d);
+      if (!node.step.order) path.classList.add("skipped");
+      path.setAttribute("marker-end", "url(#arrow)");
+      svg.appendChild(path);
+      node.edges.push({ from, path });
+    }
+  }
+
+  // Hovering a step highlights the steps that would run for it: the step and all its dependencies, with their edges.
+  for (const node of byName.values()) {
+    node.element.addEventListener("pointerenter", () => setHighlight(node, true));
+    node.element.addEventListener("pointerleave", () => setHighlight(node, false));
+  }
+
+  function setHighlight(node, on, seen = new Set()) {
+    if (seen.has(node)) return;
+    seen.add(node);
+    node.element.classList.toggle("highlight", on);
+    for (const { from, path } of node.edges) {
+      path.classList.toggle("highlight", on);
+      path.setAttribute("marker-end", on ? "url(#arrow-highlight)" : "url(#arrow)");
+      setHighlight(from, on, seen);
+    }
+  }
+
+  const view = { x: 0, y: 0, scale: 1 };
+  let gridStep = 1;
+
+  function apply() {
+    world.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.scale})`;
+    // The grid doubles its spacing when the dots get closer than 12px on screen, and halves it when they get further
+    // apart than 48px. The overlap lets it keep a spacing for a while, so it doesn't switch back and forth. Every other
+    // dot stays where it is, because the dots sit on multiples of the spacing from the world origin.
+    while (grid * gridStep * view.scale < 12) gridStep *= 2;
+    while (grid * gridStep * view.scale > 48 && gridStep > 1 / 1024) gridStep /= 2;
+    const size = grid * gridStep * view.scale;
+    canvas.style.backgroundSize = `${size}px ${size}px`;
+    // A dot is drawn in the middle of its tile, so the tiles start half a tile before the world origin.
+    canvas.style.backgroundPosition = `${view.x - size / 2}px ${view.y - size / 2}px`;
+  }
+
+  function fit() {
+    const width = Math.max(1, x - columnGap), height = bottom - top;
+    const margin = 64, header = 56;
+    const scale = Math.min(1.5, (innerWidth - 2 * margin) / width, (innerHeight - header - 2 * margin) / height);
+    view.scale = Math.max(0.1, scale);
+    view.x = (innerWidth - width * view.scale) / 2;
+    view.y = header + (innerHeight - header - height * view.scale) / 2 - top * view.scale;
+    apply();
+  }
+
+  let drag = null;
+  canvas.addEventListener("pointerdown", event => {
+    if (event.button !== 0) return;
+    drag = { x: event.clientX - view.x, y: event.clientY - view.y };
+    canvas.setPointerCapture(event.pointerId);
+    canvas.classList.add("panning");
+  });
+  canvas.addEventListener("pointermove", event => {
+    if (!drag) return;
+    view.x = event.clientX - drag.x;
+    view.y = event.clientY - drag.y;
+    apply();
+  });
+  const endDrag = () => { drag = null; canvas.classList.remove("panning"); };
+  canvas.addEventListener("pointerup", endDrag);
+  canvas.addEventListener("pointercancel", endDrag);
+
+  // Zooms by factor, keeping the point at x, y on screen in place.
+  function zoomAt(x, y, factor) {
+    const scale = Math.min(4, Math.max(0.1, view.scale * factor));
+    view.x = x - (x - view.x) * (scale / view.scale);
+    view.y = y - (y - view.y) * (scale / view.scale);
+    view.scale = scale;
+    apply();
+  }
+
+  canvas.addEventListener("wheel", event => {
+    event.preventDefault();
+    zoomAt(event.clientX, event.clientY, Math.exp(-event.deltaY * (event.deltaMode === 1 ? 0.05 : 0.0015)));
+  }, { passive: false });
+
+  canvas.addEventListener("dblclick", fit);
+  document.getElementById("fit").addEventListener("click", fit);
+  document.getElementById("zoom-in").addEventListener("click", () => zoomAt(innerWidth / 2, innerHeight / 2, 1.25));
+  document.getElementById("zoom-out").addEventListener("click", () => zoomAt(innerWidth / 2, innerHeight / 2, 1 / 1.25));
+  fit();
+})();
+</script>
+</body>
+</html>
