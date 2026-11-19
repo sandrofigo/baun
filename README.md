@@ -578,17 +578,9 @@ baun --step Init
 
 The source generator warns about such steps (`BAUN007`).
 
-Run `baun --plan` to see the steps a run would execute, in order and with their dependencies, without running them. Name steps to see their plan, such as `baun Pack --plan`. baun reads the parameters and checks the requirements as it does for a run, so the plan fails for the same mistakes, such as an unknown step or a missing required parameter. Because of the option, a build can't have a parameter named `Plan`.
+Run `baun --plan` to open the steps a run would execute, in order and with their dependencies, without running them. Name steps to see their plan, such as `baun Pack --plan`. baun reads the parameters and checks the requirements as it does for a run, so the plan fails for the same mistakes, such as an unknown step or a missing required parameter. Because of the option, a build can't have a parameter named `Plan`.
 
-The plan opens in the browser as a graph of all steps and their dependencies on a canvas. The steps that run are numbered in the order they run, and the others are dimmed. Drag to pan, scroll to zoom and hover a step to highlight the steps that would run for it. baun writes the page to `.baun/temp/plan.html`, overwriting it each time, and `baun init` ignores `.baun/temp` in git. On a CI server, in an SSH session, without a display, with redirected output, such as `baun --plan | cat`, or when the browser can't start, baun prints the plan instead:
-
-```text
-PLAN:
-    1.  Clean
-    2.  Restore
-    3.  Compile    Depends on Clean, Restore
-    4.  Test       Depends on Compile
-```
+The plan opens in the browser as a graph of all steps and their dependencies on a canvas. The steps that run are numbered in the order they run, and the others are dimmed. Drag to pan, scroll to zoom and hover a step to highlight the steps that would run for it. baun writes the page to `.baun/temp/plan.html`, overwriting it each time, and `baun init` ignores `.baun/temp` in git. On a CI server, in an SSH session, without a display, with redirected output or when the browser can't start, baun prints the path of the page instead, so you can open it yourself.
 
 Run `baun --help` to list the steps and parameters of the build, with the entry step marked, and `baun --version` to show the version of baun the build uses. These options also work with the bootstrap scripts, such as `./build.sh --help`. In a folder without a build, they show the help and version of the tool.
 
