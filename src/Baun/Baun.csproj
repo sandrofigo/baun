@@ -34,7 +34,7 @@
     <None Include="..\Baun.SourceGenerators\bin\$(Configuration)\netstandard2.0\Baun.SourceGenerators.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="KeepAChangelog.IO" Version="2.1.0" />
+    <PackageReference Include="KeepAChangelog.IO" Version="2.1.1" />
     <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="11.0.0" />
     <PackageReference Include="Microsoft.VisualStudio.SolutionPersistence" Version="1.0.52" />
     <PackageReference Include="Octokit" Version="14.0.0" />
