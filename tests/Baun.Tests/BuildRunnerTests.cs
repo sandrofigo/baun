@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Baun.CI;
+using Baun.Plan;
 using Spectre.Console;
 using Spectre.Console.Testing;
 
@@ -187,6 +188,97 @@ public class BuildRunnerTests
         var result = await RunAsync(new SampleBuild(), "--help");
 
         Assert.Contains("--plan", result.Output);
+    }
+
+    [Fact]
+    public async Task Opens_the_plan_in_the_browser()
+    {
+        var folder = (AbsolutePath)Directory.CreateTempSubdirectory("baun-plan-tests-").FullName;
+
+        try
+        {
+            var build = new SampleBuild();
+            var console = new TestConsole().Width(250);
+            var opened = new List<string>();
+
+            var exitCode = await new BuildRunner(build, console, ParameterSources.None, CIProvider.None, path =>
+            {
+                opened.Add(path);
+                return true;
+            }, folder).RunAsync(["--plan"]);
+
+            Assert.Equal(0, exitCode);
+            Assert.Empty(build.Executed);
+            Assert.Equal([folder / "plan.html"], opened.Select(path => (AbsolutePath)path));
+            Assert.Contains("Opened in the browser", console.Output);
+            Assert.DoesNotContain("Depends on", console.Output);
+
+            string page = File.ReadAllText(folder / "plan.html");
+            Assert.Contains("""{"name":"Compile","dependencies":["Clean","Restore"],"order":3}""", page);
+            Assert.Contains("""{"name":"Test","dependencies":["Compile"],"order":4}""", page);
+            Assert.Contains("""{"name":"Pack","dependencies":["Test","Compile"],"order":null}""", page);
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task Overwrites_the_plan_page()
+    {
+        var folder = (AbsolutePath)Directory.CreateTempSubdirectory("baun-plan-tests-").FullName;
+
+        try
+        {
+            using var console = new TestConsole();
+
+            await new BuildRunner(new SampleBuild(), console, ParameterSources.None, CIProvider.None, _ => true, folder).RunAsync(["--plan", "Pack"]);
+            await new BuildRunner(new SampleBuild(), console, ParameterSources.None, CIProvider.None, _ => true, folder).RunAsync(["--plan", "Clean"]);
+
+            Assert.Equal(["plan.html"], Directory.GetFiles(folder).Select(Path.GetFileName));
+            Assert.Contains("""{"name":"Pack","dependencies":["Test","Compile"],"order":null}""", File.ReadAllText(folder / "plan.html"));
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Escapes_step_names_in_the_plan_page()
+    {
+        string page = PlanPage.Render([new PlanStep("</script><b>", [], 1)]);
+
+        Assert.DoesNotContain("</script><b>", page);
+        Assert.Contains("""\u003C/script\u003E\u003Cb\u003E""", page);
+    }
+
+    [Fact]
+    public async Task Writes_the_plan_to_the_console_when_the_browser_cant_open()
+    {
+        var folder = (AbsolutePath)Directory.CreateTempSubdirectory("baun-plan-tests-").FullName;
+
+        try
+        {
+            var console = new TestConsole().Width(250);
+            var attempts = 0;
+
+            var exitCode = await new BuildRunner(new SampleBuild(), console, ParameterSources.None, CIProvider.None, _ =>
+            {
+                attempts++;
+                return false;
+            }, folder).RunAsync(["--plan"]);
+
+            Assert.Equal(0, exitCode);
+            Assert.Equal(1, attempts);
+            Assert.Contains("Depends on Clean, Restore", console.Output);
+            Assert.DoesNotContain("Opened in the browser", console.Output);
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
     }
 
     [Theory]
@@ -408,7 +500,7 @@ public class BuildRunnerTests
     {
         var console = new TestConsole().Width(250);
 
-        var exitCode = await new BuildRunner(build, console, ParameterSources.None, CIProvider.None).RunAsync(arguments);
+        var exitCode = await new BuildRunner(build, console, ParameterSources.None, CIProvider.None, openInBrowser: _ => false).RunAsync(arguments);
 
         return new RunResult(exitCode, console.Output);
     }
