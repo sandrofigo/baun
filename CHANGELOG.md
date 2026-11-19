@@ -12,19 +12,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `--plan` opens the steps a run would execute in the browser, without running them, such as `baun Pack --plan`. The page, written to `.baun/temp/plan.html`, shows a graph of all steps and their dependencies, with the steps that run numbered in order. When the browser can't open, such as on a CI server, baun prints the path of the page.
 - `baun init` adds `temp/` to `.baun/.gitignore`, also in an existing build.
 - Every built-in option also works with the prefix `--baun-`, such as `--baun-plan` or `--baun-verbosity warning`, so scripts can use options that no parameter can take over.
-
-### Changed
-
-- A parameter named after `--plan`, `--step` or `--verbosity` takes over the option instead of failing the build, and the new warning `BAUN012` reports it. The built-in option stays available with the prefix `--baun-`. Parameters named after `--help` or `--version`, or starting with `Baun`, are a build error (`BAUN011`).
-
-### Added
-
 - `ToolLogger` picks the level of each line a tool writes. Derive from it and override `GetLevel`, or `Write` to skip or change lines, and use it for one command with `ToolCommand.Logger`, or for every command with `Tool.Logger`.
 - `DotNet` runs the .NET CLI with typed commands: `Build`, `Test`, `Pack`, `Publish`, `Restore`, `Clean` and `NuGetPush`, with methods for their options, such as `Configuration`, `Output`, `Property`, `Version` and `ApiKey`. Typed commands still take `Arguments`, `Secret`, `WorkingDirectory` and `Logger`. `DotNet.Command` and `DotNet.RunAsync` run any other command.
 - `DotNetLogger`, the default logger of `DotNet`, writes MSBuild and NuGet errors and warnings, such as `error CS1002`, as `Error` and `Warning` messages. Change it for all commands with `DotNet.Logger`.
 - `Git` runs git, in the new `Baun.Git` namespace, which builds import automatically. `Git.GetCurrentTagAsync` returns the tag of the current commit and `Git.GetCurrentBranchAsync` the current branch.
 - `GitLogger`, the default logger of `Git`, writes git's `fatal:` and `error:` lines as `Error`, `warning:` lines as `Warning`, and its progress on the standard error as `Debug` instead of `Warning`. Change it for all commands with `Git.Logger`.
 - `ToolCommand<TSelf>` is the base of typed commands, to add typed commands for other tools.
+
+### Changed
+
+- A parameter named after `--plan`, `--step` or `--verbosity` takes over the option instead of failing the build, and the new warning `BAUN012` reports it. The built-in option stays available with the prefix `--baun-`. Parameters named after `--help` or `--version`, or starting with `Baun`, are a build error (`BAUN011`).
 
 ## [0.7.0] - 2026-11-17
 
