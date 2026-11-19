@@ -444,9 +444,9 @@ public class StepGeneratorTests
     [Theory]
     [InlineData("[Parameter] bool Help;", "the built-in option '--help'")]
     [InlineData("[Parameter(Name = \"v\")] bool Verbose;", "the built-in option '--v'")]
-    [InlineData("[Parameter] string Step = \"\";", "the built-in option '--step'")]
-    [InlineData("[Parameter] bool Plan;", "the built-in option '--plan'")]
-    [InlineData("[Parameter] string Verbosity = \"\";", "the built-in option '--verbosity'")]
+    [InlineData("[Parameter] bool Version;", "the built-in option '--version'")]
+    [InlineData("[Parameter] bool BaunPlan;", "the prefix '--baun-' of the built-in options")]
+    [InlineData("[Parameter(Name = \"baun-mode\")] string Mode = \"\";", "the prefix '--baun-' of the built-in options")]
     [InlineData("[Parameter] string ApiKey = \"\"; [Parameter] string Api_Key = \"\";", "the parameter 'ApiKey'")]
     [InlineData("[Parameter] string ApiKey = \"\"; [Parameter(Name = \"api-key\")] string Key = \"\";", "the parameter 'ApiKey'")]
     public void Reports_an_error_for_conflicting_parameter_names(string members, string conflict)
@@ -463,6 +463,28 @@ public class StepGeneratorTests
         var diagnostic = Assert.Single(diagnostics);
         Assert.Equal("BAUN011", diagnostic.Id);
         Assert.Contains($"conflicts with {conflict}.", diagnostic.GetMessage());
+    }
+
+    [Theory]
+    [InlineData("[Parameter] bool Plan;", "plan")]
+    [InlineData("[Parameter] string Step = \"\";", "step")]
+    [InlineData("[Parameter(Name = \"VERBOSITY\")] string Level = \"\";", "verbosity")]
+    public void Reports_a_warning_for_a_parameter_that_takes_over_a_built_in_option(string members, string option)
+    {
+        var (diagnostics, sources) = RunGenerator($$"""
+            partial class Build
+            {
+                {{members}}
+
+                Step Compile() => _ => _;
+            }
+            """);
+
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.Equal("BAUN012", diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
+        Assert.Contains($"takes over the built-in option '--{option}', which stays available as '--baun-{option}'", diagnostic.GetMessage());
+        Assert.Contains(sources, source => source.Contains("new global::Baun.BaunParameter(", StringComparison.Ordinal));
     }
 
     [Fact]

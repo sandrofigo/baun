@@ -247,6 +247,69 @@ public class BuildRunnerTests
         var result = await RunAsync(new SampleBuild(), "--help");
 
         Assert.Contains("--plan", result.Output);
+        Assert.Contains("Each option also works with the prefix --baun-, such as --baun-plan.", result.Output);
+    }
+
+    [Theory]
+    [InlineData("--baun-plan")]
+    [InlineData("--BAUN_PLAN")]
+    public async Task Opens_the_plan_with_the_prefixed_option(string option)
+    {
+        var build = new SampleBuild();
+
+        var result = await PlanAsync(build, browserOpens: true, "Test", option);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Empty(build.Executed);
+        Assert.Contains("""{"name":"Test","dependencies":["Compile"],"order":4}""", result.Page);
+    }
+
+    [Fact]
+    public async Task A_parameter_named_plan_takes_over_the_option()
+    {
+        var build = new PlanParameterBuild();
+
+        var result = await PlanAsync(build, browserOpens: true, "Compile", "--plan");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.True(build.Plan);
+        Assert.Equal(["Compile"], build.Executed);
+        Assert.Empty(result.Opened);
+        Assert.Null(result.Page);
+    }
+
+    [Fact]
+    public async Task Opens_the_plan_with_the_prefixed_option_when_a_parameter_takes_over_the_option()
+    {
+        var build = new PlanParameterBuild();
+
+        var result = await PlanAsync(build, browserOpens: true, "Compile", "--baun-plan");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.False(build.Plan);
+        Assert.Empty(build.Executed);
+        Assert.NotNull(result.Page);
+    }
+
+    [Fact]
+    public async Task Lists_the_prefixed_option_in_the_help_when_a_parameter_takes_over_the_option()
+    {
+        var result = await RunAsync(new PlanParameterBuild(), "--help");
+
+        Assert.Matches(@"PARAMETERS:\s+--plan\s", result.Output);
+        Assert.Matches(@"OPTIONS:[\s\S]*\s--baun-plan\s+Opens the steps", result.Output);
+    }
+
+    [Fact]
+    public async Task Runs_a_step_with_the_prefixed_step_option()
+    {
+        var build = new StepParameterBuild();
+
+        var result = await RunAsync(build, "--baun-step", "Compile", "--step", "fast");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("fast", build.Step);
+        Assert.Equal(["Compile"], build.Executed);
     }
 
     /// <summary>
@@ -596,4 +659,24 @@ internal sealed partial class ForeignDependencyBuild
 internal sealed partial class NoEntryBuild
 {
     public Step Compile() => _ => _;
+}
+
+internal sealed partial class PlanParameterBuild
+{
+    public List<string> Executed { get; } = [];
+
+    [Parameter]
+    public bool Plan { get; set; }
+
+    public Step Compile() => _ => _.Executes(() => Executed.Add("Compile"));
+}
+
+internal sealed partial class StepParameterBuild
+{
+    public List<string> Executed { get; } = [];
+
+    [Parameter]
+    public string? Step { get; set; }
+
+    public Step Compile() => _ => _.Executes(() => Executed.Add("Compile"));
 }

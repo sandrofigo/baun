@@ -100,8 +100,27 @@ public sealed class StepGenerator : IIncrementalGenerator
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor ParameterHidesOption = new(
+        id: "BAUN012",
+        title: "Parameter hides a built-in option",
+        messageFormat: "The parameter '{0}' takes over the built-in option '--{1}', which stays available as '--baun-{1}'. Set another name with [Parameter(Name = \"...\")] to keep '--{1}'.",
+        category: "Baun",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
     /// <summary>The built-in options of a build, which parameters can't be named after, normalized.</summary>
-    private static readonly string[] ReservedParameterNames = new[] { "HELP", "H", "VERSION", "V", "STEP", "VERBOSITY", "PLAN" };
+    private static readonly string[] ReservedParameterNames = new[] { "HELP", "H", "VERSION", "V" };
+
+    /// <summary>The built-in options a parameter can take over, normalized, with their names.</summary>
+    private static readonly Dictionary<string, string> HideableOptions = new()
+    {
+        ["PLAN"] = "plan",
+        ["STEP"] = "step",
+        ["VERBOSITY"] = "verbosity",
+    };
+
+    /// <summary>The prefix of the names under which every built-in option stays available, such as <c>--baun-plan</c>, normalized.</summary>
+    private const string OptionPrefix = "BAUN";
 
     /// <summary>
     /// The property added to every build class that returns the repository's root directory, unless the class already
@@ -473,6 +492,17 @@ public sealed class StepGenerator : IIncrementalGenerator
             {
                 context.ReportDiagnostic(Diagnostic.Create(ParameterNameConflicts, location, parameter.MemberName, $"the built-in option '--{parameter.Name.ToLowerInvariant()}'"));
                 continue;
+            }
+
+            if (normalized.StartsWith(OptionPrefix, System.StringComparison.Ordinal))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(ParameterNameConflicts, location, parameter.MemberName, "the prefix '--baun-' of the built-in options"));
+                continue;
+            }
+
+            if (HideableOptions.TryGetValue(normalized, out var option))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(ParameterHidesOption, location, parameter.MemberName, option));
             }
 
             if (names.TryGetValue(normalized, out var other))

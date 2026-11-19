@@ -9,12 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `--plan` opens the steps a run would execute in the browser, without running them, such as `baun Pack --plan`. The page, written to `.baun/temp/plan.html`, shows a graph of all steps and their dependencies, with the steps that run numbered in order. When the browser can't open, such as on a CI server, baun prints the path of the page. A parameter named `Plan` is a build error (`BAUN011`), because `--plan` is an option of baun.
+- `--plan` opens the steps a run would execute in the browser, without running them, such as `baun Pack --plan`. The page, written to `.baun/temp/plan.html`, shows a graph of all steps and their dependencies, with the steps that run numbered in order. When the browser can't open, such as on a CI server, baun prints the path of the page.
 - `baun init` adds `temp/` to `.baun/.gitignore`, also in an existing build.
+- Every built-in option also works with the prefix `--baun-`, such as `--baun-plan` or `--baun-verbosity warning`, so scripts can use options that no parameter can take over.
 
 ### Changed
 
-- A parameter named `Verbosity` is now a build error (`BAUN011`) instead of an error when the build runs.
+- A parameter named after `--plan`, `--step` or `--verbosity` takes over the option instead of failing the build, and the new warning `BAUN012` reports it. The built-in option stays available with the prefix `--baun-`. Parameters named after `--help` or `--version`, or starting with `Baun`, are a build error (`BAUN011`).
 
 ## [0.7.0] - 2026-11-17
 

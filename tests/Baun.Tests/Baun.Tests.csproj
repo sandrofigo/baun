@@ -6,6 +6,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Baun.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
+    <!-- Some test builds take over built-in options on purpose. Pragmas don't silence source generator warnings. -->
+    <NoWarn>$(NoWarn);BAUN012</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

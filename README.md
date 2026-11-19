@@ -206,6 +206,8 @@ Parameters can be `string`, `bool`, `char`, any number type, an enum, `Guid`, `U
 
 `baun --help` lists the parameters. baun reports an invalid value, such as `--retries many` for an `int`, as an error before it runs any step. An unknown key in `parameters.json` is also an error, so typos don't go unnoticed. The source generator reports parameters it can't set as compiler errors, such as a `readonly` field, a property without a setter or an unsupported type (`BAUN008` to `BAUN011`).
 
+A parameter can't be named after `--help` or `--version`, or start with `Baun`, so the built-in options always work (`BAUN011`). A parameter named after another built-in option, such as `Plan`, takes it over: `--plan` sets the parameter, and the source generator warns about it (`BAUN012`). Every built-in option also works with the prefix `--baun-`, such as `--baun-plan`, so it stays available, and a script can use that form to work with any build. Add `BAUN012` to `<NoWarn>` in the project file of the build if the parameter takes over the option on purpose.
+
 ### Required parameters
 
 A parameter of a non-nullable reference type without an initial value is required, so every run needs a value for it:
@@ -257,7 +259,7 @@ Step Compile() => _ => _
 
 Messages are message templates, as in [Serilog](https://serilog.net), which baun uses to write them: name each value in braces and pass the values in the same order, instead of using an interpolated string. The values are highlighted in the output, numbers and dates are written the same in every culture, and strings are written without quotes. Use `{{` and `}}` for literal braces. Each method also takes an exception as its first argument, such as `Log.Error(exception, "Upload of {File} failed", file)`, and writes it after the message. `Log.IsEnabled(LogLevel.Debug)` tells whether a level is written, so you can skip work that only prepares a message.
 
-A build writes messages of `Debug` and above, which includes the output of tools (see [Running tools](#running-tools)). Pass `--verbosity <level>` to change that, such as `--verbosity information` to hide `Debug` messages, or `--verbosity warning` to write only warnings and errors. Without the option, baun reads the level from the environment variable `BAUN_VERBOSITY`. Because of the option, a parameter named `Verbosity` is a build error (`BAUN011`).
+A build writes messages of `Debug` and above, which includes the output of tools (see [Running tools](#running-tools)). Pass `--verbosity <level>` to change that, such as `--verbosity information` to hide `Debug` messages, or `--verbosity warning` to write only warnings and errors. Without the option, baun reads the level from the environment variable `BAUN_VERBOSITY`. A parameter named `Verbosity` takes the option over, and `--baun-verbosity` sets the level instead (see [Parameters](#parameters)).
 
 baun writes its own errors, such as an unknown step, a missing parameter or the exception of a failing step, as `Error` messages too.
 
@@ -578,7 +580,7 @@ baun --step Init
 
 The source generator warns about such steps (`BAUN007`).
 
-Run `baun --plan` to open the steps a run would execute, in order and with their dependencies, without running them. Name steps to see their plan, such as `baun Pack --plan`. baun reads the parameters and checks the requirements as it does for a run, so the plan fails for the same mistakes, such as an unknown step or a missing required parameter. Because of the option, a parameter named `Plan` is a build error (`BAUN011`).
+Run `baun --plan` to open the steps a run would execute, in order and with their dependencies, without running them. Name steps to see their plan, such as `baun Pack --plan`. baun reads the parameters and checks the requirements as it does for a run, so the plan fails for the same mistakes, such as an unknown step or a missing required parameter. A parameter named `Plan` takes the option over, and `--baun-plan` opens the plan instead (see [Parameters](#parameters)).
 
 The plan opens in the browser as a graph of all steps and their dependencies on a canvas. The steps that run are numbered in the order they run, and the others are dimmed. Drag to pan, scroll to zoom and hover a step to highlight the steps that would run for it. baun writes the page to `.baun/temp/plan.html`, overwriting it each time, and `baun init` ignores `.baun/temp` in git. On a CI server, in an SSH session, without a display, with redirected output or when the browser can't start, baun prints the path of the page instead, so you can open it yourself.
 

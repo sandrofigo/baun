@@ -39,13 +39,23 @@ internal sealed class BuildRunner(
     private readonly Func<string, bool> openInBrowser = openInBrowser ?? Browser.TryOpen;
 
     /// <summary>
+    /// The normalized names of the parameters, which take over built-in options of the same name.
+    /// </summary>
+    private readonly HashSet<string> parameterNames = [.. build.GetParameters().Select(parameter => ParameterResolver.Normalize(parameter.Name))];
+
+    /// <summary>
+    /// The prefix of the names under which every built-in option stays available, such as <c>--baun-plan</c>.
+    /// </summary>
+    private const string OptionPrefix = "baun-";
+
+    /// <summary>
     /// Runs the build.
     /// </summary>
     /// <param name="arguments">The command-line arguments, without the program name.</param>
     /// <returns>The process exit code: 0 on success, 1 on failure.</returns>
     public async Task<int> RunAsync(IReadOnlyList<string> arguments)
     {
-        if (HasOption(arguments, "--version", "-v"))
+        if (HasOption(arguments, "version", "-v"))
         {
             console.WriteLine(GetVersion());
             return 0;
@@ -83,7 +93,7 @@ internal sealed class BuildRunner(
                 throw verbosityError;
             }
 
-            if (HasOption(arguments, "--help", "-h"))
+            if (HasOption(arguments, "help", "-h"))
             {
                 // Parameters aren't set for the help, so an invalid value can't hide it.
                 WriteHelp(ResolveSteps());
@@ -92,14 +102,10 @@ internal sealed class BuildRunner(
 
             var parameters = build.GetParameters();
 
-            bool showPlan = HasOption(arguments, PlanOption, PlanOption);
+            IReadOnlyList<string> withoutPlan = [.. arguments.Where(argument => !IsOption(argument, PlanOption))];
+            bool showPlan = withoutPlan.Count != arguments.Count;
 
-            if (showPlan)
-            {
-                arguments = [.. arguments.Where(argument => !string.Equals(argument, PlanOption, StringComparison.OrdinalIgnoreCase))];
-            }
-
-            var (names, parameterValues) = ParseArguments(arguments, parameters);
+            var (names, parameterValues) = ParseArguments(withoutPlan, parameters);
 
             // Parameters are set before the steps are resolved, so step definitions can already use them.
             ParameterResolver.Apply(parameters, parameterValues, sources);
@@ -175,7 +181,7 @@ internal sealed class BuildRunner(
     /// <summary>
     /// The option that opens the execution plan in the browser instead of running it.
     /// </summary>
-    private const string PlanOption = "--plan";
+    private const string PlanOption = "plan";
 
     /// <summary>
     /// Opens all <paramref name="steps"/> of the build as a graph in the browser, with the steps of <paramref name="plan"/>
@@ -246,7 +252,7 @@ internal sealed class BuildRunner(
     /// Reads the minimum log level from <c>--verbosity &lt;level&gt;</c> or <c>--verbosity=&lt;level&gt;</c>, or else from
     /// <see cref="VerbosityVariable"/>, and returns the arguments without the option.
     /// </summary>
-    private static (IReadOnlyList<string> Arguments, LogLevel Verbosity) ReadVerbosity(IReadOnlyList<string> arguments, ParameterSources sources)
+    private (IReadOnlyList<string> Arguments, LogLevel Verbosity) ReadVerbosity(IReadOnlyList<string> arguments, ParameterSources sources)
     {
         var remaining = new List<string>(arguments.Count);
         string? value = null;
@@ -254,19 +260,20 @@ internal sealed class BuildRunner(
         for (int i = 0; i < arguments.Count; i++)
         {
             string argument = arguments[i];
+            int equals = argument.IndexOf('=');
 
-            if (string.Equals(argument, "--verbosity", StringComparison.OrdinalIgnoreCase))
+            if (IsOption(argument, VerbosityOption))
             {
                 if (i + 1 >= arguments.Count || arguments[i + 1].StartsWith('-'))
                 {
-                    throw new BuildConfigurationException("Option --verbosity requires a level: Verbose, Debug, Information, Warning, Error or Fatal.");
+                    throw new BuildConfigurationException($"Option {argument} requires a level: Verbose, Debug, Information, Warning, Error or Fatal.");
                 }
 
                 value = arguments[++i];
             }
-            else if (argument.StartsWith("--verbosity=", StringComparison.OrdinalIgnoreCase))
+            else if (equals >= 0 && IsOption(argument[..equals], VerbosityOption))
             {
-                value = argument["--verbosity=".Length..];
+                value = argument[(equals + 1)..];
             }
             else
             {
@@ -289,10 +296,43 @@ internal sealed class BuildRunner(
         return (remaining, Enum.Parse<LogLevel>(name));
     }
 
-    private static bool HasOption(IReadOnlyList<string> arguments, string name, string shortName) =>
-        arguments.Any(argument =>
-            string.Equals(argument, name, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(argument, shortName, StringComparison.Ordinal));
+    /// <summary>
+    /// The option that sets the minimum log level.
+    /// </summary>
+    private const string VerbosityOption = "verbosity";
+
+    /// <summary>
+    /// The option that runs a step whose name is also a command of the baun tool.
+    /// </summary>
+    private const string StepOption = "step";
+
+    private bool HasOption(IReadOnlyList<string> arguments, string name, string shortName) =>
+        arguments.Any(argument => IsOption(argument, name) || string.Equals(argument, shortName, StringComparison.Ordinal));
+
+    /// <summary>
+    /// Returns whether <paramref name="argument"/> is the built-in option <paramref name="name"/>, such as <c>--plan</c>, or
+    /// its prefixed form, such as <c>--baun-plan</c>. Like parameters, it matches case-insensitively and ignores <c>-</c> and
+    /// <c>_</c>. A parameter of the same name takes over the short form.
+    /// </summary>
+    private bool IsOption(string argument, string name)
+    {
+        if (!argument.StartsWith("--", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        string given = ParameterResolver.Normalize(argument[2..]);
+        string option = ParameterResolver.Normalize(name);
+
+        return given == ParameterResolver.Normalize(OptionPrefix + name) || (given == option && !parameterNames.Contains(option));
+    }
+
+    /// <summary>
+    /// Returns how the help shows the built-in option <paramref name="name"/>: <c>--plan</c>, or <c>--baun-plan</c> when a
+    /// parameter takes over <c>--plan</c>.
+    /// </summary>
+    private string ToHelpOption(string name) =>
+        parameterNames.Contains(ParameterResolver.Normalize(name)) ? $"--{OptionPrefix}{name}" : $"--{name}";
 
     /// <summary>
     /// Writes the usage, the steps and the options, in the style of the baun tool's help.
@@ -349,10 +389,10 @@ internal sealed class BuildRunner(
         Grid optionRows = Section()
             .AddRow("-h, --help", "Prints help information")
             .AddRow("-v, --version", "Prints version information")
-            .AddRow("    --plan", "Opens the steps that would run, in order, in the browser without running them")
-            .AddRow("    --step <name>", "Runs a step whose name is also a command of the baun tool, such as init")
+            .AddRow($"    {ToHelpOption(PlanOption)}", "Opens the steps that would run, in order, in the browser without running them")
+            .AddRow($"    {ToHelpOption(StepOption)} <name>", "Runs a step whose name is also a command of the baun tool, such as init")
             .AddRow(
-                "    --verbosity <level>",
+                $"    {ToHelpOption(VerbosityOption)} <level>",
                 $"Sets the minimum log level: Verbose, Debug (default), Information, Warning, Error or Fatal. Also read from {VerbosityVariable}");
 
         console.MarkupLine(Theme.Accent("USAGE:"));
@@ -375,6 +415,8 @@ internal sealed class BuildRunner(
 
         console.MarkupLine(Theme.Accent("OPTIONS:"));
         console.Write(optionRows);
+        console.WriteLine();
+        console.WriteLine($"    Each option also works with the prefix --{OptionPrefix}, such as --{OptionPrefix}{PlanOption}.");
     }
 
     /// <summary>
@@ -474,7 +516,7 @@ internal sealed class BuildRunner(
     /// <summary>
     /// Splits the command-line arguments into step names and parameter values.
     /// </summary>
-    private static (List<string> StepNames, Dictionary<BaunParameter, List<string>> ParameterValues) ParseArguments(
+    private (List<string> StepNames, Dictionary<BaunParameter, List<string>> ParameterValues) ParseArguments(
         IReadOnlyList<string> arguments,
         IReadOnlyList<BaunParameter> parameters)
     {
@@ -486,12 +528,12 @@ internal sealed class BuildRunner(
         {
             string argument = arguments[i];
 
-            if (string.Equals(argument, "--step", StringComparison.OrdinalIgnoreCase))
+            if (IsOption(argument, StepOption))
             {
                 // --step runs a step whose name is also a command of the baun tool, such as --step Init.
                 if (i + 1 >= arguments.Count || arguments[i + 1].StartsWith('-'))
                 {
-                    throw new BuildConfigurationException("Option --step requires a step name.");
+                    throw new BuildConfigurationException($"Option {argument} requires a step name.");
                 }
 
                 names.Add(arguments[++i]);

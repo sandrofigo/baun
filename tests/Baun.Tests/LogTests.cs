@@ -42,11 +42,26 @@ public class LogTests
     [InlineData("--verbosity", "information")]
     [InlineData("--verbosity=Information")]
     [InlineData("--VERBOSITY", "INFORMATION")]
+    [InlineData("--baun-verbosity", "information")]
+    [InlineData("--baun-verbosity=information")]
     public async Task Hides_debug_messages_with_verbosity_information(params string[] options)
     {
         var result = await RunAsync(new LoggingBuild(), ["Levels", .. options]);
 
         Assert.Equal(0, result.ExitCode);
+        Assert.DoesNotContain("DBG", result.Output);
+        Assert.Contains("INF information", result.Output);
+    }
+
+    [Fact]
+    public async Task A_parameter_named_verbosity_takes_over_the_option()
+    {
+        var build = new VerbosityParameterBuild();
+
+        var result = await RunAsync(build, "Levels", "--verbosity", "high", "--baun-verbosity", "information");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("high", build.Verbosity);
         Assert.DoesNotContain("DBG", result.Output);
         Assert.Contains("INF information", result.Output);
     }
@@ -236,4 +251,17 @@ internal sealed partial class LongLineBuild(string text)
 {
     public Step Write() => _ => _
         .Executes(() => Log.Information(text));
+}
+
+internal sealed partial class VerbosityParameterBuild
+{
+    [Parameter]
+    public string? Verbosity { get; set; }
+
+    public Step Levels() => _ => _
+        .Executes(() =>
+        {
+            Log.Debug("debug");
+            Log.Information("information");
+        });
 }
