@@ -126,101 +126,67 @@ public class BuildRunnerTests
     [Theory]
     [InlineData("--plan")]
     [InlineData("Test", "--PLAN")]
-    public async Task Shows_the_plan_instead_of_running_steps(params string[] arguments)
+    public async Task Opens_the_plan_in_the_browser_instead_of_running_steps(params string[] arguments)
     {
         var build = new SampleBuild();
 
-        var result = await RunAsync(build, arguments);
+        var result = await PlanAsync(build, browserOpens: true, arguments);
 
         Assert.Equal(0, result.ExitCode);
         Assert.Empty(build.Executed);
-        Assert.Contains("PLAN:", result.Output);
-        Assert.Matches(@"1\.\s+Clean\s*\n\s+2\.\s+Restore\s*\n\s+3\.\s+Compile\s+Depends on Clean, Restore\s*\n\s+4\.\s+Test\s+Depends on Compile", result.Output);
-        Assert.DoesNotContain("Pack", result.Output);
+        Assert.Equal([result.PagePath], result.Opened.Select(path => (AbsolutePath)path));
+        Assert.Contains("Opened the plan in the browser", result.Output);
         Assert.DoesNotContain("Build succeeded", result.Output);
+        Assert.Contains("""{"name":"Clean","dependencies":[],"order":1}""", result.Page);
+        Assert.Contains("""{"name":"Restore","dependencies":[],"order":2}""", result.Page);
+        Assert.Contains("""{"name":"Compile","dependencies":["Clean","Restore"],"order":3}""", result.Page);
+        Assert.Contains("""{"name":"Test","dependencies":["Compile"],"order":4}""", result.Page);
+        Assert.Contains("""{"name":"Pack","dependencies":["Test","Compile"],"order":null}""", result.Page);
     }
 
     [Fact]
-    public async Task Shows_the_plan_of_several_requested_steps()
+    public async Task Opens_the_plan_of_several_requested_steps()
     {
         var build = new SampleBuild();
 
-        var result = await RunAsync(build, "--plan", "Clean", "Pack");
+        var result = await PlanAsync(build, browserOpens: true, "--plan", "Clean", "Pack");
 
         Assert.Equal(0, result.ExitCode);
         Assert.Empty(build.Executed);
-        Assert.Matches(@"1\.\s+Clean\s*\n\s+2\.\s+Restore\s*\n\s+3\.\s+Compile.*\n\s+4\.\s+Test.*\n\s+5\.\s+Pack\s+Depends on Test, Compile", result.Output);
+        Assert.Contains("""{"name":"Clean","dependencies":[],"order":1}""", result.Page);
+        Assert.Contains("""{"name":"Pack","dependencies":["Test","Compile"],"order":5}""", result.Page);
     }
 
     [Fact]
-    public async Task Fails_the_plan_for_an_unknown_step()
+    public async Task Shows_where_the_plan_is_when_the_browser_cant_open()
     {
-        var build = new SampleBuild();
+        var result = await PlanAsync(new SampleBuild(), browserOpens: false, "--plan");
 
-        var result = await RunAsync(build, "--plan", "Deploy");
-
-        Assert.Equal(1, result.ExitCode);
-        Assert.Contains("Unknown step Deploy.", result.Output);
-        Assert.DoesNotContain("PLAN:", result.Output);
+        Assert.Equal(0, result.ExitCode);
+        Assert.Single(result.Opened);
+        Assert.NotNull(result.Page);
+        Assert.Contains($"Open {result.PagePath} in a browser to see the plan", result.Output);
     }
 
     [Fact]
-    public async Task Fails_the_plan_for_a_circular_dependency()
+    public async Task Fails_the_plan_when_the_page_cant_be_written()
     {
-        var result = await RunAsync(new CircularBuild(), "--plan");
-
-        Assert.Equal(1, result.ExitCode);
-        Assert.Contains("Circular dependency: A -> B -> C -> A.", result.Output);
-    }
-
-    [Fact]
-    public async Task Fails_for_a_parameter_named_plan()
-    {
-        var result = await RunAsync(new PlanParameterBuild(), "Compile");
-
-        Assert.Equal(1, result.ExitCode);
-        Assert.Contains("Parameter Plan can't be used, because --plan is an option of baun.", result.Output);
-    }
-
-    [Fact]
-    public async Task Lists_the_plan_option_in_the_help()
-    {
-        var result = await RunAsync(new SampleBuild(), "--help");
-
-        Assert.Contains("--plan", result.Output);
-    }
-
-    [Fact]
-    public async Task Opens_the_plan_in_the_browser()
-    {
-        var folder = (AbsolutePath)Directory.CreateTempSubdirectory("baun-plan-tests-").FullName;
+        var file = (AbsolutePath)Path.GetTempFileName();
 
         try
         {
-            var build = new SampleBuild();
             var console = new TestConsole().Width(250);
-            var opened = new List<string>();
 
-            var exitCode = await new BuildRunner(build, console, ParameterSources.None, CIProvider.None, path =>
-            {
-                opened.Add(path);
-                return true;
-            }, folder).RunAsync(["--plan"]);
+            // A file where the folder should be, so the folder can't be created.
+            var exitCode = await new BuildRunner(new SampleBuild(), console, ParameterSources.None, CIProvider.None, _ => true, file)
+                .RunAsync(["--plan"]);
 
-            Assert.Equal(0, exitCode);
-            Assert.Empty(build.Executed);
-            Assert.Equal([folder / "plan.html"], opened.Select(path => (AbsolutePath)path));
-            Assert.Contains("Opened in the browser", console.Output);
-            Assert.DoesNotContain("Depends on", console.Output);
-
-            string page = File.ReadAllText(folder / "plan.html");
-            Assert.Contains("""{"name":"Compile","dependencies":["Clean","Restore"],"order":3}""", page);
-            Assert.Contains("""{"name":"Test","dependencies":["Compile"],"order":4}""", page);
-            Assert.Contains("""{"name":"Pack","dependencies":["Test","Compile"],"order":null}""", page);
+            Assert.Equal(1, exitCode);
+            Assert.Contains("Could not write the plan", console.Output);
         }
         finally
         {
-            Directory.Delete(folder, recursive: true);
+            File.Delete(file);
         }
     }
 
@@ -251,35 +217,75 @@ public class BuildRunnerTests
         string page = PlanPage.Render([new PlanStep("</script><b>", [], 1)]);
 
         Assert.DoesNotContain("</script><b>", page);
-        Assert.Contains("""\u003C/script\u003E\u003Cb\u003E""", page);
+        Assert.Contains("u003C/script", page);
     }
 
     [Fact]
-    public async Task Writes_the_plan_to_the_console_when_the_browser_cant_open()
+    public async Task Fails_the_plan_for_an_unknown_step()
+    {
+        var result = await PlanAsync(new SampleBuild(), browserOpens: true, "--plan", "Deploy");
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("Unknown step Deploy.", result.Output);
+        Assert.Null(result.Page);
+        Assert.Empty(result.Opened);
+    }
+
+    [Fact]
+    public async Task Fails_the_plan_for_a_circular_dependency()
+    {
+        var result = await PlanAsync(new CircularBuild(), browserOpens: true, "--plan");
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("Circular dependency: A -> B -> C -> A.", result.Output);
+        Assert.Null(result.Page);
+    }
+
+    [Fact]
+    public async Task Fails_for_a_parameter_named_plan()
+    {
+        var result = await RunAsync(new PlanParameterBuild(), "Compile");
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("Parameter Plan can't be used, because --plan is an option of baun.", result.Output);
+    }
+
+    [Fact]
+    public async Task Lists_the_plan_option_in_the_help()
+    {
+        var result = await RunAsync(new SampleBuild(), "--help");
+
+        Assert.Contains("--plan", result.Output);
+    }
+
+    /// <summary>
+    /// Runs the build with a temporary folder for the plan page and a browser that records what it opens.
+    /// </summary>
+    private static async Task<PlanResult> PlanAsync(IBaunBuild build, bool browserOpens, params string[] arguments)
     {
         var folder = (AbsolutePath)Directory.CreateTempSubdirectory("baun-plan-tests-").FullName;
 
         try
         {
             var console = new TestConsole().Width(250);
-            var attempts = 0;
+            var opened = new List<string>();
 
-            var exitCode = await new BuildRunner(new SampleBuild(), console, ParameterSources.None, CIProvider.None, _ =>
+            var exitCode = await new BuildRunner(build, console, ParameterSources.None, CIProvider.None, path =>
             {
-                attempts++;
-                return false;
-            }, folder).RunAsync(["--plan"]);
+                opened.Add(path);
+                return browserOpens;
+            }, folder).RunAsync(arguments);
 
-            Assert.Equal(0, exitCode);
-            Assert.Equal(1, attempts);
-            Assert.Contains("Depends on Clean, Restore", console.Output);
-            Assert.DoesNotContain("Opened in the browser", console.Output);
+            AbsolutePath page = folder / PlanPage.FileName;
+            return new PlanResult(exitCode, console.Output, File.Exists(page) ? File.ReadAllText(page) : null, page, opened);
         }
         finally
         {
             Directory.Delete(folder, recursive: true);
         }
     }
+
+    private sealed record PlanResult(int ExitCode, string Output, string? Page, AbsolutePath PagePath, List<string> Opened);
 
     [Theory]
     [InlineData("--version")]

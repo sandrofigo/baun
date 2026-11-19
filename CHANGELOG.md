@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `--plan` shows the steps a run would execute, in order and with their dependencies, without running them, such as `baun Pack --plan`. It opens a graph of all steps and their dependencies in the browser, with the steps that run numbered, written to `.baun/temp/plan.html`, and prints them instead when the browser can't open, such as on a CI server. A build can't have a parameter named `Plan`, because `--plan` is an option of baun.
+- `--plan` opens the steps a run would execute in the browser, without running them, such as `baun Pack --plan`. The page, written to `.baun/temp/plan.html`, shows a graph of all steps and their dependencies, with the steps that run numbered in order. When the browser can't open, such as on a CI server, baun prints the path of the page. A build can't have a parameter named `Plan`, because `--plan` is an option of baun.
 - `baun init` adds `temp/` to `.baun/.gitignore`, also in an existing build.
 
 ## [0.7.0] - 2026-11-17
