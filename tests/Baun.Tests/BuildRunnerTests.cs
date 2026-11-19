@@ -242,15 +242,6 @@ public class BuildRunnerTests
     }
 
     [Fact]
-    public async Task Fails_for_a_parameter_named_plan()
-    {
-        var result = await RunAsync(new PlanParameterBuild(), "Compile");
-
-        Assert.Equal(1, result.ExitCode);
-        Assert.Contains("Parameter Plan can't be used, because --plan is an option of baun.", result.Output);
-    }
-
-    [Fact]
     public async Task Lists_the_plan_option_in_the_help()
     {
         var result = await RunAsync(new SampleBuild(), "--help");
@@ -604,13 +595,5 @@ internal sealed partial class ForeignDependencyBuild
 
 internal sealed partial class NoEntryBuild
 {
-    public Step Compile() => _ => _;
-}
-
-internal sealed partial class PlanParameterBuild
-{
-    [Parameter]
-    public bool Plan { get; set; }
-
     public Step Compile() => _ => _;
 }

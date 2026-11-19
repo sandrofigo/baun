@@ -445,6 +445,8 @@ public class StepGeneratorTests
     [InlineData("[Parameter] bool Help;", "the built-in option '--help'")]
     [InlineData("[Parameter(Name = \"v\")] bool Verbose;", "the built-in option '--v'")]
     [InlineData("[Parameter] string Step = \"\";", "the built-in option '--step'")]
+    [InlineData("[Parameter] bool Plan;", "the built-in option '--plan'")]
+    [InlineData("[Parameter] string Verbosity = \"\";", "the built-in option '--verbosity'")]
     [InlineData("[Parameter] string ApiKey = \"\"; [Parameter] string Api_Key = \"\";", "the parameter 'ApiKey'")]
     [InlineData("[Parameter] string ApiKey = \"\"; [Parameter(Name = \"api-key\")] string Key = \"\";", "the parameter 'ApiKey'")]
     public void Reports_an_error_for_conflicting_parameter_names(string members, string conflict)

@@ -101,7 +101,7 @@ public sealed class StepGenerator : IIncrementalGenerator
         isEnabledByDefault: true);
 
     /// <summary>The built-in options of a build, which parameters can't be named after, normalized.</summary>
-    private static readonly string[] ReservedParameterNames = new[] { "HELP", "H", "VERSION", "V", "STEP" };
+    private static readonly string[] ReservedParameterNames = new[] { "HELP", "H", "VERSION", "V", "STEP", "VERBOSITY", "PLAN" };
 
     /// <summary>
     /// The property added to every build class that returns the repository's root directory, unless the class already

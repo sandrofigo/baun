@@ -257,7 +257,7 @@ Step Compile() => _ => _
 
 Messages are message templates, as in [Serilog](https://serilog.net), which baun uses to write them: name each value in braces and pass the values in the same order, instead of using an interpolated string. The values are highlighted in the output, numbers and dates are written the same in every culture, and strings are written without quotes. Use `{{` and `}}` for literal braces. Each method also takes an exception as its first argument, such as `Log.Error(exception, "Upload of {File} failed", file)`, and writes it after the message. `Log.IsEnabled(LogLevel.Debug)` tells whether a level is written, so you can skip work that only prepares a message.
 
-A build writes messages of `Debug` and above, which includes the output of tools (see [Running tools](#running-tools)). Pass `--verbosity <level>` to change that, such as `--verbosity information` to hide `Debug` messages, or `--verbosity warning` to write only warnings and errors. Without the option, baun reads the level from the environment variable `BAUN_VERBOSITY`. Because of the option, a build can't have a parameter named `Verbosity`.
+A build writes messages of `Debug` and above, which includes the output of tools (see [Running tools](#running-tools)). Pass `--verbosity <level>` to change that, such as `--verbosity information` to hide `Debug` messages, or `--verbosity warning` to write only warnings and errors. Without the option, baun reads the level from the environment variable `BAUN_VERBOSITY`. Because of the option, a parameter named `Verbosity` is a build error (`BAUN011`).
 
 baun writes its own errors, such as an unknown step, a missing parameter or the exception of a failing step, as `Error` messages too.
 
@@ -578,7 +578,7 @@ baun --step Init
 
 The source generator warns about such steps (`BAUN007`).
 
-Run `baun --plan` to open the steps a run would execute, in order and with their dependencies, without running them. Name steps to see their plan, such as `baun Pack --plan`. baun reads the parameters and checks the requirements as it does for a run, so the plan fails for the same mistakes, such as an unknown step or a missing required parameter. Because of the option, a build can't have a parameter named `Plan`.
+Run `baun --plan` to open the steps a run would execute, in order and with their dependencies, without running them. Name steps to see their plan, such as `baun Pack --plan`. baun reads the parameters and checks the requirements as it does for a run, so the plan fails for the same mistakes, such as an unknown step or a missing required parameter. Because of the option, a parameter named `Plan` is a build error (`BAUN011`).
 
 The plan opens in the browser as a graph of all steps and their dependencies on a canvas. The steps that run are numbered in the order they run, and the others are dimmed. Drag to pan, scroll to zoom and hover a step to highlight the steps that would run for it. baun writes the page to `.baun/temp/plan.html`, overwriting it each time, and `baun init` ignores `.baun/temp` in git. On a CI server, in an SSH session, without a display, with redirected output or when the browser can't start, baun prints the path of the page instead, so you can open it yourself.
 

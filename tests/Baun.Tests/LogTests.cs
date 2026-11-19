@@ -93,15 +93,6 @@ public class LogTests
     }
 
     [Fact]
-    public async Task Fails_for_a_parameter_named_verbosity()
-    {
-        var result = await RunAsync(new VerbosityParameterBuild(), "Compile");
-
-        Assert.Equal(1, result.ExitCode);
-        Assert.Contains("ERR Parameter Verbosity can't be used, because --verbosity is an option of baun.", result.Output);
-    }
-
-    [Fact]
     public async Task Lists_the_verbosity_option_in_the_help()
     {
         var result = await RunAsync(new LoggingBuild(), "--help");
@@ -225,14 +216,6 @@ internal sealed partial class LoggingBuild
 
     public Step MultiLine() => _ => _
         .Executes(() => Log.Information("first\nsecond"));
-}
-
-internal sealed partial class VerbosityParameterBuild
-{
-    [Parameter]
-    public string? Verbosity { get; set; }
-
-    public Step Compile() => _ => _;
 }
 
 internal sealed partial class TwoRequirementsBuild

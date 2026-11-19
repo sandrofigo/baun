@@ -92,15 +92,6 @@ internal sealed class BuildRunner(
 
             var parameters = build.GetParameters();
 
-            foreach (string option in ReservedOptions)
-            {
-                if (parameters.FirstOrDefault(parameter => ParameterResolver.Normalize(parameter.Name) == ParameterResolver.Normalize(option)) is { } reserved)
-                {
-                    throw new BuildConfigurationException(
-                        $"Parameter {reserved.Name} can't be used, because --{option} is an option of baun. Give it another name with [Parameter(Name = ...)].");
-                }
-            }
-
             bool showPlan = HasOption(arguments, PlanOption, PlanOption);
 
             if (showPlan)
@@ -185,11 +176,6 @@ internal sealed class BuildRunner(
     /// The option that opens the execution plan in the browser instead of running it.
     /// </summary>
     private const string PlanOption = "--plan";
-
-    /// <summary>
-    /// The options of baun that a parameter can't use as its name, without the leading <c>--</c>.
-    /// </summary>
-    private static readonly string[] ReservedOptions = ["verbosity", "plan"];
 
     /// <summary>
     /// Opens all <paramref name="steps"/> of the build as a graph in the browser, with the steps of <paramref name="plan"/>
