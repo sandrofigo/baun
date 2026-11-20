@@ -214,6 +214,7 @@ public sealed class CliAppTests : IDisposable
         Assert.DoesNotContain("#:", File.ReadAllText(buildFile));
         Assert.Contains("<PackageReference Include=\"Baun\" Version=\"", File.ReadAllText(projectFile));
         Assert.Contains("<RootNamespace></RootNamespace>", File.ReadAllText(projectFile));
+        Assert.Contains("<IsPackable>false</IsPackable>", File.ReadAllText(projectFile)); // dotnet pack of the solution skips it
         Assert.Contains("csharp_default_private_modifier = implicit", File.ReadAllText(root / "build" / ".editorconfig"));
         Assert.Contains("Instance fields (private)", File.ReadAllText(root / "build" / "_build.csproj.DotSettings"));
         Assert.Equal(new BuildLocation(buildFile, projectFile), BuildLocator.Find(root));
