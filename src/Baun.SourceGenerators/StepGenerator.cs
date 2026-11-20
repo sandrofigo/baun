@@ -71,7 +71,7 @@ public sealed class StepGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor ParameterMustBeWritable = new(
         id: "BAUN008",
         title: "Parameter must be writable",
-        messageFormat: "The parameter '{0}' must be a non-static field that isn't readonly or const, or a non-static property with a set accessor, so baun can set it",
+        messageFormat: "The parameter '{0}' must be a non-static field that isn't const, or a non-static property with a set accessor, so baun can set it",
         category: "Baun",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -181,11 +181,11 @@ public sealed class StepGenerator : IIncrementalGenerator
             return null;
         }
 
-        var (type, isWritable) = context.TargetSymbol switch
+        var (type, isWritable, isReadOnly) = context.TargetSymbol switch
         {
-            IFieldSymbol field => (field.Type, !field.IsStatic && !field.IsReadOnly && !field.IsConst),
-            IPropertySymbol property => (property.Type, !property.IsStatic && property.SetMethod is { IsInitOnly: false }),
-            _ => (null, false),
+            IFieldSymbol field => (field.Type, !field.IsStatic && !field.IsConst, field.IsReadOnly),
+            IPropertySymbol property => (property.Type, !property.IsStatic && property.SetMethod is { IsInitOnly: false }, false),
+            _ => (null, false, false),
         };
 
         if (type is null)
@@ -205,6 +205,7 @@ public sealed class StepGenerator : IIncrementalGenerator
             Type: type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             TypeDisplayName: type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
             IsWritable: isWritable,
+            IsReadOnly: isReadOnly,
             IsRequired: IsRequiredParameter(context.TargetNode, type),
             IsTypeSupported: IsSupportedParameterType(type),
             Location: LocationInfo.From(context.TargetSymbol.Locations.FirstOrDefault()));
@@ -613,7 +614,11 @@ public sealed class StepGenerator : IIncrementalGenerator
             var description = parameter.Description is null ? "null" : SymbolDisplay.FormatLiteral(parameter.Description, quote: true);
             var isRequired = parameter.IsRequired ? "IsRequired: true, " : string.Empty;
             var memberName = SymbolDisplay.FormatLiteral(parameter.MemberName, quote: true);
-            source.AppendLine($"            new global::Baun.BaunParameter({name}, typeof({parameter.Type}), {description}, value => this.{parameter.MemberName} = ({parameter.Type})value!, {isRequired}MemberName: {memberName}),");
+            // A readonly field can only be assigned in a constructor, so baun writes it through a reference instead.
+            var target = parameter.IsReadOnly
+                ? $"global::System.Runtime.CompilerServices.Unsafe.AsRef(in this.{parameter.MemberName})"
+                : $"this.{parameter.MemberName}";
+            source.AppendLine($"            new global::Baun.BaunParameter({name}, typeof({parameter.Type}), {description}, value => {target} = ({parameter.Type})value!, {isRequired}MemberName: {memberName}),");
         }
 
         source.AppendLine("        };");
@@ -644,6 +649,7 @@ public sealed class StepGenerator : IIncrementalGenerator
         string Type,
         string TypeDisplayName,
         bool IsWritable,
+        bool IsReadOnly,
         bool IsRequired,
         bool IsTypeSupported,
         LocationInfo? Location);

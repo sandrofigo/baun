@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `[Parameter]` fields can be `readonly`, such as `[Parameter] readonly string Configuration = "Debug";`. Before, they were a build error (`BAUN008`).
 - A parameter named after `--plan`, `--step` or `--verbosity` takes over the option instead of failing the build, and the new warning `BAUN012` reports it. The built-in option stays available with the prefix `--baun-`. Parameters named after `--help` or `--version`, or starting with `Baun`, are a build error (`BAUN011`).
 
 ### Fixed

@@ -19,7 +19,8 @@ namespace Baun;
 ///     string Configuration = "Debug";
 /// }
 /// </code>
-/// baun reports a compiler error for a parameter it can't set, such as a <c>readonly</c> field or an unsupported type.
+/// A parameter field can be <c>readonly</c>. baun reports a compiler error for a parameter it can't set, such as a
+/// <c>const</c> field, a property without a setter or an unsupported type.
 /// <para>
 /// A parameter of a non-nullable reference type without an initial value, such as <c>Solution Solution;</c>, is
 /// required: baun fails before any step runs if it has no value, and it doesn't need <c>= null!</c>. When only some steps

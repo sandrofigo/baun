@@ -37,6 +37,16 @@ public sealed class ParameterTests : IDisposable
     }
 
     [Fact]
+    public async Task Sets_readonly_fields()
+    {
+        var (result, build) = await RunAsync(["--channel", "beta"], environment: new() { ["TIMEOUT"] = "60" });
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("beta", build.Channel);
+        Assert.Equal(60, build.Timeout);
+    }
+
+    [Fact]
     public async Task Reads_parameters_from_environment_variables()
     {
         var (result, build) = await RunAsync([], environment: new() { ["CONFIGURATION"] = "Release", ["NUGET_API_KEY"] = "secret" });
@@ -438,7 +448,7 @@ public sealed class ParameterTests : IDisposable
         var parameters = ((IBaunBuild)new ParameterBuild()).GetParameters();
 
         Assert.Equal(
-            ["Configuration", "NuGetApiKey", "Verbose", "Retries", "Target", "Projects", "Platforms", "nuget-source", "Output", "Inputs", "Solution", "ProjectFiles"],
+            ["Configuration", "NuGetApiKey", "Verbose", "Retries", "Target", "Projects", "Platforms", "nuget-source", "Output", "Inputs", "Solution", "ProjectFiles", "Channel", "Timeout"],
             parameters.Select(parameter => parameter.Name));
         Assert.Equal(typeof(Platform?), parameters[4].Type);
         Assert.Equal("Configuration to build", parameters[0].Description);
@@ -514,6 +524,12 @@ internal sealed partial class ParameterBuild
 
     [Parameter]
     public Baun.DotNet.Project[] ProjectFiles = [];
+
+    [Parameter]
+    public readonly string Channel = "stable";
+
+    [Parameter]
+    public readonly int Timeout = 30;
 
     public List<string> Executed { get; } = [];
 

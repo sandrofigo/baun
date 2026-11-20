@@ -254,7 +254,7 @@ Parameters can be `string`, `bool`, `char`, any number type, an enum, `Guid`, `U
 - In an environment variable, separate them with commas: `PROJECTS=src/App,src/Lib`
 - In `parameters.json`, use a JSON array, or a single value for an array with one item
 
-`baun --help` lists the parameters. baun reports an invalid value, such as `--retries many` for an `int`, as an error before it runs any step. An unknown key in `parameters.json` is also an error, so typos don't go unnoticed. The source generator reports parameters it can't set as compiler errors, such as a `readonly` field, a property without a setter or an unsupported type (`BAUN008` to `BAUN011`).
+`baun --help` lists the parameters. baun reports an invalid value, such as `--retries many` for an `int`, as an error before it runs any step. An unknown key in `parameters.json` is also an error, so typos don't go unnoticed. A parameter field can be `readonly`, such as `[Parameter] readonly string Configuration = "Debug";`, so the build itself can't change it. The source generator reports parameters it can't set as compiler errors, such as a `const` field, a property without a setter or an unsupported type (`BAUN008` to `BAUN011`).
 
 A parameter can't be named after `--help` or `--version`, or start with `Baun`, so the built-in options always work (`BAUN011`). A parameter named after another built-in option, such as `Plan`, takes it over: `--plan` sets the parameter, and the source generator warns about it (`BAUN012`). Every built-in option also works with the prefix `--baun-`, such as `--baun-plan`, so it stays available, and a script can use that form to work with any build. Add `BAUN012` to `<NoWarn>` in the project file of the build if the parameter takes over the option on purpose.
 

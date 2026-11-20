@@ -339,8 +339,23 @@ public class StepGeneratorTests
         Assert.Contains("GetParameters() =>\n        new global::Baun.BaunParameter[]\n        {\n        };", Assert.Single(sources).ReplaceLineEndings("\n"));
     }
 
+    [Fact]
+    public void Sets_readonly_fields_through_a_reference()
+    {
+        var (diagnostics, sources) = RunGenerator("""
+            partial class Build
+            {
+                [Parameter] readonly string Configuration = "Debug";
+
+                Step Compile() => _ => _;
+            }
+            """);
+
+        Assert.Empty(diagnostics);
+        Assert.Contains("value => global::System.Runtime.CompilerServices.Unsafe.AsRef(in this.Configuration) = (string)value!,", Assert.Single(sources));
+    }
+
     [Theory]
-    [InlineData("[Parameter] readonly string Configuration = \"\";")]
     [InlineData("[Parameter] const string Configuration = \"\";")]
     [InlineData("[Parameter] static string Configuration = \"\";")]
     [InlineData("[Parameter] string Configuration => \"\";")]
@@ -634,6 +649,25 @@ public class StepGeneratorTests
 
         var warning = Assert.Single(diagnostics, diagnostic => diagnostic.Id == "CS8618");
         Assert.Contains("'NotAParameter'", warning.GetMessage());
+    }
+
+    [Fact]
+    public async Task Suppresses_the_unassigned_warning_for_readonly_parameters()
+    {
+        var diagnostics = await CompileWithSuppressorAsync("""
+            partial class Build
+            {
+                [Parameter] readonly string Configuration;
+                [Parameter] readonly int Retries;
+                readonly string? NotAParameter;
+
+                Step Compile() => _ => _.Executes(() => System.Console.WriteLine($"{Configuration} {Retries} {NotAParameter}"));
+            }
+            """);
+
+        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Id == "CS8618");
+        var warning = Assert.Single(diagnostics, diagnostic => diagnostic.Id == "CS0649");
+        Assert.Contains("'Build.NotAParameter'", warning.GetMessage());
     }
 
     [Fact]
