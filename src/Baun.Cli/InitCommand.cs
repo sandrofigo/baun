@@ -469,6 +469,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
                 <Nullable>enable</Nullable>
                 <RootNamespace></RootNamespace>
                 <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+                <IsPackable>false</IsPackable>
               </PropertyGroup>
 
               <ItemGroup>

@@ -538,6 +538,7 @@ A project build is a regular .NET console project, for example in a `build` fold
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace></RootNamespace>
     <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
