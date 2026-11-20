@@ -17,6 +17,13 @@ internal static class BootstrapScripts
     public const string ShellScriptName = "build.sh";
 
     /// <summary>
+    /// The lines of <c>.gitattributes</c> that check out the scripts with the line endings they need on any operating
+    /// system and with any <c>core.autocrlf</c>: <c>sh</c> fails on the CR of CRLF line endings, and <c>cmd</c> expects
+    /// CRLF. PowerShell reads both.
+    /// </summary>
+    public static readonly string[] LineEndings = ["/" + ShellScriptName + " text eol=lf", "/build.cmd text eol=crlf"];
+
+    /// <summary>
     /// Gets the scripts to create in <paramref name="directory"/>, keyed by path.
     /// </summary>
     public static Dictionary<AbsolutePath, string> Create(AbsolutePath directory) => new()

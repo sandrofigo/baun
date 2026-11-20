@@ -87,6 +87,40 @@ public sealed class CliAppTests : IDisposable
         Assert.Contains("Created build.sh", console.Output);
         Assert.Equal(BootstrapScripts.Create(root)[root / "build.ps1"], File.ReadAllText(root / "build.ps1"));
         Assert.Equal(".dotnet/\n", File.ReadAllText(root / ".gitignore"));
+        Assert.Equal("/Build.cs text eol=lf\n/build.sh text eol=lf\n/build.cmd text eol=crlf\n", File.ReadAllText(root / ".gitattributes"));
+    }
+
+    [Theory]
+    [InlineData("--single-file", "/Build.cs text eol=lf\n/build.sh text eol=lf\n/build.cmd text eol=crlf\n")]
+    [InlineData("--project", "/build.sh text eol=lf\n/build.cmd text eol=crlf\n")]
+    public async Task Init_sets_the_line_endings_of_the_scripts_in_gitattributes(string kind, string expected)
+    {
+        var exitCode = await RunAsync("init", kind);
+
+        Assert.Equal(0, exitCode);
+        Assert.Equal(expected, File.ReadAllText(root / ".gitattributes"));
+        Assert.Contains("Created .gitattributes", console.Output);
+    }
+
+    [Theory]
+    [InlineData("* text=auto", "* text=auto\n/build.sh text eol=lf\n/build.cmd text eol=crlf\n")]
+    [InlineData("build.sh text eol=lf\n", "build.sh text eol=lf\n/build.cmd text eol=crlf\n")]
+    [InlineData("/build.sh -text\n/build.cmd -text\n", "/build.sh -text\n/build.cmd -text\n")]
+    public async Task Init_adds_missing_line_endings_to_an_existing_gitattributes(string before, string after)
+    {
+        Write(".gitattributes", before);
+
+        await RunAsync("init", "--project");
+
+        Assert.Equal(after, File.ReadAllText(root / ".gitattributes"));
+    }
+
+    [Fact]
+    public async Task Init_creates_no_gitattributes_for_a_project_build_without_bootstrap_scripts()
+    {
+        await RunAsync("init", "--project", "--no-bootstrap");
+
+        Assert.False(File.Exists(root / ".gitattributes"));
     }
 
     [Fact]

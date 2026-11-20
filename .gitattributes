@@ -1,0 +1,2 @@
+/build.sh text eol=lf
+/build.cmd text eol=crlf

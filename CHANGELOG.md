@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `baun init` adds the line endings of the bootstrap scripts and a single-file `Build.cs` to `.gitattributes`, also in an existing build: LF for `build.sh` and `Build.cs`, and CRLF for `build.cmd`. Before, `core.autocrlf` could check out `build.sh` with CRLF line endings, so it failed in Git Bash or WSL.
 - `--plan` opens the steps a run would execute in the browser, without running them, such as `baun Pack --plan`. The page, written to `.baun/temp/plan.html`, shows a graph of all steps and their dependencies, with the steps that run numbered in order. When the browser can't open, such as on a CI server, baun prints the path of the page.
 - `baun init` adds `temp/` to `.baun/.gitignore`, also in an existing build.
 - Every built-in option also works with the prefix `--baun-`, such as `--baun-plan` or `--baun-verbosity warning`, so scripts can use options that no parameter can take over.

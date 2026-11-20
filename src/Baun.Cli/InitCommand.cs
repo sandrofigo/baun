@@ -81,6 +81,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
         await WriteBootstrapScriptsAsync(cancellationToken);
         AddToGitIgnore(context.Directory / ".gitignore", BootstrapScripts.DotnetFolder);
+        AddToGitAttributes(build.ProjectFile is null ? [SingleFileLineEndings, .. BootstrapScripts.LineEndings] : BootstrapScripts.LineEndings);
         await CreateParametersFileAsync(cancellationToken);
         await MarkExecutableAsync([context.Directory / BootstrapScripts.ShellScriptName]);
 
@@ -182,11 +183,19 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             ignored.AddRange(["bin/", "obj/"]);
         }
 
+        var lineEndings = new List<string>();
+
+        if (kind == BuildKind.SingleFile)
+        {
+            lineEndings.Add(SingleFileLineEndings);
+        }
+
         if (!settings.NoBootstrap)
         {
             await WriteBootstrapScriptsAsync(cancellationToken);
             ignored.Add(BootstrapScripts.DotnetFolder);
             executables.Add(context.Directory / BootstrapScripts.ShellScriptName);
+            lineEndings.AddRange(BootstrapScripts.LineEndings);
         }
 
         if (ignored.Count > 0)
@@ -194,6 +203,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             AddToGitIgnore(gitIgnore, [.. ignored]);
         }
 
+        AddToGitAttributes(lineEndings);
         await CreateParametersFileAsync(cancellationToken);
         await MarkExecutableAsync(executables);
 
@@ -222,6 +232,48 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         console.WriteLine();
         console.MarkupLine("Next steps:");
         console.Write(grid);
+    }
+
+    /// <summary>
+    /// The line of <c>.gitattributes</c> that checks out a single-file <c>Build.cs</c> with LF line endings, since its
+    /// shebang doesn't run with CRLF.
+    /// </summary>
+    private const string SingleFileLineEndings = "/Build.cs text eol=lf";
+
+    /// <summary>
+    /// Adds the <paramref name="lines"/> to the <c>.gitattributes</c> in the current folder, creating the file if
+    /// needed. A line is skipped when the file already has attributes for its path pattern.
+    /// </summary>
+    private void AddToGitAttributes(IReadOnlyCollection<string> lines)
+    {
+        if (lines.Count == 0)
+        {
+            return;
+        }
+
+        AbsolutePath path = context.Directory / ".gitattributes";
+
+        if (!File.Exists(path))
+        {
+            File.WriteAllText(path, string.Concat(lines.Select(line => line + "\n")));
+            console.WriteSuccess($"Created {Markup.Escape(Relative(path))}");
+            return;
+        }
+
+        static string Pattern(string line) => line.Trim().Split((char[])[' ', '\t'], 2)[0].TrimStart('/');
+
+        string content = File.ReadAllText(path);
+        var patterns = content.Split('\n').Select(Pattern).ToHashSet();
+        var missing = lines.Where(line => !patterns.Contains(Pattern(line))).ToList();
+
+        if (missing.Count == 0)
+        {
+            return;
+        }
+
+        string separator = content.Length == 0 || content.EndsWith('\n') ? string.Empty : "\n";
+        File.AppendAllText(path, separator + string.Concat(missing.Select(line => line + "\n")));
+        console.WriteSuccess($"Updated {Markup.Escape(Relative(path))}");
     }
 
     /// <summary>
