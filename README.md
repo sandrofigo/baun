@@ -677,7 +677,7 @@ When you create a project build and there is a solution (`.sln` or `.slnx`) in t
 
 The scripts use an installed .NET 10 (or later) SDK when there is one. Otherwise they install the latest .NET 10 SDK into a `.dotnet` folder next to them with Microsoft's [`dotnet-install`](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-install-script) script, and reuse it on later runs. Nothing is installed system-wide.
 
-`baun init` adds `.dotnet/` to `.gitignore`. Inside a git repository, it also stages `build.sh` (and a single-file `Build.cs`) as executable, so they stay executable when committed from Windows. Use `baun init --no-bootstrap` to create only the build.
+`baun init` adds `.dotnet/` to `.gitignore`. When it creates a project build in a folder without a `.gitignore`, it also adds `bin/` and `obj/`, so the output of the build project stays out of git. An existing `.gitignore` keeps its own rules for these. Inside a git repository, it also stages `build.sh` (and a single-file `Build.cs`) as executable, so they stay executable when committed from Windows. Use `baun init --no-bootstrap` to create only the build.
 
 `baun init` always overwrites existing bootstrap scripts. Run it again in a folder that already has a build to update the scripts to the current version. This leaves the build itself alone.
 
