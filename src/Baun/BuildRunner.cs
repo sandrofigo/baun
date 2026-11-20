@@ -488,14 +488,14 @@ internal sealed class BuildRunner(
                     throw new BuildConfigurationException($"Step {step.Name} requires {requirement.Body}, which failed: {exception.Message}");
                 }
 
-                if (!ParameterResolver.IsMissing(value))
+                if (value is not false && !ParameterResolver.IsMissing(value))
                 {
                     continue;
                 }
 
                 missing.Add(FindParameter(requirement, parameters) is { } parameter
                     ? $"Step {step.Name} requires parameter {parameter.Name}. {ParameterResolver.DescribeSources(parameter)}"
-                    : $"Step {step.Name} requires {requirement.Body}, which isn't set.");
+                    : $"Step {step.Name} requires {requirement.Body}, which {(value is false ? "is false" : "isn't set")}.");
             }
         }
 

@@ -63,6 +63,8 @@ public sealed class RequiredParameterTests : IDisposable
         Assert.Matches(@"\n\s+Test\s+Runs when no step is named\s*\n", result.Output);
         Assert.Matches(@"\n\s+Publish\s+Requires --nuget-api-key, --feeds\s*\n", result.Output);
         Assert.Matches(@"\n\s+Mirror\s+Requires Fallback \?\? NuGetApiKey\s*\n", result.Output);
+        Assert.Matches(@"\n\s+SignPackages\s+Requires --sign\s*\n", result.Output);
+        Assert.Matches(@"\n\s+Upload\s+Requires Feeds\.Length > 0\s*\n", result.Output);
     }
 
     [Fact]
@@ -116,6 +118,69 @@ public sealed class RequiredParameterTests : IDisposable
     }
 
     [Theory]
+    [InlineData]
+    [InlineData("--sign", "false")]
+    public async Task Fails_when_a_required_flag_is_false(params string[] arguments)
+    {
+        var (result, build) = await RunAsync(["SignPackages", .. arguments], json: RequiredOptions);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Empty(build.Executed);
+        Assert.Contains("Step SignPackages requires parameter Sign. Pass --sign, set SIGN or add it to .baun/parameters.json.", result.Output);
+    }
+
+    [Theory]
+    [InlineData("--sign")]
+    [InlineData("--sign", "true")]
+    public async Task Runs_when_a_required_flag_is_true(params string[] arguments)
+    {
+        var (result, build) = await RunAsync(["SignPackages", .. arguments], json: RequiredOptions);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(["SignPackages"], build.Executed);
+    }
+
+    [Fact]
+    public async Task Fails_when_a_required_condition_is_false()
+    {
+        var (result, build) = await RunAsync(["Upload"], json: RequiredOptions);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Empty(build.Executed);
+        Assert.Contains("Step Upload requires Feeds.Length > 0, which is false.", result.Output);
+    }
+
+    [Fact]
+    public async Task Runs_when_a_required_condition_is_true()
+    {
+        var (result, build) = await RunAsync(["Upload", "--feeds", "main"], json: RequiredOptions);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(["Upload"], build.Executed);
+    }
+
+    [Theory]
+    [InlineData(null, "isn't set")]
+    [InlineData(false, "is false")]
+    public async Task Fails_when_a_required_nullable_bool_is_not_true(bool? approved, string reason)
+    {
+        var (result, build) = await RunAsync(["Deploy"], json: RequiredOptions, configure: build => build.Approved = approved);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Empty(build.Executed);
+        Assert.Contains($"Step Deploy requires Approved, which {reason}.", result.Output);
+    }
+
+    [Fact]
+    public async Task Runs_when_a_required_nullable_bool_is_true()
+    {
+        var (result, build) = await RunAsync(["Deploy"], json: RequiredOptions, configure: build => build.Approved = true);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(["Deploy"], build.Executed);
+    }
+
+    [Theory]
     [InlineData("() => NuGetApiKey", "NuGetApiKey")]
     [InlineData("()=>this.NuGetApiKey!", "NuGetApiKey")]
     [InlineData("() => @class", "class")]
@@ -130,9 +195,11 @@ public sealed class RequiredParameterTests : IDisposable
     private async Task<(RunResult Result, RequiredParameterBuild Build)> RunAsync(
         string[] arguments,
         Dictionary<string, string>? environment = null,
-        string? json = null)
+        string? json = null,
+        Action<RequiredParameterBuild>? configure = null)
     {
         var build = new RequiredParameterBuild();
+        configure?.Invoke(build);
         var console = new TestConsole().Width(250);
         var sources = new ParameterSources(environment ?? [], json is null ? null : WriteParametersFile(json));
 
@@ -167,7 +234,12 @@ internal sealed partial class RequiredParameterBuild
     [Parameter]
     public string[] Feeds = [];
 
+    [Parameter]
+    public bool Sign;
+
     public string? Fallback { get; set; }
+
+    public bool? Approved { get; set; }
 
     public List<string> Executed { get; } = [];
 
@@ -195,4 +267,16 @@ internal sealed partial class RequiredParameterBuild
     public Step Mirror() => _ => _
         .Requires(() => Fallback ?? NuGetApiKey)
         .Executes(() => Executed.Add(nameof(Mirror)));
+
+    public Step SignPackages() => _ => _
+        .Requires(() => Sign)
+        .Executes(() => Executed.Add(nameof(SignPackages)));
+
+    public Step Upload() => _ => _
+        .Requires(() => Feeds.Length > 0)
+        .Executes(() => Executed.Add(nameof(Upload)));
+
+    public Step Deploy() => _ => _
+        .Requires(() => Approved)
+        .Executes(() => Executed.Add(nameof(Deploy)));
 }

@@ -27,8 +27,8 @@ public sealed class StepBuilder
     /// </summary>
     /// <remarks>
     /// baun checks the requirements of every step it is going to run, including dependencies, after it sets the
-    /// parameters and before the first step starts. If a value is <see langword="null"/>, an empty string or an empty
-    /// array, the build fails without running any step, so it never stops halfway. Because of that, a requirement can't
+    /// parameters and before the first step starts. If a value is <see langword="null"/>, <see langword="false"/>, an
+    /// empty string or an empty array, the build fails without running any step, so it never stops halfway. Because of that, a requirement can't
     /// be met by an earlier step of the same run: check values that a step computes in the step that uses them.
     /// <code>
     /// Step Publish() => _ => _

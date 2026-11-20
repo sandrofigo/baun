@@ -251,7 +251,7 @@ Step Publish() => _ => _
     .Executes(() => ...);
 ```
 
-baun checks the requirements of every step it is going to run, including dependencies, before the first step starts. `baun Publish` without an API key fails before `Pack` runs, so a build never stops halfway because of a missing value. A value is missing if it's `null`, an empty string or an empty array. Because of this, an earlier step of the same run can't set a required value; check values that steps compute in the step that uses them. Chain `Requires` to require several values. `baun --help` marks required parameters and lists what each step requires.
+baun checks the requirements of every step it is going to run, including dependencies, before the first step starts. `baun Publish` without an API key fails before `Pack` runs, so a build never stops halfway because of a missing value. A value is missing if it's `null`, `false`, an empty string or an empty array, so a condition such as `.Requires(() => Feeds.Length > 0)` works too. Because of this, an earlier step of the same run can't set a required value; check values that steps compute in the step that uses them. Chain `Requires` to require several values. `baun --help` marks required parameters and lists what each step requires.
 
 ## Logging
 

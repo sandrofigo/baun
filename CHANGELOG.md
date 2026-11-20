@@ -24,6 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - A parameter named after `--plan`, `--step` or `--verbosity` takes over the option instead of failing the build, and the new warning `BAUN012` reports it. The built-in option stays available with the prefix `--baun-`. Parameters named after `--help` or `--version`, or starting with `Baun`, are a build error (`BAUN011`).
 
+### Fixed
+
+- `Requires` fails the build when its value is `false`, such as `.Requires(() => Sign)` or `.Requires(() => Feeds.Length > 0)`. Before, `false` counted as set, so a boolean requirement never failed.
+
 ## [0.7.0] - 2026-11-17
 
 ### Added
