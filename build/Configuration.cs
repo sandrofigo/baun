@@ -1,0 +1,5 @@
+enum Configuration
+{
+    Debug,
+    Release,
+}

@@ -7,7 +7,7 @@ partial class Build
     static AbsolutePath ArtifactsDirectory => RootDirectory / "artifacts";
 
     [Parameter("Configuration to test and pack")]
-    readonly string Configuration = "Release";
+    readonly Configuration Configuration = Configuration.Release;
 
     [Parameter("API key for pushing the packages to nuget.org", Name = "nuget-api-key")]
     readonly string? NuGetApiKey;
@@ -78,14 +78,14 @@ partial class Build
         .DependsOn(Clean)
         .Executes(async () =>
         {
-            await DotNet.Test().Solution(Solution).Configuration(Configuration).RunAsync();
+            await DotNet.Test().Solution(Solution).Configuration(Configuration.ToString()).RunAsync();
         });
 
     Step Pack() => _ => _
         .DependsOn(Clean, ValidateChangelog, Test)
         .Executes(async () =>
         {
-            DotNetPackCommand pack = DotNet.Pack(Solution).Configuration(Configuration).Output(ArtifactsDirectory);
+            DotNetPackCommand pack = DotNet.Pack(Solution).Configuration(Configuration.ToString()).Output(ArtifactsDirectory);
 
             if (await Git.GetCurrentTagAsync() is not null)
             {
