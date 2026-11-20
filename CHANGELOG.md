@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A project build that `baun init` creates restores in a repository that manages package versions centrally. Before, `Directory.Packages.props` made it fail with `NU1008`.
 - A project build that `baun init` creates isn't packable, so `dotnet pack` of a solution that contains it no longer creates a package of the build.
 - `baun init` adds `bin/` and `obj/` to the `.gitignore` it creates for a project build, also with `--no-bootstrap`. Before, it only added `.dotnet/`, so the output of the build project could end up in git.
+- The bootstrap scripts follow `global.json`. They check the SDK that `dotnet` picks for their folder instead of any installed SDK, and install the version that `global.json` sets. Before, an installed .NET 10 SDK counted even when `global.json` selected another one, so `dotnet run` could fail. Run `baun init` in an existing build to update its scripts.
 - `Requires` fails the build when its value is `false`, such as `.Requires(() => Sign)` or `.Requires(() => Feeds.Length > 0)`. Before, `false` counted as set, so a boolean requirement never failed.
 
 ## [0.7.0] - 2026-11-17

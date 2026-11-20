@@ -451,6 +451,25 @@ public sealed class CliAppTests : IDisposable
     }
 
     [Fact]
+    public async Task Init_creates_bootstrap_scripts_that_follow_global_json()
+    {
+        await RunAsync("init", "--single-file");
+
+        // The SDK check asks dotnet in the folder of the script, so global.json picks the SDK, and the install uses the
+        // version that global.json sets.
+        var shellScript = File.ReadAllText(root / "build.sh");
+        Assert.Contains("version=$(cd \"$SCRIPT_DIR\" && dotnet --version 2> /dev/null)", shellScript);
+        Assert.Contains("--jsonfile \"$SCRIPT_DIR/global.json\"", shellScript);
+        Assert.DoesNotContain("--list-sdks", shellScript);
+
+        var powerShellScript = File.ReadAllText(root / "build.ps1");
+        Assert.Contains("Push-Location $PSScriptRoot", powerShellScript);
+        Assert.Contains("dotnet --version", powerShellScript);
+        Assert.Contains("-JSonFile $GlobalJson", powerShellScript);
+        Assert.DoesNotContain("--list-sdks", powerShellScript);
+    }
+
+    [Fact]
     public async Task Init_skips_the_bootstrap_scripts_with_no_bootstrap()
     {
         var exitCode = await RunAsync("init", "--project", "--no-bootstrap");
