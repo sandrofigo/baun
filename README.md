@@ -675,7 +675,7 @@ When you create a project build and there is a solution (`.sln` or `.slnx`) in t
 ./build.cmd Test  # Windows (runs build.ps1)
 ```
 
-The scripts use an installed .NET 10 (or later) SDK when there is one. Otherwise they install the latest .NET 10 SDK into a `.dotnet` folder next to them with Microsoft's [`dotnet-install`](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-install-script) script, and reuse it on later runs. Nothing is installed system-wide.
+The scripts use an installed SDK when the one `dotnet` picks for their folder is .NET 10 or later. That check follows a [`global.json`](https://learn.microsoft.com/en-us/dotnet/core/tools/global-json) next to them. Otherwise they install an SDK into a `.dotnet` folder next to them with Microsoft's [`dotnet-install`](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-install-script) script, and reuse it on later runs. They install the version `global.json` sets, or the latest .NET 10 SDK if there's no `global.json` or it sets no version. Nothing is installed system-wide. If `global.json` selects an SDK older than .NET 10, the scripts stop with an error.
 
 `baun init` adds `.dotnet/` to `.gitignore`. When it creates a project build in a folder without a `.gitignore`, it also adds `bin/` and `obj/`, so the output of the build project stays out of git. An existing `.gitignore` keeps its own rules for these. Inside a git repository, it also stages `build.sh` (and a single-file `Build.cs`) as executable, so they stay executable when committed from Windows. Use `baun init --no-bootstrap` to create only the build.
 
