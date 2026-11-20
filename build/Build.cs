@@ -2,15 +2,15 @@
 partial class Build
 {
     [Parameter("Solution to test and pack")]
-    Solution Solution;
+    readonly Solution Solution;
 
     static AbsolutePath ArtifactsDirectory => RootDirectory / "artifacts";
 
     [Parameter("Configuration to test and pack")]
-    string Configuration = "Release";
+    readonly string Configuration = "Release";
 
     [Parameter("API key for pushing the packages to nuget.org", Name = "nuget-api-key")]
-    string? NuGetApiKey;
+    readonly string? NuGetApiKey;
 
     Step ValidateChangelog() => _ => _
         .Executes(async () =>
