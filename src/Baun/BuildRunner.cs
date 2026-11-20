@@ -84,6 +84,11 @@ internal sealed class BuildRunner(
 
     private async Task<int> RunAsync(IReadOnlyList<string> arguments, ParameterSources sources, BuildConfigurationException? verbosityError)
     {
+        if (!await TryRunHookAsync<IOnBuildCreated>(hook => hook.OnBuildCreatedAsync()))
+        {
+            return 1;
+        }
+
         List<ResolvedStep> plan;
 
         try
@@ -136,6 +141,41 @@ internal sealed class BuildRunner(
         var results = new List<StepResult>();
         var total = Stopwatch.StartNew();
 
+        bool succeeded = await TryRunHookAsync<IOnBuildInitialized>(hook => hook.OnBuildInitializedAsync())
+                         && await RunStepsAsync(plan, results);
+
+        if (succeeded)
+        {
+            // A failing success hook fails the build, but doesn't make it run the failure hook.
+            succeeded = await TryRunHookAsync<IOnBuildSucceeded>(hook => hook.OnBuildSucceededAsync());
+        }
+        else
+        {
+            await TryRunHookAsync<IOnBuildFailed>(hook => hook.OnBuildFailedAsync());
+        }
+
+        succeeded &= await TryRunHookAsync<IOnBuildCompleted>(hook => hook.OnBuildCompletedAsync());
+
+        results.AddRange(plan.Skip(results.Count).Select(skipped => new StepResult(skipped.Name, StepStatus.Skipped, null)));
+        WriteSummary(results);
+
+        if (!succeeded)
+        {
+            console.MarkupLine($"[red]{console.Cross()} Build failed after {Format(total.Elapsed)}[/]");
+            return 1;
+        }
+
+        console.MarkupLine($"[green]{console.Check()} Build succeeded in {Format(total.Elapsed)}[/]");
+        return 0;
+    }
+
+    /// <summary>
+    /// Runs the steps of <paramref name="plan"/> in order until one fails, and adds the result of each to
+    /// <paramref name="results"/>.
+    /// </summary>
+    /// <returns>Whether every step and its hooks succeeded.</returns>
+    private async Task<bool> RunStepsAsync(List<ResolvedStep> plan, List<StepResult> results)
+    {
         foreach (ResolvedStep step in plan)
         {
             var stopwatch = Stopwatch.StartNew();
@@ -148,34 +188,79 @@ internal sealed class BuildRunner(
                 $" {Markup.Escape(step.Name)}\n{Theme.Faint(console.Underline($" {step.Name}"))}",
                 padFallback: true);
 
+            Exception? failure = null;
+
             try
             {
+                // The start and success hooks belong to the step, so an exception in them fails it.
+                await RunHookAsync<IOnStepStarted>(hook => hook.OnStepStartedAsync(step.Name));
+
                 foreach (var action in step.Builder.Actions)
                 {
                     await action();
                 }
+
+                await RunHookAsync<IOnStepSucceeded>(hook => hook.OnStepSucceededAsync(step.Name));
             }
             catch (Exception exception)
             {
-                // End the group first, so the error isn't hidden in a collapsed group.
-                group.Dispose();
-
-                results.Add(new StepResult(step.Name, StepStatus.Failed, stopwatch.Elapsed));
-                Log.Error(exception, "Step {Step} failed", step.Name);
-                results.AddRange(plan.Skip(results.Count).Select(skipped => new StepResult(skipped.Name, StepStatus.Skipped, null)));
-
-                WriteSummary(results);
-                console.MarkupLine($"[red]{console.Cross()} Build failed after {Format(total.Elapsed)}[/]");
-                return 1;
+                failure = exception;
             }
 
+            // End the group first, so an error isn't hidden in a collapsed group.
             group.Dispose();
+
+            if (failure is not null)
+            {
+                results.Add(new StepResult(step.Name, StepStatus.Failed, stopwatch.Elapsed));
+                Log.Error(failure, "Step {Step} failed", step.Name);
+
+                await TryRunHookAsync<IOnStepFailed>(hook => hook.OnStepFailedAsync(step.Name, failure));
+                await TryRunHookAsync<IOnStepCompleted>(hook => hook.OnStepCompletedAsync(step.Name));
+                return false;
+            }
+
             results.Add(new StepResult(step.Name, StepStatus.Succeeded, stopwatch.Elapsed));
+
+            if (!await TryRunHookAsync<IOnStepCompleted>(hook => hook.OnStepCompletedAsync(step.Name)))
+            {
+                return false;
+            }
         }
 
-        WriteSummary(results);
-        console.MarkupLine($"[green]{console.Check()} Build succeeded in {Format(total.Elapsed)}[/]");
-        return 0;
+        return true;
+    }
+
+    /// <summary>
+    /// Runs a hook if the build implements <typeparamref name="THook"/>, and lets an exception of it through.
+    /// </summary>
+    private Task RunHookAsync<THook>(Func<THook, Task> run)
+        where THook : class =>
+        build is THook hook ? run(hook) : Task.CompletedTask;
+
+    /// <summary>
+    /// Runs a hook if the build implements <typeparamref name="THook"/>, and logs an exception of it as an error.
+    /// </summary>
+    /// <returns>Whether the hook succeeded or the build doesn't implement it.</returns>
+    private async Task<bool> TryRunHookAsync<THook>(Func<THook, Task> run)
+        where THook : class
+    {
+        if (build is not THook hook)
+        {
+            return true;
+        }
+
+        try
+        {
+            await run(hook);
+            return true;
+        }
+        catch (Exception exception)
+        {
+            // IOnBuildFailed runs the hook OnBuildFailedAsync.
+            Log.Error(exception, "Hook {Hook} failed", typeof(THook).Name[1..] + "Async");
+            return false;
+        }
     }
 
     /// <summary>

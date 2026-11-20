@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `GitLogger`, the default logger of `Git`, writes git's `fatal:` and `error:` lines as `Error`, `warning:` lines as `Warning`, and its progress on the standard error as `Debug` instead of `Warning`. Change it for all commands with `Git.Logger`.
 - `ToolCommand<TSelf>` is the base of typed commands, to add typed commands for other tools.
 - `TempDirectory` returns baun's temp directory, `.baun/temp`, or `baun` in the temp directory of the system without a `.baun` folder. Build classes get it as a property, like `RootDirectory`, and `BaunBuild.TempDirectory` works anywhere. `BaunBuild.CreateTempFile` and `BaunBuild.CreateTempDirectory` create an empty file or directory with a unique name in it, such as `BaunBuild.CreateTempFile(".json")`.
+- Hooks run code at points of a build. A build class implements one interface for each hook it needs, such as `IOnBuildFailed` with `OnBuildFailedAsync()`. There are hooks for when the build is created, initialized, succeeds, fails or completes, and for when each step starts, succeeds, fails or completes.
 
 ### Changed
 
