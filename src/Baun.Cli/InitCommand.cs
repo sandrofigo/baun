@@ -167,6 +167,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
         if (kind == BuildKind.Project)
         {
+            await CreateDirectoryBuildFilesAsync(cancellationToken);
             await WriteIdeSettingsAsync(cancellationToken);
             await AddToSolutionAsync(files.Keys.Single(path => path.Extension == ".csproj"));
         }
@@ -467,6 +468,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
                 <ImplicitUsings>enable</ImplicitUsings>
                 <Nullable>enable</Nullable>
                 <RootNamespace></RootNamespace>
+                <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
               </PropertyGroup>
 
               <ItemGroup>
@@ -478,6 +480,37 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             """.ReplaceLineEndings("\n"),
         [directory / "build" / "Build.cs"] = BuildFileBody.ReplaceLineEndings("\n"),
     };
+
+    /// <summary>
+    /// Creates an empty <c>Directory.Build.props</c> and <c>Directory.Build.targets</c> in the <c>build</c> folder
+    /// unless they exist, so the build project doesn't import the ones of the repository. Their settings, such as
+    /// <c>TreatWarningsAsErrors</c>, analyzers or package metadata, are meant for the repository's own projects. The
+    /// files are never overwritten, since the build can use them for its own settings.
+    /// </summary>
+    private async Task CreateDirectoryBuildFilesAsync(CancellationToken cancellationToken)
+    {
+        foreach (string name in (string[])["Directory.Build.props", "Directory.Build.targets"])
+        {
+            AbsolutePath path = context.Directory / "build" / name;
+
+            if (File.Exists(path))
+            {
+                continue;
+            }
+
+            await File.WriteAllTextAsync(path, DirectoryBuildFile.ReplaceLineEndings("\n"), cancellationToken);
+            console.WriteSuccess($"Created {Markup.Escape(Relative(path))}");
+        }
+    }
+
+    private const string DirectoryBuildFile = """
+        <Project>
+
+          <!-- Keeps the build from importing the file of the same name in the folders above it. -->
+
+        </Project>
+
+        """;
 
     /// <summary>
     /// Writes the <c>.editorconfig</c> and <c>_build.csproj.DotSettings</c> of a project build, overwriting existing ones.

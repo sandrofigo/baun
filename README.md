@@ -537,6 +537,7 @@ A project build is a regular .NET console project, for example in a `build` fold
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace></RootNamespace>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
   </PropertyGroup>
 
   <ItemGroup>
@@ -545,6 +546,8 @@ A project build is a regular .NET console project, for example in a `build` fold
 
 </Project>
 ```
+
+The build project keeps its settings to itself, so the settings of your repository can't break it. `baun init` creates an empty `build/Directory.Build.props` and `build/Directory.Build.targets`, so the build project doesn't import the files of the same name in your repository, with settings such as `TreatWarningsAsErrors`, analyzers or package metadata. Add settings for the build to these files, since `baun init` never overwrites them. `ManagePackageVersionsCentrally` is off, so the version of Baun stays in the project file, also when your repository manages package versions centrally in a `Directory.Packages.props`.
 
 `build/Build.cs` holds the build class, as in the [Concept](#concept) section. `baun init` also adds a `build/.editorconfig` and, for Rider and ReSharper, a `build/_build.csproj.DotSettings`, so IDEs don't ask for `private` on steps, warn about using the `_` parameter in `_ => _` or flag PascalCase parameter fields such as `NuGetApiKey`. Like the bootstrap scripts, `baun init` always overwrites these files. The Baun package hides these files, along with `Directory.Build.props` and `Directory.Build.targets`, from the project's items, so they don't clutter the project in IDEs. Without the [baun tool](#the-baun-tool), you run a step with the .NET SDK directly:
 

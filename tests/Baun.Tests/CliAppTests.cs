@@ -220,6 +220,42 @@ public sealed class CliAppTests : IDisposable
     }
 
     [Fact]
+    public async Task Init_isolates_a_project_build_from_the_settings_of_the_repository()
+    {
+        var exitCode = await RunAsync("init", "--project");
+
+        Assert.Equal(0, exitCode);
+        Assert.Contains("<ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>", File.ReadAllText(root / "build" / "_build.csproj"));
+
+        foreach (string name in (string[])["Directory.Build.props", "Directory.Build.targets"])
+        {
+            Assert.StartsWith("<Project>\n", File.ReadAllText(root / "build" / name));
+            Assert.Contains("Created " + Path.Combine("build", name), console.Output);
+        }
+    }
+
+    [Fact]
+    public async Task Init_does_not_overwrite_the_directory_build_files_of_a_project_build()
+    {
+        Write("build/Directory.Build.props", "<Project><!-- mine --></Project>\n");
+
+        var exitCode = await RunAsync("init", "--project");
+
+        Assert.Equal(0, exitCode);
+        Assert.Equal("<Project><!-- mine --></Project>\n", File.ReadAllText(root / "build" / "Directory.Build.props"));
+        Assert.True(File.Exists(root / "build" / "Directory.Build.targets"));
+    }
+
+    [Fact]
+    public async Task Init_creates_no_directory_build_files_for_a_single_file_build()
+    {
+        await RunAsync("init", "--single-file");
+
+        Assert.False(File.Exists(root / "Directory.Build.props"));
+        Assert.False(File.Exists(root / "build" / "Directory.Build.props"));
+    }
+
+    [Fact]
     public async Task Init_writes_the_dot_settings_as_rider_saves_them()
     {
         // Rider rewrites the file when it opens the project unless it's already in the form Rider saves it in.
