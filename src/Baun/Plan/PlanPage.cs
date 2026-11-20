@@ -23,15 +23,6 @@ internal static class PlanPage
     private const string Placeholder = "/*PLAN*/null";
 
     /// <summary>
-    /// Returns the folder the page is written to: <c>.baun/temp</c> in the repository root of <paramref name="directory"/>,
-    /// or the temp folder of the system when there is no <c>.baun</c> folder.
-    /// </summary>
-    public static AbsolutePath GetFolder(AbsolutePath directory) =>
-        RepositoryRoot.TryFind(directory) is { } root
-            ? root / RepositoryRoot.FolderName / RepositoryRoot.TempFolderName
-            : (AbsolutePath)Path.GetTempPath() / "baun";
-
-    /// <summary>
     /// Writes the page for <paramref name="steps"/> to <c>plan.html</c> in <paramref name="folder"/>, overwriting it.
     /// </summary>
     /// <returns>The path of the page.</returns>

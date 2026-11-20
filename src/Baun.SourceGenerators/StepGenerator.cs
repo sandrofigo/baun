@@ -128,6 +128,8 @@ public sealed class StepGenerator : IIncrementalGenerator
     /// </summary>
     private const string RootDirectoryName = "RootDirectory";
 
+    private const string TempDirectoryName = "TempDirectory";
+
     /// <summary>The baun tool's commands, which take precedence over steps with the same name.</summary>
     private static readonly string[] CliCommands = new[] { "init" };
 
@@ -330,6 +332,7 @@ public sealed class StepGenerator : IIncrementalGenerator
             MethodLocation: LocationInfo.From(method.Locations.FirstOrDefault()),
             Entry: entry,
             HasRootDirectory: !type.GetMembers(RootDirectoryName).IsEmpty,
+            HasTempDirectory: !type.GetMembers(TempDirectoryName).IsEmpty,
             IsPartial: isPartial,
             IsSupported: isSupported,
             TypeLocation: LocationInfo.From(type.Locations.FirstOrDefault()));
@@ -578,6 +581,16 @@ public sealed class StepGenerator : IIncrementalGenerator
             source.AppendLine();
         }
 
+        if (!type.HasTempDirectory)
+        {
+            source.AppendLine("    /// <summary>");
+            source.AppendLine("    /// Gets the temp directory of baun: <c>.baun/temp</c> in the root directory, or the folder <c>baun</c> in the temp");
+            source.AppendLine("    /// directory of the system without a <c>.baun</c> folder. It's created if it doesn't exist.");
+            source.AppendLine("    /// </summary>");
+            source.AppendLine($"    private static global::Baun.AbsolutePath {TempDirectoryName} => global::Baun.BaunBuild.TempDirectory;");
+            source.AppendLine();
+        }
+
         source.AppendLine("    global::System.Collections.Generic.IReadOnlyList<global::Baun.BaunStep> global::Baun.IBaunBuild.GetSteps() =>");
         source.AppendLine("        new global::Baun.BaunStep[]");
         source.AppendLine("        {");
@@ -617,6 +630,7 @@ public sealed class StepGenerator : IIncrementalGenerator
         LocationInfo? MethodLocation,
         EntryInfo? Entry,
         bool HasRootDirectory,
+        bool HasTempDirectory,
         bool IsPartial,
         bool IsSupported,
         LocationInfo? TypeLocation);

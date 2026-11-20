@@ -24,7 +24,7 @@ namespace Baun;
 /// Opens a file in the browser and returns whether it could. Defaults to <see cref="Browser.TryOpen"/>.
 /// </param>
 /// <param name="planFolder">
-/// The folder the plan page is written to. Defaults to <c>.baun/temp</c> in the repository root of the current directory.
+/// The folder the plan page is written to. Defaults to the temp directory of baun for the current directory (see <see cref="BaunBuild.TempDirectory"/>).
 /// </param>
 internal sealed class BuildRunner(
     IBaunBuild build,
@@ -190,7 +190,7 @@ internal sealed class BuildRunner(
     /// <returns>The process exit code: 0 on success, 1 when the page can't be written.</returns>
     private int ShowPlan(List<ResolvedStep> steps, List<ResolvedStep> plan)
     {
-        AbsolutePath folder = planFolder ?? PlanPage.GetFolder((AbsolutePath)Environment.CurrentDirectory);
+        AbsolutePath folder = planFolder ?? BaunBuild.FindTempDirectory((AbsolutePath)Environment.CurrentDirectory);
         AbsolutePath path;
 
         try

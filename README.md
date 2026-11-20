@@ -106,6 +106,20 @@ Step Clean() => _ => _
 
 The root directory is the nearest folder that contains a `.baun` folder, searched from the current folder up through its parents. Without a `.baun` folder, it's the current folder. `baun init` creates `.baun` (see [Parameters](#parameters)). The source generator adds the property, unless the build class already has a member named `RootDirectory`. Outside the build class, use `BaunBuild.RootDirectory`.
 
+For files a build only needs while it runs, such as downloads or generated settings, use the `TempDirectory` property. It's `.baun/temp` in the root directory, which `baun init` adds to `.baun/.gitignore`, or the folder `baun` in the temp directory of the system without a `.baun` folder, and it's created when you use it. Like `Path.GetTempFileName` and `Directory.CreateTempSubdirectory` in .NET, `BaunBuild.CreateTempFile` creates an empty file and `BaunBuild.CreateTempDirectory` an empty directory with a unique name in it:
+
+```csharp
+Step Download() => _ => _
+    .Executes(() =>
+    {
+        AbsolutePath settings = BaunBuild.CreateTempFile(".json");       // .baun/temp/x3kq1v0d.json
+        AbsolutePath tools = BaunBuild.CreateTempDirectory("download-"); // .baun/temp/download-5ty2nmwa
+        AbsolutePath log = TempDirectory / "download.log";
+    });
+```
+
+`CreateTempFile` adds `.tmp` without an extension. baun doesn't delete temp files, so you can look at them after a run. Delete them yourself when you no longer need them. The source generator adds `TempDirectory` unless the build class already has a member with that name. Outside the build class, use `BaunBuild.TempDirectory`.
+
 `RootDirectory` is an `AbsolutePath`, baun's type for absolute paths of files and directories. The `/` operator combines it with a relative path, which may have several segments and `..`:
 
 ```csharp

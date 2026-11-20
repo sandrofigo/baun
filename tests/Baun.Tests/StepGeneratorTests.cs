@@ -528,6 +528,46 @@ public class StepGeneratorTests
     }
 
     [Fact]
+    public void Adds_a_temp_directory_property_to_the_build_class()
+    {
+        var (diagnostics, sources) = RunGenerator("""
+            partial class Build
+            {
+                Step Compile() => _ => _
+                    .Executes(() => System.Console.WriteLine(TempDirectory));
+            }
+            """);
+
+        Assert.Empty(diagnostics);
+        Assert.Contains("private static global::Baun.AbsolutePath TempDirectory => global::Baun.BaunBuild.TempDirectory;", Assert.Single(sources));
+    }
+
+    [Theory]
+    [InlineData("string TempDirectory = \"temp\";")]
+    [InlineData("static string TempDirectory => \"temp\";")]
+    [InlineData("void TempDirectory() { }")]
+    public void Adds_no_temp_directory_property_when_the_build_class_has_one(string member)
+    {
+        var (diagnostics, sources) = RunGenerator($$"""
+            partial class Build
+            {
+                {{member}}
+
+                Step Compile() => _ => _;
+            }
+            """);
+
+        Assert.Empty(diagnostics);
+        Assert.DoesNotContain("TempDirectory", Assert.Single(sources));
+    }
+
+    [Fact]
+    public void The_temp_directory_property_returns_the_temp_directory_of_the_build()
+    {
+        Assert.Equal(BaunBuild.TempDirectory, SplitBuild.Temp);
+    }
+
+    [Fact]
     public void Registers_parameters_from_all_parts_of_a_partial_class()
     {
         var parameters = ((IBaunBuild)new SplitBuild()).GetParameters();
@@ -649,6 +689,8 @@ internal sealed partial class SplitBuild
     public string Configuration = "Debug";
 
     public static AbsolutePath Root => RootDirectory;
+
+    public static AbsolutePath Temp => TempDirectory;
 
     public Step Compile() => _ => _;
 }
