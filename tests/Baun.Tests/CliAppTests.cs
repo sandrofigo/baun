@@ -456,8 +456,38 @@ public sealed class CliAppTests : IDisposable
         var exitCode = await RunAsync("init", "--project", "--no-bootstrap");
 
         Assert.Equal(0, exitCode);
-        Assert.Equal([".baun", "build"], Directory.GetFileSystemEntries(root).Select(Path.GetFileName).Order());
+        Assert.Equal([".baun", ".gitignore", "build"], Directory.GetFileSystemEntries(root).Select(Path.GetFileName).Order());
+        Assert.Equal("bin/\nobj/\n", File.ReadAllText(root / ".gitignore"));
         Assert.Equal("{}\n", File.ReadAllText(root / ".baun" / "parameters.json"));
+    }
+
+    [Fact]
+    public async Task Init_creates_a_gitignore_with_the_build_output_for_a_project_build()
+    {
+        var exitCode = await RunAsync("init", "--project");
+
+        Assert.Equal(0, exitCode);
+        Assert.Equal("bin/\nobj/\n.dotnet/\n", File.ReadAllText(root / ".gitignore"));
+        Assert.Contains("Created .gitignore", console.Output);
+        Assert.DoesNotContain("Updated .gitignore", console.Output);
+    }
+
+    [Fact]
+    public async Task Init_leaves_the_build_output_to_an_existing_gitignore()
+    {
+        Write(".gitignore", "[Bb]in/\n[Oo]bj/\n");
+
+        await RunAsync("init", "--project");
+
+        Assert.Equal("[Bb]in/\n[Oo]bj/\n.dotnet/\n", File.ReadAllText(root / ".gitignore"));
+    }
+
+    [Fact]
+    public async Task Init_does_not_ignore_build_output_for_a_single_file_build()
+    {
+        await RunAsync("init", "--single-file", "--no-bootstrap");
+
+        Assert.False(File.Exists(root / ".gitignore"));
     }
 
     [Theory]

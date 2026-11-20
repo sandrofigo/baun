@@ -172,11 +172,26 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             await AddToSolutionAsync(files.Keys.Single(path => path.Extension == ".csproj"));
         }
 
+        AbsolutePath gitIgnore = context.Directory / ".gitignore";
+        var ignored = new List<string>();
+
+        // A repository without a .gitignore would commit the build output of the build project. An existing .gitignore
+        // is left to its own rules for it, which may be spelled differently, such as [Bb]in/.
+        if (kind == BuildKind.Project && !File.Exists(gitIgnore))
+        {
+            ignored.AddRange(["bin/", "obj/"]);
+        }
+
         if (!settings.NoBootstrap)
         {
             await WriteBootstrapScriptsAsync(cancellationToken);
-            AddToGitIgnore(context.Directory / ".gitignore", BootstrapScripts.DotnetFolder);
+            ignored.Add(BootstrapScripts.DotnetFolder);
             executables.Add(context.Directory / BootstrapScripts.ShellScriptName);
+        }
+
+        if (ignored.Count > 0)
+        {
+            AddToGitIgnore(gitIgnore, [.. ignored]);
         }
 
         await CreateParametersFileAsync(cancellationToken);
@@ -210,31 +225,32 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
     }
 
     /// <summary>
-    /// Adds <paramref name="entry"/> to the <c>.gitignore</c> at <paramref name="path"/>, creating the file if needed.
+    /// Adds the <paramref name="entries"/> that are missing to the <c>.gitignore</c> at <paramref name="path"/>, creating
+    /// the file if needed.
     /// </summary>
-    private void AddToGitIgnore(AbsolutePath path, string entry)
+    private void AddToGitIgnore(AbsolutePath path, params string[] entries)
     {
         if (!File.Exists(path))
         {
-            File.WriteAllText(path, entry + "\n");
+            File.WriteAllText(path, string.Concat(entries.Select(entry => entry + "\n")));
             console.WriteSuccess($"Created {Markup.Escape(Relative(path))}");
             return;
         }
 
         string content = File.ReadAllText(path);
-        string name = entry.Trim('/');
-        bool alreadyIgnored = content
+        var ignored = content
             .Split('\n')
             .Select(line => line.Trim().Trim('/'))
-            .Contains(name);
+            .ToHashSet();
+        var missing = entries.Where(entry => !ignored.Contains(entry.Trim('/'))).ToList();
 
-        if (alreadyIgnored)
+        if (missing.Count == 0)
         {
             return;
         }
 
         string separator = content.Length == 0 || content.EndsWith('\n') ? string.Empty : "\n";
-        File.AppendAllText(path, separator + entry + "\n");
+        File.AppendAllText(path, separator + string.Concat(missing.Select(entry => entry + "\n")));
         console.WriteSuccess($"Updated {Markup.Escape(Relative(path))}");
     }
 
