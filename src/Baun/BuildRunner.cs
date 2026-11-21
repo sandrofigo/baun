@@ -349,7 +349,7 @@ internal sealed class BuildRunner(
 
             if (IsOption(argument, VerbosityOption))
             {
-                if (i + 1 >= arguments.Count || arguments[i + 1].StartsWith('-'))
+                if (!HasValueAfter(arguments, i))
                 {
                     throw new BuildConfigurationException($"Option {argument} requires a level: Verbose, Debug, Information, Warning, Error or Fatal.");
                 }
@@ -411,6 +411,12 @@ internal sealed class BuildRunner(
 
         return given == ParameterResolver.Normalize(OptionPrefix + name) || (given == option && !parameterNames.Contains(option));
     }
+
+    /// <summary>
+    /// Returns whether the option at <paramref name="index"/> is followed by a value: an argument that isn't an option.
+    /// </summary>
+    private static bool HasValueAfter(IReadOnlyList<string> arguments, int index) =>
+        index + 1 < arguments.Count && !arguments[index + 1].StartsWith('-');
 
     /// <summary>
     /// Returns how the help shows the built-in option <paramref name="name"/>: <c>--plan</c>, or <c>--baun-plan</c> when a
@@ -602,7 +608,7 @@ internal sealed class BuildRunner(
             if (IsOption(argument, StepOption))
             {
                 // --step runs a step whose name is also a command of the baun tool, such as --step Init.
-                if (i + 1 >= arguments.Count || arguments[i + 1].StartsWith('-'))
+                if (!HasValueAfter(arguments, i))
                 {
                     throw new BuildConfigurationException($"Option {argument} requires a step name.");
                 }
