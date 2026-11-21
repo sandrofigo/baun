@@ -16,3 +16,24 @@
 	--sl-color-accent-high: #1e2a7a;
 	--sl-color-text-accent: #6b81ff;
 }
+
+/* Lift the logo on hover */
+.site-title img {
+	transition: transform 0.18s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.site-title:hover img {
+	transform: translateY(-0.15rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.site-title img {
+		transition: none;
+	}
+}
+
+/* The logotype has 25px of empty space on the left of its 106px height.
+   Pull it left by that much, so the "b" lines up with the content below. */
+.site-title img {
+	margin-inline-start: calc((var(--sl-nav-height) - 2 * var(--sl-nav-pad-y)) * -25 / 106);
+}
