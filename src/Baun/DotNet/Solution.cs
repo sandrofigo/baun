@@ -113,24 +113,7 @@ public sealed class Solution : IEquatable<Solution>
     /// <param name="patterns">The patterns to match the project names with, such as <c>*.Tests</c>.</param>
     public IReadOnlyList<Project> GlobProjects(params string[] patterns)
     {
-        ArgumentNullException.ThrowIfNull(patterns);
-
-        var includes = new List<string>();
-        var excludes = new List<string>();
-
-        foreach (string pattern in patterns)
-        {
-            ArgumentException.ThrowIfNullOrEmpty(pattern, nameof(patterns));
-
-            if (pattern.StartsWith('!'))
-            {
-                excludes.Add(pattern[1..]);
-            }
-            else
-            {
-                includes.Add(pattern);
-            }
-        }
+        (List<string> includes, List<string> excludes) = GlobPatterns.Split(patterns);
 
         return _projects
             .Where(project => includes.Any(pattern => Matches(pattern, project.Name)) && !excludes.Any(pattern => Matches(pattern, project.Name)))
