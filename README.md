@@ -346,11 +346,11 @@ await Tool.Command("dotnet")
 
 The result still has the output as the tool wrote it, including secrets.
 
-Some tools answer with their exit code, such as `git diff --quiet`, which exits with 1 when there are changes. `AllowFailure` returns the result for any exit code instead of throwing a `ToolException`:
+Some tools answer with their exit code, such as `git diff --quiet`, which exits with 1 when there are unstaged changes. `AllowFailure` returns the result for any exit code instead of throwing a `ToolException`:
 
 ```csharp
 ToolResult diff = await Tool.Command("git").Arguments("diff", "--quiet").AllowFailure().RunAsync();
-bool hasChanges = diff.ExitCode != 0;
+bool hasUnstagedChanges = diff.ExitCode != 0;
 ```
 
 A tool that can't be started throws an `InvalidOperationException` that names the tool and says why, such as that it isn't installed or in the `PATH`, that the working directory doesn't exist, or that the file isn't executable. That's also the case with `AllowFailure`.
