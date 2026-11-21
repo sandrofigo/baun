@@ -172,3 +172,8 @@
 [data-has-hero] .card:hover {
 	border-color: var(--baun-card-color);
 }
+
+/* Space between the status notice and the goal cards */
+[data-has-hero] .sl-markdown-content .card-grid {
+	margin-top: 2.5rem;
+}
