@@ -1,6 +1,7 @@
 extern alias cli;
 
 using System.Diagnostics;
+using System.Text;
 using System.Text.RegularExpressions;
 using cli::Baun.Cli;
 using Spectre.Console;
@@ -616,6 +617,16 @@ public sealed class CliAppTests : IDisposable
         await RunAsync("init", "--single-file");
 
         Assert.Equal(after, File.ReadAllText(root / ".gitignore"));
+    }
+
+    [Fact]
+    public async Task Init_keeps_the_bom_of_an_existing_gitignore()
+    {
+        File.WriteAllText(root / ".gitignore", "bin/\n", new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+
+        await RunAsync("init", "--single-file");
+
+        Assert.Equal([0xEF, 0xBB, 0xBF, .. "bin/\n.dotnet/\n"u8.ToArray()], File.ReadAllBytes(root / ".gitignore"));
     }
 
     [Theory]
