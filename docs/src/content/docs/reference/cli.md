@@ -1,5 +1,5 @@
 ---
-title: The baun Tool
+title: baun CLI
 description: Create and run builds with the baun command-line tool.
 ---
 
@@ -27,7 +27,7 @@ When you create a project build and there is a solution (`.sln` or `.slnx`) in t
 
 ## Running Without the .NET SDK
 
-`baun init` also creates bootstrap scripts next to the build, so anyone can run it without installing the .NET SDK or the baun tool first:
+`baun init` also creates bootstrap scripts next to the build, so anyone can run it without installing the .NET SDK or the baun CLI first:
 
 ```shell
 ./build.sh Test   # Linux and macOS

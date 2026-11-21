@@ -1,6 +1,6 @@
 ---
 title: Getting Started
-description: Install the baun tool, create a build and run it.
+description: Install the baun CLI, create a build and run it.
 ---
 
 ## Requirements
