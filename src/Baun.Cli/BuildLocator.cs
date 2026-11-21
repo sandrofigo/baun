@@ -9,9 +9,22 @@ internal sealed record BuildLocation(AbsolutePath BuildFile, AbsolutePath? Proje
 
 internal static class BuildLocator
 {
-    private const string BuildFileName = "Build.cs";
+    /// <summary>
+    /// The file every build has, next to the build project for a project build.
+    /// </summary>
+    internal const string BuildFileName = "Build.cs";
 
-    private static readonly string[] _searchFolders = [".", "build"];
+    /// <summary>
+    /// The subfolder of the repository that holds a project build.
+    /// </summary>
+    internal const string BuildFolderName = "build";
+
+    /// <summary>
+    /// The name of the build project that <c>baun init</c> creates.
+    /// </summary>
+    internal const string ProjectFileName = "_build.csproj";
+
+    private static readonly string[] _searchFolders = [".", BuildFolderName];
 
     /// <summary>
     /// Looks for a build in <paramref name="directory"/> and its <c>build</c> subfolder.

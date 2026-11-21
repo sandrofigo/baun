@@ -65,8 +65,8 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
         // The scripts run Build.cs or build/_build.csproj next to them.
         bool scriptsFindBuild = build.ProjectFile is null
-            ? build.BuildFile == context.Directory / "Build.cs"
-            : build.ProjectFile == context.Directory / "build" / "_build.csproj";
+            ? build.BuildFile == context.Directory / BuildLocator.BuildFileName
+            : build.ProjectFile == BuildFolder / BuildLocator.ProjectFileName;
 
         if (!scriptsFindBuild)
         {
@@ -144,7 +144,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
         if (kind == BuildKind.SingleFile)
         {
-            executables.Add(context.Directory / "Build.cs");
+            executables.Add(context.Directory / BuildLocator.BuildFileName);
         }
 
         AbsolutePath? existing = files.Keys.FirstOrDefault(path => File.Exists(path));
@@ -447,6 +447,11 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         return false;
     }
 
+    /// <summary>
+    /// The folder of a project build in the current folder.
+    /// </summary>
+    private AbsolutePath BuildFolder => context.Directory / BuildLocator.BuildFolderName;
+
     private string Relative(AbsolutePath path) => Path.GetRelativePath(context.Directory, path);
 
     /// <summary>
@@ -475,7 +480,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
     private static Dictionary<AbsolutePath, string> CreateSingleFileBuild(AbsolutePath directory, string baunVersion) => new()
     {
-        [directory / "Build.cs"] = $"""
+        [directory / BuildLocator.BuildFileName] = $"""
             #!/usr/bin/env dotnet
             #:package Baun@{baunVersion}
 
@@ -485,7 +490,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
     private static Dictionary<AbsolutePath, string> CreateProjectBuild(AbsolutePath directory, string baunVersion) => new()
     {
-        [directory / "build" / "_build.csproj"] = $"""
+        [directory / BuildLocator.BuildFolderName / BuildLocator.ProjectFileName] = $"""
             <Project Sdk="Microsoft.NET.Sdk">
 
               <PropertyGroup>
@@ -505,7 +510,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             </Project>
 
             """.ReplaceLineEndings("\n"),
-        [directory / "build" / "Build.cs"] = BuildFileBody.ReplaceLineEndings("\n"),
+        [directory / BuildLocator.BuildFolderName / BuildLocator.BuildFileName] = BuildFileBody.ReplaceLineEndings("\n"),
     };
 
     /// <summary>
@@ -518,7 +523,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
     {
         foreach (string name in (string[])["Directory.Build.props", "Directory.Build.targets"])
         {
-            AbsolutePath path = context.Directory / "build" / name;
+            AbsolutePath path = BuildFolder / name;
 
             if (File.Exists(path))
             {
@@ -547,12 +552,12 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         var files = new[]
         {
             (".editorconfig", EditorConfig, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)),
-            ("_build.csproj.DotSettings", DotSettings, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true)),
+            ($"{BuildLocator.ProjectFileName}.DotSettings", DotSettings, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true)),
         };
 
         foreach ((string name, string content, Encoding encoding) in files)
         {
-            AbsolutePath path = context.Directory / "build" / name;
+            AbsolutePath path = BuildFolder / name;
             await WriteFileAsync(path, content.ReplaceLineEndings("\n"), encoding, cancellationToken);
         }
     }
