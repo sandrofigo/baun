@@ -9,7 +9,7 @@ description: Install the baun CLI, create a build and run it.
 
 ## Create Your First Build
 
-1. Install the `baun` tool as a global .NET tool:
+1. Install the baun CLI as a global .NET tool:
 
    ```shell
    dotnet tool install --global Baun.Cli
@@ -32,8 +32,8 @@ description: Install the baun CLI, create a build and run it.
    baun Compile  # runs Compile and the steps it depends on
    ```
 
-   The new build has three sample steps, `Clean`, `Compile` and `Test`, that each print a message. baun runs them in dependency order and ends with a summary of each step's status and duration.
+   The new build has three sample steps, Clean, Compile and Test, that each print a message. baun runs them in dependency order and ends with a summary of each step's status and duration.
 
 4. Open `build/Build.cs` (or `Build.cs` in a single-file build) and replace the sample steps with your own work. Add a step by adding a method that returns a `Step`. The [Concept](../guides/concept/) section explains how steps work.
 
-5. Commit the `build` folder (or `Build.cs`) and the bootstrap scripts. On a CI server, run the same build with `./build.sh Test` or `./build.cmd Test`, or install the tool and run `baun Test`.
+5. Commit the build folder (or Build.cs) and the bootstrap scripts. On a CI server, run the same build with `./build.sh Test` or `./build.cmd Test`, or install the tool and run `baun Test`.

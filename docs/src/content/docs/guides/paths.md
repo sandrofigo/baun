@@ -15,13 +15,13 @@ Step Clean() => _ => _
 
 ## Root Directory
 
-The root directory is the nearest folder that contains a `.baun` folder, searched from the current folder up through its parents. Without a `.baun` folder, it's the current folder. `baun init` creates `.baun` (see [Parameters](../../guides/parameters/)).
+The root directory is the nearest folder that contains a `.baun` folder, searched from the current folder up through its parents. Without one, it's the current folder. `baun init` creates this folder (see [Parameters](../../guides/parameters/)).
 
 The source generator adds the property, unless the build class already has a member named `RootDirectory`. Outside the build class, use `BaunBuild.RootDirectory`.
 
 ## Temp Directory
 
-For files a build only needs while it runs, such as downloads or generated settings, use the `TempDirectory` property. It's `.baun/temp` in the root directory, which `baun init` adds to `.baun/.gitignore`. Without a `.baun` folder, it's the folder `baun` in the temp directory of the system. It's created when you use it.
+For files a build only needs while it runs, such as downloads or generated settings, use the `TempDirectory` property. It's `.baun/temp` in the root directory, which baun init ignores in git. Without a .baun folder, it's a folder named baun in the temp directory of the system. It's created when you use it.
 
 Like `Path.GetTempFileName` and `Directory.CreateTempSubdirectory` in .NET, `BaunBuild.CreateTempFile` creates an empty file and `BaunBuild.CreateTempDirectory` an empty directory with a unique name in it:
 
@@ -41,15 +41,15 @@ The source generator adds `TempDirectory` unless the build class already has a m
 
 ## AbsolutePath
 
-`RootDirectory` is an `AbsolutePath`, baun's type for absolute paths of files and directories. The `/` operator combines it with a relative path, which may have several segments and `..`:
+The root directory is an `AbsolutePath`, baun's type for absolute paths of files and directories. The `/` operator combines it with a relative path, which may have several segments and `..`:
 
 ```csharp
 AbsolutePath ArtifactsDirectory => RootDirectory / "artifacts";
 AbsolutePath Package => ArtifactsDirectory / "packages" / "App.1.0.0.nupkg";
 ```
 
-- An `AbsolutePath` converts to a `string` implicitly, so you can pass it to `File`, `Directory`, `Path` and process arguments.
-- To turn a string into an `AbsolutePath`, cast it: `(AbsolutePath)"/tmp/output"`. The cast throws for a relative path, and `/` throws for a rooted one.
+- A path converts to a string implicitly, so you can pass it to the file APIs of .NET and to process arguments.
+- To turn a string into a path, cast it: `(AbsolutePath)"/tmp/output"`. The cast throws for a relative path, and `/` throws for a rooted one.
 - `Name`, `Extension` and `Parent` return the parts of a path.
 - Two paths are equal when they name the same file, ignoring case on Windows and macOS. A trailing separator doesn't count.
 

@@ -33,29 +33,29 @@ partial class Build
 
 ## Steps
 
-`Build.cs` contains a `partial class Build` that holds the steps, and each step is a method that returns a `Step`. A step's name is its method name, so you never repeat a name as a string. Steps refer to each other through these methods, so the compiler catches a misspelled or missing dependency. IDE features such as renaming and "find all references" work on steps too.
+Build.cs contains a partial class named Build that holds the steps, and each step is a method that returns a `Step`. A step's name is its method name, so you never repeat a name as a string. Steps refer to each other through these methods, so the compiler catches a misspelled or missing dependency. IDE features such as renaming and "find all references" work on steps too.
 
-A `Step` is a delegate. Each step returns a lambda, and baun calls that lambda with a builder that configures the step. The compiler infers the builder's type, so you never write it. You configure the step by chaining calls on the lambda parameter, which is named `_` by convention, with each call on its own line, so a step reads from top to bottom: its name, then its dependencies, then the work it does. IntelliSense lists every option after `_.`:
+A step is a delegate. Each step returns a lambda, and baun calls that lambda with a builder that configures the step. The compiler infers the builder's type, so you never write it. You configure the step by chaining calls on the lambda parameter, which is named `_` by convention, with each call on its own line, so a step reads from top to bottom: its name, then its dependencies, then the work it does. IntelliSense lists every option after `_.`:
 
 - `DependsOn` names the steps that run first. baun checks for circular dependencies before it runs any step.
-- `Executes` sets the work of the step, as a synchronous or an `async` lambda.
+- `Executes` sets the work of the step, as a synchronous or an async lambda.
 - `Requires` names values the step needs, such as an API key (see [Step Requirements](../../guides/parameters/#step-requirements)).
 
 Because steps are members of a class, the build class is also the natural place for anything they share, such as settings or version numbers. Use regular fields and properties for these.
 
 ## The Entry Step
 
-The `[Entry]` attribute on the build class names the step that runs when you don't name a step on the command line. Use `nameof`, so the compiler checks the name and renaming the step updates it. baun reads the command-line arguments itself and sets the process exit code when a step fails.
+The `[Entry]` attribute on the build class names the step that runs when you don't name a step on the command line. Use nameof, so the compiler checks the name and renaming the step updates it. baun reads the command-line arguments itself and sets the process exit code when a step fails.
 
 ## The Source Generator
 
-baun includes a source generator that completes the `partial class Build` at compile time. It finds every method that returns a `Step`, takes each step's name from its method name, and registers it with the build. This avoids scanning the build with reflection, and you don't need to register anything by hand.
+baun includes a source generator that completes the build class at compile time. It finds every method that returns a step, takes each step's name from its method name, and registers it with the build. This avoids scanning the build with reflection, and you don't need to register anything by hand.
 
-The generator also reports mistakes as compiler errors, such as a build class that isn't `partial` or an `[Entry]` that doesn't name a step. The [Diagnostics](../../reference/diagnostics/) page lists them all.
+The generator also reports mistakes as compiler errors, such as a build class that isn't partial or an entry attribute that doesn't name a step. The [Diagnostics](../../reference/diagnostics/) page lists them all.
 
 ## Namespaces
 
-baun's types are in five namespaces, which the Baun package imports automatically, so a build never needs `using` lines for baun itself:
+baun's types are in five namespaces, which the Baun package imports automatically, so a build never needs using directives for baun itself:
 
 | Namespace | Types |
 | --- | --- |
