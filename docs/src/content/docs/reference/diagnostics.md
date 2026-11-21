@@ -49,7 +49,7 @@ Two steps have names that differ only in case, such as `Test` and `test`. Step n
 
 ## BAUN007
 
-A step has the same name as a command of the baun tool, such as `Init`, so `baun Init` runs the command instead of the step. Run the step with `baun --step Init` (see [Steps Named Like Commands](../../reference/cli/#steps-named-like-commands)), or rename it.
+A step has the same name as a command of the baun CLI, such as `Init`, so `baun Init` runs the command instead of the step. Run the step with `baun --step Init` (see [Steps Named Like Commands](../../reference/cli/#steps-named-like-commands)), or rename it.
 
 ## BAUN008
 
