@@ -9,6 +9,36 @@
 	--sl-color-text-accent: #6b81ff;
 }
 
+/* Page titles and section headings about 10% smaller than Starlight's */
+:root {
+	--sl-text-h1: 2rem; /* 32px instead of 35px */
+	--sl-text-h2: 1.625rem; /* 26px instead of 29px */
+}
+
+@media (min-width: 50em) {
+	:root {
+		--sl-text-h1: 2.375rem; /* 38px instead of 42px */
+		--sl-text-h2: 1.9375rem; /* 31px instead of 35px */
+	}
+}
+
+/* Avoid a single word on the last line of a paragraph */
+.sl-markdown-content :is(p, li) {
+	text-wrap: pretty;
+}
+
+/* Balance line lengths in headings that wrap. h1#_top is the page title, which is outside the content. */
+.sl-markdown-content :is(h1, h2, h3),
+h1#_top {
+	text-wrap: balance;
+}
+
+/* Large headings look a little loose at normal tracking */
+.sl-markdown-content :is(h1, h2),
+h1#_top {
+	letter-spacing: -0.005em;
+}
+
 /* Always reserve space for the scrollbar, so content doesn't shift between short and long pages */
 html {
 	scrollbar-gutter: stable;
@@ -20,6 +50,25 @@ html {
 	--sl-color-accent: #6b81ff;
 	--sl-color-accent-high: #1e2a7a;
 	--sl-color-text-accent: #6b81ff;
+}
+
+/* Inline code in a shade of the accent color with high contrast to Starlight's usual background: lighter than the
+   accent in dark mode, darker in light mode. Code blocks keep their own colors. */
+:root {
+	--baun-inline-code: #92a4ff;
+}
+
+:root[data-theme='light'] {
+	--baun-inline-code: #2a3ee6;
+}
+
+.sl-markdown-content :not(pre) > code:not(:where(.not-content *)) {
+	color: var(--baun-inline-code);
+}
+
+/* Inside a link, inline code looks like the link */
+.sl-markdown-content a > code:not(:where(.not-content *)) {
+	color: inherit;
 }
 
 /* Lift the logo on hover */
