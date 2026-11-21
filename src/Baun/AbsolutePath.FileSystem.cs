@@ -215,23 +215,11 @@ partial class AbsolutePath
 
     private List<AbsolutePath> Glob(string[] patterns, bool directories)
     {
-        ArgumentNullException.ThrowIfNull(patterns);
+        (List<string> includes, List<string> excludes) = GlobPatterns.Split(patterns);
 
         var matcher = new Matcher(_comparison);
-
-        foreach (string pattern in patterns)
-        {
-            ArgumentException.ThrowIfNullOrEmpty(pattern, nameof(patterns));
-
-            if (pattern.StartsWith('!'))
-            {
-                matcher.AddExclude(pattern[1..]);
-            }
-            else
-            {
-                matcher.AddInclude(pattern);
-            }
-        }
+        matcher.AddIncludePatterns(includes);
+        matcher.AddExcludePatterns(excludes);
 
         if (!DirectoryExists)
         {
