@@ -37,3 +37,138 @@
 .site-title img {
 	margin-inline-start: calc((var(--sl-nav-height) - 2 * var(--sl-nav-pad-y)) * -25 / 106);
 }
+
+/* Home page */
+
+:root {
+	/* The gradient of the logotype */
+	--baun-gradient-start: #6b81ff;
+	--baun-gradient-end: #f789fe;
+	--baun-gradient: linear-gradient(90deg, var(--baun-gradient-start), var(--baun-gradient-end));
+}
+
+.baun-gradient-text {
+	background: var(--baun-gradient);
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+}
+
+[data-has-hero] main {
+	overflow-x: clip;
+}
+
+[data-has-hero] .hero {
+	position: relative;
+	isolation: isolate;
+}
+
+/* Dot pattern in the logo gradient that fades out towards the edges */
+[data-has-hero] .hero::before {
+	content: '';
+	position: absolute;
+	inset: -6rem -40vw -2rem;
+	z-index: -1;
+	background: var(--baun-gradient);
+	-webkit-mask:
+		radial-gradient(circle, #000 1.5px, transparent 2px) 0 0 / 16px 16px,
+		radial-gradient(ellipse 45% 60% at 65% 50%, #000, transparent 75%);
+	-webkit-mask-composite: source-in;
+	mask:
+		radial-gradient(circle, #000 1.5px, transparent 2px) 0 0 / 16px 16px,
+		radial-gradient(ellipse 45% 60% at 65% 50%, #000, transparent 75%);
+	mask-composite: intersect;
+	opacity: 0.6;
+	pointer-events: none;
+}
+
+:root[data-theme='light'][data-has-hero] .hero::before {
+	opacity: 0.85;
+}
+
+[data-has-hero] .hero > * {
+	min-width: 0;
+}
+
+[data-has-hero] .hero > .hero-html {
+	order: 2;
+	width: 100%;
+}
+
+@media (min-width: 50rem) {
+	[data-has-hero] .hero {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+
+/* Code preview in the hero */
+.baun-code-card {
+	position: relative;
+	width: 100%;
+	max-width: 30rem;
+	margin: 0 auto;
+	overflow: hidden;
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 0.75rem;
+	background-color: var(--sl-color-black);
+	box-shadow: var(--sl-shadow-lg);
+	text-align: start;
+}
+
+.baun-code-card::before {
+	content: '';
+	position: absolute;
+	inset: 0 0 auto;
+	height: 2px;
+	background: var(--baun-gradient);
+}
+
+.baun-code-card figcaption {
+	padding: 0.625rem 1rem;
+	border-bottom: 1px solid var(--sl-color-gray-5);
+	color: var(--sl-color-gray-3);
+	font-family: var(--sl-font-mono);
+	font-size: var(--sl-text-xs);
+}
+
+.baun-code-card pre {
+	margin: 0;
+	padding: 1rem;
+	overflow-x: auto;
+	color: var(--sl-color-white);
+	font-family: var(--sl-font-mono);
+	font-size: clamp(0.6875rem, 0.5rem + 0.6vw, 0.8125rem);
+	line-height: 1.6;
+}
+
+.baun-code-card .k { color: #f789fe; }
+.baun-code-card .t { color: #9fb0ff; }
+.baun-code-card .m { color: #d6ddff; }
+.baun-code-card .p { color: var(--sl-color-gray-3); }
+
+:root[data-theme='light'] .baun-code-card .k { color: #b0179f; }
+:root[data-theme='light'] .baun-code-card .t { color: #3f55e0; }
+:root[data-theme='light'] .baun-code-card .m { color: #1e2a7a; }
+
+/* Goal cards: one stop of the logo gradient each */
+[data-has-hero] .card {
+	--baun-card-color: var(--baun-gradient-start);
+	border-radius: 0.75rem;
+	transition: border-color 0.18s ease;
+}
+
+[data-has-hero] .card:nth-child(6n + 2) { --baun-card-color: #8382fe; }
+[data-has-hero] .card:nth-child(6n + 3) { --baun-card-color: #9b82fe; }
+[data-has-hero] .card:nth-child(6n + 4) { --baun-card-color: #b384fe; }
+[data-has-hero] .card:nth-child(6n + 5) { --baun-card-color: #d487fe; }
+[data-has-hero] .card:nth-child(6n + 6) { --baun-card-color: var(--baun-gradient-end); }
+
+[data-has-hero] .card .icon {
+	border-color: var(--baun-card-color);
+	background-color: color-mix(in srgb, var(--baun-card-color) 18%, transparent);
+	color: var(--baun-card-color);
+}
+
+[data-has-hero] .card:hover {
+	border-color: var(--baun-card-color);
+}

@@ -3,7 +3,25 @@ title: baun
 description: A build pipeline system for .NET that lets you write any kind of workflow, such as CI/CD, releases, or local automation, in plain C#.
 template: splash
 hero:
-  tagline: A build pipeline system for .NET that lets you write any kind of workflow, such as CI/CD, releases, or local automation, in plain C#.
+  title: Build pipelines in <span class="baun-gradient-text">plain C#</span>
+  tagline: baun is a build pipeline system for .NET. Write CI/CD, releases or local automation as a regular C# program, with IntelliSense, refactoring and debugging.
+  image:
+    html: |
+      <figure class="baun-code-card">
+        <figcaption>Build.cs</figcaption>
+        <pre><code><span class="p">[</span><span class="t">Entry</span><span class="p">(</span><span class="k">nameof</span><span class="p">(</span>Test<span class="p">))]</span>
+      <span class="k">partial class</span> <span class="t">Build</span>
+      <span class="p">{</span>
+          <span class="t">Step</span> <span class="m">Compile</span><span class="p">() =&gt;</span> _ <span class="p">=&gt;</span> _
+              <span class="p">.</span><span class="m">Executes</span><span class="p">(</span><span class="k">async</span> <span class="p">() =&gt;</span>
+                  <span class="k">await</span> <span class="t">DotNet</span><span class="p">.</span><span class="m">Build</span><span class="p">().</span><span class="m">RunAsync</span><span class="p">());</span>
+
+          <span class="t">Step</span> <span class="m">Test</span><span class="p">() =&gt;</span> _ <span class="p">=&gt;</span> _
+              <span class="p">.</span><span class="m">DependsOn</span><span class="p">(</span>Compile<span class="p">)</span>
+              <span class="p">.</span><span class="m">Executes</span><span class="p">(</span><span class="k">async</span> <span class="p">() =&gt;</span>
+                  <span class="k">await</span> <span class="t">DotNet</span><span class="p">.</span><span class="m">Test</span><span class="p">().</span><span class="m">RunAsync</span><span class="p">());</span>
+      <span class="p">}</span></code></pre>
+      </figure>
   actions:
     - text: Get started
       link: getting-started/
@@ -15,8 +33,6 @@ hero:
 ---
 
 import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
-
-Inspired by [NUKE](https://github.com/nuke-build/nuke), baun treats your build as a regular C# program. You define steps and their dependencies in C#, and you get the full power of the language and its tooling: IntelliSense, refactoring, debugging, and NuGet packages. You don't have to maintain YAML or shell scripts.
 
 <Aside type="caution" title="Status">
 	baun is in early development. APIs and features described here may change.
@@ -44,3 +60,7 @@ Inspired by [NUKE](https://github.com/nuke-build/nuke), baun treats your build a
 		Debug your build like any other .NET application.
 	</Card>
 </CardGrid>
+
+## Inspiration
+
+baun is inspired by [NUKE](https://github.com/nuke-build/nuke) and its idea of writing builds as C# code. It keeps that idea while targeting modern .NET (10 and above).
