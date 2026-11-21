@@ -281,25 +281,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
             return;
         }
 
-        var dotnet = new ProcessStartInfo("dotnet") { WorkingDirectory = context.Directory };
-
-        foreach (string argument in (string[])["sln", solution, "add", "--in-root", project])
-        {
-            dotnet.ArgumentList.Add(argument);
-        }
-
-        int exitCode;
-
-        try
-        {
-            exitCode = await context.RunProcess(dotnet);
-        }
-        catch (Win32Exception)
-        {
-            exitCode = -1; // dotnet isn't on the PATH
-        }
-
-        if (exitCode == 0)
+        if (await TryRunAsync("dotnet", ["sln", solution, "add", "--in-root", project]))
         {
             console.WriteSuccess($"Added {Markup.Escape(project)} to {Markup.Escape(solution)}");
         }
@@ -407,27 +389,10 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         }
 
         var relativePaths = paths.Select(Relative).ToList();
-        var git = new ProcessStartInfo("git") { WorkingDirectory = context.Directory };
-
-        foreach (string argument in (string[])["add", "--chmod=+x", "--", .. relativePaths])
-        {
-            git.ArgumentList.Add(argument);
-        }
-
-        int exitCode;
-
-        try
-        {
-            exitCode = await context.RunProcess(git);
-        }
-        catch (Win32Exception)
-        {
-            exitCode = -1; // git isn't installed
-        }
-
+        bool staged = await TryRunAsync("git", ["add", "--chmod=+x", "--", .. relativePaths]);
         string list = string.Join(", ", relativePaths);
 
-        if (exitCode == 0)
+        if (staged)
         {
             console.WriteSuccess($"Staged {Markup.Escape(list)} as executable in git");
         }
@@ -435,6 +400,32 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         {
             string command = $"git add --chmod=+x -- {string.Join(' ', relativePaths)}";
             console.WriteWarning($"Couldn't mark {Markup.Escape(list)} as executable in git. Run {Theme.Accent(command)} before committing.");
+        }
+    }
+
+    /// <summary>
+    /// Runs a process in the current folder.
+    /// </summary>
+    /// <returns>
+    /// <see langword="true"/> if the process exited with code 0; <see langword="false"/> if it failed or couldn't
+    /// be started, for example because it isn't on the PATH.
+    /// </returns>
+    private async Task<bool> TryRunAsync(string fileName, IEnumerable<string> arguments)
+    {
+        var startInfo = new ProcessStartInfo(fileName) { WorkingDirectory = context.Directory };
+
+        foreach (string argument in arguments)
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+
+        try
+        {
+            return await context.RunProcess(startInfo) == 0;
+        }
+        catch (Win32Exception)
+        {
+            return false;
         }
     }
 
