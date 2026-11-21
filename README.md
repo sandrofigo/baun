@@ -21,7 +21,7 @@ Inspired by [NUKE](https://github.com/nuke-build/nuke), baun treats your build a
 
 - [.NET 10](https://dotnet.microsoft.com/download) or later
 
-## Getting started
+## Getting Started
 
 1. Install the `baun` tool as a global .NET tool:
 
@@ -258,7 +258,7 @@ Parameters can be `string`, `bool`, `char`, any number type, an enum, `Guid`, `U
 
 A parameter can't be named after `--help` or `--version`, or start with `Baun`, so the built-in options always work (`BAUN011`). A parameter named after another built-in option, such as `Plan`, takes it over: `--plan` sets the parameter, and the source generator warns about it (`BAUN012`). Every built-in option also works with the prefix `--baun-`, such as `--baun-plan`, so it stays available, and a script can use that form to work with any build. Add `BAUN012` to `<NoWarn>` in the project file of the build if the parameter takes over the option on purpose.
 
-### Required parameters
+### Required Parameters
 
 A parameter of a non-nullable reference type without an initial value is required, so every run needs a value for it:
 
@@ -313,7 +313,7 @@ A build writes messages of `Debug` and above, which includes the output of tools
 
 baun writes its own errors, such as an unknown step, a missing parameter or the exception of a failing step, as `Error` messages too.
 
-### Running tools
+### Running Tools
 
 `Tool.RunAsync` runs a command-line tool, such as `dotnet` or `git`, and writes it to the log as an `Information` message, such as `14:03:52 INF › dotnet test --no-build` (with `>` on consoles without Unicode), followed by its output: each line of its standard output as a `Debug` message, and each line of its standard error as a `Warning`, because many tools write progress there. If the tool exits with a code other than 0, it throws a `ToolException`, which fails the step:
 
@@ -357,7 +357,7 @@ A tool that can't be started throws an `InvalidOperationException` that names th
 
 The output of a tool is written without colors, because baun reads it instead of the terminal.
 
-### Tool loggers
+### Tool Loggers
 
 Each line a tool writes goes to a `ToolLogger`, which picks its level. The default one writes the standard output as `Debug` and the standard error as `Warning`, as described above. The `dotnet` and `git` tools below come with loggers of their own that write errors and warnings of the tool as `Error` and `Warning` messages. To change how a tool's output is logged, derive from `ToolLogger` (or from a tool's logger, such as `DotNetLogger`) and override `GetLevel`, calling the base method for the lines you don't handle. Override `Write` instead to skip or change lines:
 
@@ -424,7 +424,7 @@ Step Pack() => _ => _
 
 `Git.Logger`, a `GitLogger` by default, writes lines of the standard error that start with `fatal:` or `error:` as `Error` and `warning:` as `Warning`. Other lines, such as progress and hints, which git also writes to its standard error, are written as `Debug`.
 
-## Solutions and projects
+## Solutions and Projects
 
 `Solution.Read` reads a solution file in the `.sln` or `.slnx` format. `GetProjects()` returns its projects, including those in solution folders, sorted by path. `GetProject("App")` returns the project with a name and throws if there's none, while `TryGetProject` doesn't throw. `GlobProjects(patterns)` returns the projects whose name matches any of the patterns, where `*` matches any characters, `?` matches one character, and a pattern that starts with `!` excludes what it matches. Project names are the file names without the extension, such as `App.Tests` for `App.Tests.csproj`, and are compared case-insensitively:
 
@@ -510,7 +510,7 @@ Step Release() => _ => _
     });
 ```
 
-### Log groups
+### Log Groups
 
 On a CI server that supports log groups, baun writes each step in a collapsible group named after the step. The summary and the error of a failing step are written outside the groups, so they stay visible. baun detects the CI server from its environment variables:
 
@@ -523,7 +523,7 @@ On a CI server that supports log groups, baun writes each step in a collapsible 
 
 Outside CI, steps are written as plain lines.
 
-## Project or single file
+## Project or Single File
 
 baun supports two ways to set up a build. Both use the same API and the same `Build.cs` entry point, so you can switch between them at any time. A project build is the recommended choice for most repositories. A single-file build suits small builds that fit comfortably in one file.
 
@@ -534,7 +534,7 @@ baun supports two ways to set up a build. Both use the same API and the same `Bu
 | Steps | `partial class Build` spread across any number of files | `partial class Build` in `Build.cs` |
 | Run | `baun Test` | `baun Test` |
 
-### Project builds
+### Project Builds
 
 A project build is a regular .NET console project, for example in a `build` folder, that references baun as a NuGet package:
 
@@ -565,7 +565,7 @@ The build project keeps its settings to itself, so the settings of your reposito
 dotnet run --project build -- Test
 ```
 
-### Organizing larger builds
+### Organizing Larger Builds
 
 In a project build, you can spread the build class across as many files as you like, because it's `partial`. For example, keep the main steps in `Build.cs` and the deployment steps in `DeploySteps.cs`:
 
@@ -625,7 +625,7 @@ partial class Build
 
 All parts form one class, so steps in any file can depend on steps in any other file without a prefix. The source generator finds steps in every part.
 
-### Single-file builds
+### Single-File Builds
 
 For a small build with a handful of steps, a single file is a valid alternative to a project. Single-file builds use the file-based apps introduced in .NET 10: the `#:package` line at the top of `Build.cs` references baun, and the .NET SDK takes care of the rest. You don't need a `.csproj` file, a solution, or a separate build folder. The rest of `Build.cs` looks the same as in a project build.
 
@@ -651,7 +651,7 @@ chmod +x Build.cs
 
 When a single-file build outgrows one file, turn it into a project with `dotnet project convert Build.cs`.
 
-## The baun tool
+## The baun Tool
 
 The `baun` command-line tool creates and runs builds of both kinds. Install it as a .NET tool:
 
@@ -659,7 +659,7 @@ The `baun` command-line tool creates and runs builds of both kinds. Install it a
 dotnet tool install --global Baun.Cli
 ```
 
-### Creating a build
+### Creating a Build
 
 Run `baun init` in your repository to create a new build:
 
@@ -675,7 +675,7 @@ The new build has a few sample steps and references the same version of baun as 
 
 When you create a project build and there is a solution (`.sln` or `.slnx`) in the current folder or up to three levels of subfolders, such as `src/MyApp.sln`, `baun init` asks whether to add `build/_build.csproj` to it. If you agree, it runs `dotnet sln add --in-root`, so the build project sits at the root of the solution. With several solutions, you pick one. When `baun init` can't ask, it leaves the solution alone.
 
-### Running without the .NET SDK
+### Running Without the .NET SDK
 
 `baun init` also creates bootstrap scripts next to the build, so anyone can run it without installing the .NET SDK or the baun tool first:
 
@@ -690,7 +690,7 @@ The scripts use an installed SDK when the one `dotnet` picks for their folder is
 
 `baun init` always overwrites existing bootstrap scripts. Run it again in a folder that already has a build to update the scripts to the current version. This leaves the build itself alone.
 
-### Running a build
+### Running a Build
 
 Run a step from your repository:
 

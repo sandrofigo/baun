@@ -1,5 +1,5 @@
 ---
-title: Getting started
+title: Getting Started
 description: Install the baun tool, create a build and run it.
 ---
 
@@ -7,7 +7,7 @@ description: Install the baun tool, create a build and run it.
 
 - [.NET 10](https://dotnet.microsoft.com/download) or later
 
-## Create your first build
+## Create Your First Build
 
 1. Install the `baun` tool as a global .NET tool:
 

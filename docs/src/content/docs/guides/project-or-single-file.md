@@ -1,5 +1,5 @@
 ---
-title: Project or single file
+title: Project or Single File
 description: The two ways to set up a build.
 ---
 
@@ -12,7 +12,7 @@ baun supports two ways to set up a build. Both use the same API and the same `Bu
 | Steps | `partial class Build` spread across any number of files | `partial class Build` in `Build.cs` |
 | Run | `baun Test` | `baun Test` |
 
-## Project builds
+## Project Builds
 
 A project build is a regular .NET console project, for example in a `build` folder, that references baun as a NuGet package:
 
@@ -43,7 +43,7 @@ The build project keeps its settings to itself, so the settings of your reposito
 dotnet run --project build -- Test
 ```
 
-## Organizing larger builds
+## Organizing Larger Builds
 
 In a project build, you can spread the build class across as many files as you like, because it's `partial`. For example, keep the main steps in `Build.cs` and the deployment steps in `DeploySteps.cs`:
 
@@ -103,7 +103,7 @@ partial class Build
 
 All parts form one class, so steps in any file can depend on steps in any other file without a prefix. The source generator finds steps in every part.
 
-## Single-file builds
+## Single-File Builds
 
 For a small build with a handful of steps, a single file is a valid alternative to a project. Single-file builds use the file-based apps introduced in .NET 10: the `#:package` line at the top of `Build.cs` references baun, and the .NET SDK takes care of the rest. You don't need a `.csproj` file, a solution, or a separate build folder. The rest of `Build.cs` looks the same as in a project build.
 

@@ -1,5 +1,5 @@
 ---
-title: The baun tool
+title: The baun Tool
 description: Create and run builds with the baun command-line tool.
 ---
 
@@ -9,7 +9,7 @@ The `baun` command-line tool creates and runs builds of both kinds. Install it a
 dotnet tool install --global Baun.Cli
 ```
 
-## Creating a build
+## Creating a Build
 
 Run `baun init` in your repository to create a new build:
 
@@ -25,7 +25,7 @@ The new build has a few sample steps and references the same version of baun as 
 
 When you create a project build and there is a solution (`.sln` or `.slnx`) in the current folder or up to three levels of subfolders, such as `src/MyApp.sln`, `baun init` asks whether to add `build/_build.csproj` to it. If you agree, it runs `dotnet sln add --in-root`, so the build project sits at the root of the solution. With several solutions, you pick one. When `baun init` can't ask, it leaves the solution alone.
 
-## Running without the .NET SDK
+## Running Without the .NET SDK
 
 `baun init` also creates bootstrap scripts next to the build, so anyone can run it without installing the .NET SDK or the baun tool first:
 
@@ -40,7 +40,7 @@ The scripts use an installed SDK when the one `dotnet` picks for their folder is
 
 `baun init` always overwrites existing bootstrap scripts. Run it again in a folder that already has a build to update the scripts to the current version. This leaves the build itself alone.
 
-## Running a build
+## Running a Build
 
 Run a step from your repository:
 

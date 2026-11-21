@@ -65,7 +65,7 @@ Step Release() => _ => _
     });
 ```
 
-## Log groups
+## Log Groups
 
 On a CI server that supports log groups, baun writes each step in a collapsible group named after the step. The summary and the error of a failing step are written outside the groups, so they stay visible. baun detects the CI server from its environment variables:
 

@@ -21,7 +21,7 @@ export default defineConfig({
 				baseUrl: 'https://github.com/sandrofigo/baun/edit/main/docs/',
 			},
 			sidebar: [
-				{ label: 'Getting started', slug: 'getting-started' },
+				{ label: 'Getting Started', slug: 'getting-started' },
 				{
 					label: 'Guides',
 					items: [
