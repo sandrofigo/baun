@@ -14,9 +14,9 @@ namespace Baun;
 /// </remarks>
 public static class BaunBuild
 {
-    private static readonly Lazy<AbsolutePath> rootDirectory = new(() => FindRootDirectory((AbsolutePath)Environment.CurrentDirectory));
+    private static readonly Lazy<AbsolutePath> rootDirectory = new(() => FindRootDirectory(AbsolutePath.CurrentDirectory));
 
-    private static readonly Lazy<AbsolutePath> tempDirectory = new(() => FindTempDirectory((AbsolutePath)Environment.CurrentDirectory));
+    private static readonly Lazy<AbsolutePath> tempDirectory = new(() => FindTempDirectory(AbsolutePath.CurrentDirectory));
 
     /// <summary>
     /// Gets the root directory of the repository: the nearest folder, from the current directory up through its parents,

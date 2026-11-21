@@ -23,7 +23,7 @@ internal sealed record ParameterSources(IReadOnlyDictionary<string, string> Envi
     /// The environment variables of this process, and <c>.baun/parameters.json</c> in the nearest <c>.baun</c> folder
     /// in the current directory or its parents.
     /// </summary>
-    public static ParameterSources Default() => ForDirectory((AbsolutePath)System.Environment.CurrentDirectory);
+    public static ParameterSources Default() => ForDirectory(AbsolutePath.CurrentDirectory);
 
     /// <summary>
     /// The environment variables of this process, and <c>.baun/parameters.json</c> in the nearest <c>.baun</c> folder

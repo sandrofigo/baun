@@ -23,6 +23,11 @@ public sealed partial class AbsolutePath : IEquatable<AbsolutePath>
         _path = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
 
     /// <summary>
+    /// Gets the current working directory of the process.
+    /// </summary>
+    internal static AbsolutePath CurrentDirectory => new(Environment.CurrentDirectory);
+
+    /// <summary>
     /// Gets the name of the file or directory, with its extension, or an empty string for a root such as <c>C:\</c>.
     /// </summary>
     public string Name => Path.GetFileName(_path);

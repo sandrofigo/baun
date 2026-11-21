@@ -275,7 +275,7 @@ internal sealed class BuildRunner(
     /// <returns>The process exit code: 0 on success, 1 when the page can't be written.</returns>
     private int ShowPlan(List<ResolvedStep> steps, List<ResolvedStep> plan)
     {
-        AbsolutePath folder = planFolder ?? BaunBuild.FindTempDirectory((AbsolutePath)Environment.CurrentDirectory);
+        AbsolutePath folder = planFolder ?? BaunBuild.FindTempDirectory(AbsolutePath.CurrentDirectory);
         AbsolutePath path;
 
         try
