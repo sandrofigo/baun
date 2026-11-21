@@ -41,7 +41,7 @@ export default defineConfig({
 				},
 				{
 					label: 'Reference',
-					items: ['reference/cli'],
+					items: ['reference/cli', 'reference/diagnostics'],
 				},
 				{
 					label: 'Contributing',

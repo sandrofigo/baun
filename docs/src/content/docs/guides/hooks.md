@@ -21,18 +21,24 @@ partial class Build : IOnStepFailed, IOnBuildFailed
 }
 ```
 
-| Interface | Runs |
-|---|---|
-| `IOnBuildCreated` | At the start of a run, before baun reads the arguments and sets the parameters |
-| `IOnBuildInitialized` | After the parameters are set and the requirements are checked, right before the first step |
-| `IOnStepStarted` | Before the work of each step |
-| `IOnStepSucceeded` | After each step that succeeds |
-| `IOnStepFailed` | After the step that fails, with its exception |
-| `IOnStepCompleted` | After each step, whether it succeeds or fails |
-| `IOnBuildSucceeded` | After the last step when every step succeeded |
-| `IOnBuildFailed` | After a step fails |
-| `IOnBuildCompleted` | After `IOnBuildSucceeded` or `IOnBuildFailed` |
+## Available Hooks
+
+| Interface | Method | Runs |
+|---|---|---|
+| `IOnBuildCreated` | `OnBuildCreatedAsync()` | At the start of a run, before baun reads the arguments and sets the parameters |
+| `IOnBuildInitialized` | `OnBuildInitializedAsync()` | After the parameters are set and the requirements are checked, right before the first step |
+| `IOnStepStarted` | `OnStepStartedAsync(step)` | Before the work of each step |
+| `IOnStepSucceeded` | `OnStepSucceededAsync(step)` | After each step that succeeds |
+| `IOnStepFailed` | `OnStepFailedAsync(step, exception)` | After the step that fails, with its exception |
+| `IOnStepCompleted` | `OnStepCompletedAsync(step)` | After each step, whether it succeeds or fails |
+| `IOnBuildSucceeded` | `OnBuildSucceededAsync()` | After the last step when every step succeeded |
+| `IOnBuildFailed` | `OnBuildFailedAsync()` | After a step fails |
+| `IOnBuildCompleted` | `OnBuildCompletedAsync()` | After `IOnBuildSucceeded` or `IOnBuildFailed` |
+
+`step` is the name of the step, such as `Compile`.
 
 `IOnBuildInitialized` and the build hooks after it only run for a build that starts its steps, not for `--help`, `--plan` or an error such as a missing parameter. The build hooks run before the summary, so what they write appears above it.
+
+## Exceptions in Hooks
 
 An exception in `IOnStepStarted` or `IOnStepSucceeded` fails the step. An exception in any other hook is written as an error and fails the build. If `IOnBuildCreated` or `IOnBuildInitialized` throws, no step runs.
