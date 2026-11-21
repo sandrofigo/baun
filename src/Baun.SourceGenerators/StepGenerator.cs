@@ -176,7 +176,7 @@ public sealed class StepGenerator : IIncrementalGenerator
 
     private static ParameterMember? GetParameterMember(GeneratorAttributeSyntaxContext context)
     {
-        var attribute = context.Attributes.FirstOrDefault(item => item.AttributeClass is { } type && IsInBaunNamespace(type));
+        var attribute = context.Attributes.FirstOrDefault(item => item.AttributeClass is { } type && BaunSymbols.IsInBaunNamespace(type));
 
         if (attribute is null || context.TargetSymbol.ContainingType is not { } containingType)
         {
@@ -362,15 +362,11 @@ public sealed class StepGenerator : IIncrementalGenerator
 
     private static bool IsBaunStep(ITypeSymbol type) =>
         type is INamedTypeSymbol { Name: "Step", TypeKind: TypeKind.Delegate } named
-        && IsInBaunNamespace(named);
+        && BaunSymbols.IsInBaunNamespace(named);
 
     private static bool IsBaunEntryAttribute(INamedTypeSymbol? type) =>
         type is { Name: "EntryAttribute" }
-        && IsInBaunNamespace(type);
-
-    private static bool IsInBaunNamespace(INamedTypeSymbol type) =>
-        type.ContainingNamespace is { Name: "Baun", ContainingNamespace.IsGlobalNamespace: true }
-        && type.ContainingAssembly?.Name == "Baun";
+        && BaunSymbols.IsInBaunNamespace(type);
 
     private static void Generate(SourceProductionContext context, IEnumerable<StepMethod> steps, IEnumerable<ParameterMember> parameters, bool needsEntryPoint)
     {
