@@ -20,11 +20,13 @@ namespace Baun.SourceGenerators;
 [Generator(LanguageNames.CSharp)]
 public sealed class StepGenerator : IIncrementalGenerator
 {
+    private const string Category = "Baun";
+
     private static readonly DiagnosticDescriptor BuildClassMustBePartial = new(
         id: "BAUN001",
         title: "Build class must be partial",
         messageFormat: "The build class '{0}' must be declared 'partial' so baun can register its steps",
-        category: "Baun",
+        category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
@@ -32,7 +34,7 @@ public sealed class StepGenerator : IIncrementalGenerator
         id: "BAUN002",
         title: "Build class is not supported",
         messageFormat: "The build class '{0}' must be a non-generic top-level class",
-        category: "Baun",
+        category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
@@ -40,7 +42,7 @@ public sealed class StepGenerator : IIncrementalGenerator
         id: "BAUN004",
         title: "Entry is not a step",
         messageFormat: "The [Entry] of build class '{0}' must name one of its steps, but '{1}' is not a step. Use nameof, for example [Entry(nameof(Test))].",
-        category: "Baun",
+        category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
@@ -48,7 +50,7 @@ public sealed class StepGenerator : IIncrementalGenerator
         id: "BAUN005",
         title: "More than one build class without an entry point",
         messageFormat: "baun can't choose which build class to run: {0}. Run one yourself, for example with 'await BaunBuild.RunAsync<{1}>();'.",
-        category: "Baun",
+        category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
@@ -56,7 +58,7 @@ public sealed class StepGenerator : IIncrementalGenerator
         id: "BAUN006",
         title: "Step names differ only in case",
         messageFormat: "The build class '{0}' has steps whose names differ only in case: {1}. Step names are case-insensitive on the command line, so rename one of them.",
-        category: "Baun",
+        category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
@@ -64,7 +66,7 @@ public sealed class StepGenerator : IIncrementalGenerator
         id: "BAUN007",
         title: "Step name is a baun tool command",
         messageFormat: "The step '{0}' has the same name as the baun tool's '{1}' command, so 'baun {1}' runs the command. Run the step with 'baun --step {0}'.",
-        category: "Baun",
+        category: Category,
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
@@ -72,7 +74,7 @@ public sealed class StepGenerator : IIncrementalGenerator
         id: "BAUN008",
         title: "Parameter must be writable",
         messageFormat: "The parameter '{0}' must be a non-static field that isn't const, or a non-static property with a set accessor, so baun can set it",
-        category: "Baun",
+        category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
@@ -80,7 +82,7 @@ public sealed class StepGenerator : IIncrementalGenerator
         id: "BAUN009",
         title: "Parameter type is not supported",
         messageFormat: "The parameter '{0}' has the type '{1}', which baun can't set. Use string, bool, char, a number type, an enum, Guid, Uri, TimeSpan, AbsolutePath, Solution, Project, a nullable of these, or an array of them.",
-        category: "Baun",
+        category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
@@ -88,7 +90,7 @@ public sealed class StepGenerator : IIncrementalGenerator
         id: "BAUN010",
         title: "Parameter is not in a build class",
         messageFormat: "The parameter '{0}' is in '{1}', which has no steps, so baun never sets it. Move it to the build class.",
-        category: "Baun",
+        category: Category,
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
@@ -96,7 +98,7 @@ public sealed class StepGenerator : IIncrementalGenerator
         id: "BAUN011",
         title: "Parameter name conflicts",
         messageFormat: "The parameter '{0}' conflicts with {1}. Names match case-insensitively and ignore '-' and '_', so rename it or set another name with [Parameter(Name = \"...\")].",
-        category: "Baun",
+        category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
@@ -104,7 +106,7 @@ public sealed class StepGenerator : IIncrementalGenerator
         id: "BAUN012",
         title: "Parameter hides a built-in option",
         messageFormat: "The parameter '{0}' takes over the built-in option '--{1}', which stays available as '--baun-{1}'. Set another name with [Parameter(Name = \"...\")] to keep '--{1}'.",
-        category: "Baun",
+        category: Category,
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
