@@ -6,6 +6,8 @@
     <Description>Write build pipelines and other workflows, such as CI/CD, in plain C#.</Description>
     <PackageTags>build;ci;cd;pipeline;automation</PackageTags>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Keeps the JetBrains annotations in the assembly, so Rider and ReSharper see them in builds that reference baun. -->
+    <DefineConstants>$(DefineConstants);JETBRAINS_ANNOTATIONS</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -34,6 +36,7 @@
     <None Include="..\Baun.SourceGenerators\bin\$(Configuration)\netstandard2.0\Baun.SourceGenerators.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" />
     <PackageReference Include="KeepAChangelog.IO" Version="2.1.1" />
     <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="11.0.0" />
     <PackageReference Include="Microsoft.VisualStudio.SolutionPersistence" Version="1.0.52" />

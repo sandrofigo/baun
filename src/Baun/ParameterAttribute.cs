@@ -1,3 +1,5 @@
+using JetBrains.Annotations;
+
 namespace Baun;
 
 /// <summary>
@@ -29,6 +31,7 @@ namespace Baun;
 /// </remarks>
 /// <param name="description">The description shown in the build's help.</param>
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, Inherited = false)]
+[MeansImplicitUse(ImplicitUseKindFlags.Assign)]
 public sealed class ParameterAttribute(string? description = null) : Attribute
 {
     /// <summary>
