@@ -1,4 +1,4 @@
-# baun
+# ![baun](https://raw.githubusercontent.com/sandrofigo/baun/main/docs/src/assets/baun_logotype.png)
 
 [![NuGet](https://img.shields.io/nuget/v/Baun.svg)](https://www.nuget.org/packages/Baun) [![NuGet downloads](https://img.shields.io/nuget/dt/Baun.svg)](https://www.nuget.org/packages/Baun)
 
@@ -730,9 +730,17 @@ Build and test everything with the .NET 10 SDK. The tests use [xUnit.net v3](htt
 dotnet test --solution Baun.slnx
 ```
 
+The documentation site is a [Starlight](https://starlight.astro.build) project in the `docs` folder. Preview it with Node.js:
+
+```shell
+cd docs
+npm install
+npm run dev
+```
+
 ### Publishing
 
-The [`Release`](.github/workflows/release.yml) workflow publishes the `Baun` and `Baun.Cli` packages to nuget.org with [trusted publishing](https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing), so no long-lived API key is stored in the repository. It runs when a GitHub release is published, and the release's tag sets the version: the tag `v1.2.3` publishes version `1.2.3`. See [Releasing baun](docs/releasing.md) for the steps, and [`CHANGELOG.md`](CHANGELOG.md) for the changes in each version.
+The [`Release`](.github/workflows/release.yml) workflow publishes the `Baun` and `Baun.Cli` packages to nuget.org with [trusted publishing](https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing), so no long-lived API key is stored in the repository. It runs when a version tag is pushed, and the tag sets the version: the tag `v1.2.3` publishes version `1.2.3`, and the build then creates the GitHub release. See [Releasing baun](.github/RELEASING.md) for the steps, and [`CHANGELOG.md`](CHANGELOG.md) for the changes in each version.
 
 ## Inspiration
 
