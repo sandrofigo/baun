@@ -9,34 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `--plan` opens the steps a run would execute in the browser, without running them, such as `baun Pack --plan`. The page, written to `.baun/temp/plan.html`, shows a graph of all steps and their dependencies, with the steps that run numbered in order. When the browser can't open, such as on a CI server, baun prints the path of the page.
-- `baun init` adds `temp/` to `.baun/.gitignore`, also in an existing build.
-- Every built-in option also works with the prefix `--baun-`, such as `--baun-plan` or `--baun-verbosity warning`, so scripts can use options that no parameter can take over.
-- `ToolLogger` picks the level of each line a tool writes. Derive from it and override `GetLevel`, or `Write` to skip or change lines, and use it for one command with `ToolCommand.Logger`, or for every command with `Tool.Logger`.
-- `DotNet` runs the .NET CLI with typed commands: `Build`, `Test`, `Pack`, `Publish`, `Restore`, `Clean` and `NuGetPush`, with methods for their options, such as `Configuration`, `Output`, `Property`, `Version` and `ApiKey`. Typed commands still take `Arguments`, `Secret`, `WorkingDirectory` and `Logger`. `DotNet.Command` and `DotNet.RunAsync` run any other command.
-- `DotNetLogger`, the default logger of `DotNet`, writes MSBuild and NuGet errors and warnings, such as `error CS1002`, as `Error` and `Warning` messages. Change it for all commands with `DotNet.Logger`.
-- `Git` runs git, in the new `Baun.Git` namespace, which builds import automatically. `Git.GetCurrentTagAsync` returns the tag of the current commit and `Git.GetCurrentBranchAsync` the current branch.
-- `GitLogger`, the default logger of `Git`, writes git's `fatal:` and `error:` lines as `Error`, `warning:` lines as `Warning`, and its progress on the standard error as `Debug` instead of `Warning`. Change it for all commands with `Git.Logger`.
-- `ToolCommand<TSelf>` is the base of typed commands, to add typed commands for other tools.
-- `AllowFailure` on a tool command returns the result for any exit code instead of throwing a `ToolException`, for tools that answer with their exit code, such as `Tool.Command("git").Arguments("diff", "--quiet").AllowFailure()`. It works on typed commands too.
-- `TempDirectory` returns baun's temp directory, `.baun/temp`, or `baun` in the temp directory of the system without a `.baun` folder. Build classes get it as a property, like `RootDirectory`, and `BaunBuild.TempDirectory` works anywhere. `BaunBuild.CreateTempFile` and `BaunBuild.CreateTempDirectory` create an empty file or directory with a unique name in it, such as `BaunBuild.CreateTempFile(".json")`.
-- Hooks run code at points of a build. A build class implements one interface for each hook it needs, such as `IOnBuildFailed` with `OnBuildFailedAsync()`. There are hooks for when the build is created, initialized, succeeds, fails or completes, and for when each step starts, succeeds, fails or completes.
-- A project build shows `.baun/parameters.json` in a `.baun` folder of the project, so the parameter values can be opened from the IDE.
+- Added `--plan`, which opens the steps a run would execute in the browser without running them, such as `baun Pack --plan`. The page graphs all steps and their dependencies and numbers the ones that run in order.
+- The plan page is written to `.baun/temp/plan.html`. baun prints its path when the browser can't open, such as on a CI server.
+- Added `temp/` to the `.baun/.gitignore` that `baun init` writes, also in an existing build.
+- Added the prefix `--baun-` to all built-in options, such as `--baun-plan`, so scripts can use them even when a parameter takes one over.
+- Added `ToolLogger`, which picks the level of each line a tool writes. Override `GetLevel`, or `Write` to skip or change lines.
+- Added `ToolCommand.Logger` to set a logger for one command, and `Tool.Logger` for every command.
+- Added `DotNet`, which runs the .NET CLI with typed commands (`Build`, `Test`, `Pack`, `Publish`, `Restore`, `Clean`, `NuGetPush`) and methods for their options, such as `Configuration`, `Output`, `Property`, `Version` and `ApiKey`.
+- Typed commands still take `Arguments`, `Secret`, `WorkingDirectory` and `Logger`. `DotNet.Command` and `DotNet.RunAsync` run any other command.
+- Added `DotNetLogger`, the default logger of `DotNet`, which writes MSBuild and NuGet errors and warnings, such as `error CS1002`, as `Error` and `Warning`. Change it with `DotNet.Logger`.
+- Added `Git`, which runs git, in the new `Baun.Git` namespace that builds import automatically. `GetCurrentTagAsync` returns the tag of the current commit and `GetCurrentBranchAsync` the current branch.
+- Added `GitLogger`, the default logger of `Git`, which writes `fatal:` and `error:` lines as `Error`, `warning:` lines as `Warning`, and progress on the standard error as `Debug` instead of `Warning`. Change it with `Git.Logger`.
+- Added `ToolCommand<TSelf>` as the base for typed commands of other tools.
+- Added `AllowFailure`, which returns the result for any exit code instead of throwing a `ToolException`, for tools that answer with their exit code, such as `Tool.Command("git").Arguments("diff", "--quiet").AllowFailure()`. It works on typed commands too.
+- Added `TempDirectory`, which returns `.baun/temp`, or `baun` in the system temp directory without a `.baun` folder. Build classes get it as a property, like `RootDirectory`, and `BaunBuild.TempDirectory` works anywhere.
+- Added `BaunBuild.CreateTempFile` and `BaunBuild.CreateTempDirectory`, which create an empty file or directory with a unique name in the temp directory, such as `BaunBuild.CreateTempFile(".json")`.
+- Added hooks, which run code when the build is created, initialized, succeeds, fails or completes, and when each step starts, succeeds, fails or completes. A build class implements one interface per hook, such as `IOnBuildFailed` with `OnBuildFailedAsync()`.
+- Added `.baun/parameters.json` to project builds, in a `.baun` folder of the project, so the parameter values can be opened from the IDE.
 
 ### Changed
 
-- A tool that can't be started throws an `InvalidOperationException` that names the tool and says why, such as `Couldn't start gh. Make sure it's installed and in the PATH.`, that the file or the working directory doesn't exist, or the reason of the system, such as `Permission denied`. Before, it threw the `Win32Exception` of `Process.Start`.
-- `[Parameter]` fields can be `readonly`, such as `[Parameter] readonly string Configuration = "Debug";`. Before, they were a build error (`BAUN008`). Rider and ReSharper don't report them as never assigned.
-- A parameter named after `--plan`, `--step` or `--verbosity` takes over the option instead of failing the build, and the new warning `BAUN012` reports it. The built-in option stays available with the prefix `--baun-`. Parameters named after `--help` or `--version`, or starting with `Baun`, are a build error (`BAUN011`).
+- Changed the exception of a tool that can't start from the `Win32Exception` of `Process.Start` to an `InvalidOperationException` that names the tool and the reason, such as `Couldn't start gh. Make sure it's installed and in the PATH.`, a missing file or working directory, or `Permission denied`.
+- `[Parameter]` fields can be `readonly`, such as `[Parameter] readonly string Configuration = "Debug";`. Before, they were a build error (`BAUN008`).
+- Rider and ReSharper no longer report `[Parameter]` fields as never assigned.
+- Changed parameters named after `--plan`, `--step` or `--verbosity` to take over the option instead of failing the build, with the new warning `BAUN012`. The option stays available with the prefix `--baun-`.
+- Parameters named after `--help` or `--version`, or starting with `Baun`, are a build error (`BAUN011`).
 
 ### Fixed
 
-- A project build that `baun init` creates no longer imports the `Directory.Build.props` and `Directory.Build.targets` of the repository. `baun init` creates empty ones in the `build` folder, so settings of the repository, such as `TreatWarningsAsErrors`, can't break the build.
-- A project build that `baun init` creates restores in a repository that manages package versions centrally. Before, `Directory.Packages.props` made it fail with `NU1008`.
-- A project build that `baun init` creates isn't packable, so `dotnet pack` of a solution that contains it no longer creates a package of the build.
-- `baun init` adds `bin/` and `obj/` to the `.gitignore` it creates for a project build, also with `--no-bootstrap`. Before, it only added `.dotnet/`, so the output of the build project could end up in git.
-- The bootstrap scripts follow `global.json`. They check the SDK that `dotnet` picks for their folder instead of any installed SDK, and install the version that `global.json` sets. Before, an installed .NET 10 SDK counted even when `global.json` selected another one, so `dotnet run` could fail. Run `baun init` in an existing build to update its scripts.
-- `Requires` fails the build when its value is `false`, such as `.Requires(() => Sign)` or `.Requires(() => Feeds.Length > 0)`. Before, `false` counted as set, so a boolean requirement never failed.
+- Fixed project builds from `baun init` importing the `Directory.Build.props` and `Directory.Build.targets` of the repository, so its settings, such as `TreatWarningsAsErrors`, could break them. `baun init` creates empty ones in the `build` folder.
+- Fixed project builds from `baun init` failing to restore with `NU1008` in repositories with central package management.
+- Fixed `dotnet pack` of a solution packing the project build from `baun init`, which is no longer packable.
+- Fixed `baun init` only adding `.dotnet/` to the `.gitignore` of a project build, so build output could end up in git. It now adds `bin/` and `obj/` too, also with `--no-bootstrap`.
+- Fixed the bootstrap scripts accepting any installed .NET 10 SDK even when `global.json` selected another one, so `dotnet run` could fail. They now check the SDK that `dotnet` picks for their folder and install the version `global.json` sets. Run `baun init` to update the scripts of an existing build.
+- Fixed `Requires` treating `false` as set, so a boolean requirement, such as `.Requires(() => Sign)`, never failed the build.
 
 ## [0.7.0] - 2026-11-17
 
