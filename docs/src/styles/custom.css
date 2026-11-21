@@ -150,7 +150,7 @@ html {
 }
 
 @media (min-width: 50rem) {
-	[data-has-hero] .hero {
+	[data-has-hero] .hero:has(> .hero-html) {
 		grid-template-columns: 1fr 1fr;
 	}
 }
