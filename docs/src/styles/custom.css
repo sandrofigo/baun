@@ -39,6 +39,11 @@ h1#_top {
 	letter-spacing: -0.005em;
 }
 
+/* Set asides such as tips a little apart from the text above them */
+.sl-markdown-content * + .starlight-aside {
+	margin-top: 1.5rem;
+}
+
 /* Always reserve space for the scrollbar, so content doesn't shift between short and long pages */
 html {
 	scrollbar-gutter: stable;

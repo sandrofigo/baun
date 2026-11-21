@@ -8,4 +8,17 @@
     <None Remove="*.csproj.DotSettings;.editorconfig;Directory.Build.props;Directory.Build.targets" />
   </ItemGroup>
 
+  <!--
+    Shows .baun/parameters.json of the nearest .baun folder in the project folder or its parents in a .baun folder of the
+    project, so the parameter values are at hand in IDEs.
+  -->
+  <PropertyGroup>
+    <_BaunRepositoryRoot>$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildProjectDirectory), '.baun/parameters.json'))</_BaunRepositoryRoot>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(_BaunRepositoryRoot)' != ''">
+    <None Remove="$(_BaunRepositoryRoot)/.baun/parameters.json" />
+    <None Include="$(_BaunRepositoryRoot)/.baun/parameters.json" Link=".baun/parameters.json" />
+  </ItemGroup>
+
 </Project>
