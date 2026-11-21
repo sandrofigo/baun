@@ -46,7 +46,7 @@ public sealed class Changelog
     {
         path ??= BaunBuild.RootDirectory / DefaultFileName;
 
-        if (!File.Exists(path))
+        if (!path.FileExists)
         {
             throw new FileNotFoundException($"The changelog {path} doesn't exist.", path);
         }
