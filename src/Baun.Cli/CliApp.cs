@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Reflection;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -42,8 +41,11 @@ internal static class CliApp
             return await runProcess(CreateRunCommand(build, arguments));
         }
 
+        // The version of this tool, which is also the version of baun new builds reference.
+        string version = BaunVersion.Get(typeof(CliApp).Assembly);
+
         var registrar = new TypeRegistrar();
-        registrar.RegisterInstance(typeof(CliContext), new CliContext(directory, GetBaunVersion(), runProcess, build));
+        registrar.RegisterInstance(typeof(CliContext), new CliContext(directory, version, runProcess, build));
         registrar.RegisterInstance(typeof(IAnsiConsole), console);
 
         var app = new CommandApp<NoBuildCommand>(registrar);
@@ -51,7 +53,7 @@ internal static class CliApp
         app.Configure(config =>
         {
             config.SetApplicationName("baun");
-            config.SetApplicationVersion(GetBaunVersion());
+            config.SetApplicationVersion(version);
             config.ConfigureConsole(console);
             config.UseStrictParsing();
             config.CaseSensitivity(CaseSensitivity.None); // baun Init works like baun init, as step names do
@@ -106,20 +108,6 @@ internal static class CliApp
         }
 
         return startInfo;
-    }
-
-    /// <summary>
-    /// Gets the version of this tool, which is also the version of baun new builds reference.
-    /// </summary>
-    private static string GetBaunVersion()
-    {
-        string version = typeof(CliApp).Assembly
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()!
-            .InformationalVersion;
-
-        // Drop build metadata such as "+3a69508".
-        int metadata = version.IndexOf('+');
-        return metadata >= 0 ? version[..metadata] : version;
     }
 }
 
