@@ -101,7 +101,7 @@ public sealed class ToolCommand
     /// <summary>
     /// Returns a command whose <see cref="RunAsync"/> returns the result when the tool exits with a code other than 0,
     /// instead of throwing a <see cref="ToolException"/>. Use it for tools whose exit code is an answer, such as
-    /// <c>git diff --quiet</c>, which exits with 1 when there are changes.
+    /// <c>git diff --quiet</c>, which exits with 1 when there are unstaged changes.
     /// </summary>
     public ToolCommand AllowFailure() => new(FileName, arguments, workingDirectory, logger, allowFailure: true);
 
