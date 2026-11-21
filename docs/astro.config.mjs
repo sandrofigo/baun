@@ -14,6 +14,12 @@ export default defineConfig({
 			},
 			favicon: '/baun_favicon.png',
 			customCss: ['./src/styles/custom.css'],
+			// VS Code's themes color C# types, methods and keywords apart, which Starlight's default themes don't.
+			// The frames and backgrounds of code blocks keep the colors of the site.
+			expressiveCode: {
+				themes: ['dark-plus', 'light-plus'],
+				useStarlightUiThemeColors: true,
+			},
 			routeMiddleware: './src/routeData.ts',
 			components: {
 				SocialIcons: './src/components/SocialIcons.astro',
