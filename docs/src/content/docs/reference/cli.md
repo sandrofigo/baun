@@ -21,7 +21,7 @@ baun init --single-file  # creates Build.cs
 
 The new build has a few sample steps and references the same version of baun as the tool. When `baun init` can't ask, for example in a script, it creates a project build. Creating a build never overwrites existing build files.
 
-`baun init` also creates an empty [`.baun/parameters.json`](../../guides/parameters/), also when it updates an existing build. It uses the nearest existing `.baun` folder in the current folder or its parents, or creates `.baun` in the current folder. It never overwrites an existing `parameters.json`. It also adds `temp/` to `.baun/.gitignore`, so files baun creates while it runs, such as the [plan](#running-a-build) page, stay out of git.
+`baun init` also creates an empty [`.baun/parameters.json`](../../guides/parameters/), also when it updates an existing build. It uses the nearest existing `.baun` folder in the current folder or its parents, or creates `.baun` in the current folder. It never overwrites an existing `parameters.json`. It also adds `temp/` to `.baun/.gitignore`, so files baun creates while it runs, such as the [plan](#viewing-the-plan) page, stay out of git.
 
 When you create a project build and there is a solution (`.sln` or `.slnx`) in the current folder or up to three levels of subfolders, such as `src/MyApp.sln`, `baun init` asks whether to add `build/_build.csproj` to it. If you agree, it runs `dotnet sln add --in-root`, so the build project sits at the root of the solution. With several solutions, you pick one. When `baun init` can't ask, it leaves the solution alone.
 
@@ -48,9 +48,33 @@ Run a step from your repository:
 baun Test
 ```
 
-Step names are case-insensitive, so `baun test` runs the `Test` step. Running `baun` without a step name runs the entry step. The tool looks for a `Build.cs` file or a build project in the current folder and its `build` subfolder, and runs it. You don't need to remember whether a repository uses a single-file or a project build, and CI scripts stay short.
+Step names are case-insensitive, so `baun test` runs the `Test` step. Running `baun` without a step name runs the entry step. Name several steps to run them together, such as `baun Test Pack`: each step runs once, after the steps it depends on. An unknown step fails the build and lists the available steps. The tool looks for a `Build.cs` file or a build project in the current folder and its `build` subfolder, and runs it. You don't need to remember whether a repository uses a single-file or a project build, and CI scripts stay short.
 
 baun uses [Spectre.Console](https://spectreconsole.net) for its output. Each step starts with a heading, messages from `Log` start with their time and level (see [Logging](../../guides/logging/)), failures show the exception, and the build ends with a summary table of every step's status and duration.
+
+## Options
+
+Every build has these built-in options, next to its own [parameters](../../guides/parameters/):
+
+| Option | Description |
+| --- | --- |
+| `--help`, `-h` | Lists the steps and parameters of the build, see [Help and Version](#help-and-version) |
+| `--version`, `-v` | Shows the version of baun the build uses |
+| `--plan` | Opens the steps that would run in the browser without running them, see [Viewing the Plan](#viewing-the-plan) |
+| `--step <name>` | Runs a step, also one whose name is a command of the tool, see [Steps Named Like Commands](#steps-named-like-commands) |
+| `--verbosity <level>` | Sets the lowest level of messages the build writes, see [Verbosity](../../guides/logging/#verbosity) |
+
+Each option also works with the prefix `--baun-`, such as `--baun-plan`, which no parameter can take over (see [Built-in Options](../../guides/parameters/#built-in-options)). An unknown option fails the build before any step runs.
+
+`baun init` takes these options:
+
+| Option | Description |
+| --- | --- |
+| `--project` | Creates a project build, `build/_build.csproj` and `build/Build.cs` |
+| `--single-file` | Creates a single-file build, `Build.cs` |
+| `--no-bootstrap` | Doesn't create the [bootstrap scripts](#running-without-the-net-sdk) |
+
+## Steps Named Like Commands
 
 The tool passes all arguments to the build, except for its own commands such as `init`, which always run as commands. To run a step with the same name as a command, use `--step`, which works for any step:
 
@@ -58,10 +82,14 @@ The tool passes all arguments to the build, except for its own commands such as 
 baun --step Init
 ```
 
-The source generator warns about such steps (`BAUN007`).
+The source generator warns about such steps ([`BAUN007`](../../reference/diagnostics/#baun007)). Step names that differ only in case, such as `Test` and `test`, are a compiler error (`BAUN006`), because the command line matches them case-insensitively.
 
-Run `baun --plan` to open the steps a run would execute, in order and with their dependencies, without running them. Name steps to see their plan, such as `baun Pack --plan`. baun reads the parameters and checks the requirements as it does for a run, so the plan fails for the same mistakes, such as an unknown step or a missing required parameter. A parameter named `Plan` takes the option over, and `--baun-plan` opens the plan instead (see [Parameters](../../guides/parameters/)).
+## Viewing the Plan
+
+Run `baun --plan` to open the steps a run would execute, in order and with their dependencies, without running them. Name steps to see their plan, such as `baun Pack --plan`. baun reads the parameters and checks the requirements as it does for a run, so the plan fails for the same mistakes, such as an unknown step or a missing required parameter. A parameter named `Plan` takes the option over, and `--baun-plan` opens the plan instead (see [Built-in Options](../../guides/parameters/#built-in-options)).
 
 The plan opens in the browser as a graph of all steps and their dependencies on a canvas. The steps that run are numbered in the order they run, and the others are dimmed. Drag to pan, scroll to zoom and hover a step to highlight the steps that would run for it. baun writes the page to `.baun/temp/plan.html`, overwriting it each time, and `baun init` ignores `.baun/temp` in git. On a CI server, in an SSH session, without a display, with redirected output or when the browser can't start, baun prints the path of the page instead, so you can open it yourself.
+
+## Help and Version
 
 Run `baun --help` to list the steps and parameters of the build, with the entry step marked, and `baun --version` to show the version of baun the build uses. These options also work with the bootstrap scripts, such as `./build.sh --help`. In a folder without a build, they show the help and version of the tool.

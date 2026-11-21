@@ -25,7 +25,9 @@ Properties with a path, such as `GitHub.Workspace`, `GitHub.StepSummary` and `Gi
 string? Tag = GitHub.Tag;
 ```
 
-`GitHub.CreateOrUpdateRelease` creates the GitHub release for a tag, or updates its title, notes and prerelease flag if it already exists, so the step can be run again. The repository defaults to `GitHub.Repository`, the token to `GitHub.Token`, the title to the tag, and the API URL to `GitHub.ApiUrl`. Pass `token:` to use another token. To release to another repository, pass `repository: new GitHubRepository("octocat", "Hello-World")` or `GitHubRepository.Parse("octocat/Hello-World")`:
+## GitHub Releases
+
+`GitHub.CreateOrUpdateRelease` creates the GitHub release for a tag, or updates its title, notes and prerelease flag if it already exists, so the step can be run again. GitHub creates the tag if it doesn't exist yet. The returned `GitHubRelease` has the `Id`, `Tag`, `Name`, `Notes`, `Prerelease` flag and `Url` of the release:
 
 ```csharp
 Step Release() => _ => _
@@ -35,6 +37,18 @@ Step Release() => _ => _
         Log.Information("Released {Url}", release.Url);
     });
 ```
+
+The other parameters are optional:
+
+| Parameter | Default |
+| --- | --- |
+| `notes` | No notes. Markdown, such as the notes from the [changelog](#changelog) |
+| `prerelease` | `false` |
+| `name` | The tag |
+| `repository` | `GitHub.Repository`. To release to another repository, pass `new GitHubRepository("octocat", "Hello-World")` or `GitHubRepository.Parse("octocat/Hello-World")` |
+| `token` | `GitHub.Token` |
+
+The API URL is `GitHub.ApiUrl`. Without a token or a repository, `CreateOrUpdateRelease` throws an `InvalidOperationException` that says which one is missing.
 
 The token needs permission to write releases. GitHub Actions doesn't set `GITHUB_TOKEN` as an environment variable by itself, so pass the token of the run to the step that runs the build:
 
