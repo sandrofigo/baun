@@ -38,7 +38,55 @@ The scripts use an installed SDK when the one dotnet picks for their folder is .
 
 It also adds `.dotnet/` to `.gitignore`. When it creates a project build in a folder without a `.gitignore`, it also adds `bin/` and `obj/`, so the output of the build project stays out of git. An existing `.gitignore` keeps its own rules for these. Inside a git repository, it also stages build.sh, and a single-file Build.cs, as executable, so they stay executable when committed from Windows. Use `baun init --no-bootstrap` to create only the build.
 
-It always overwrites existing bootstrap scripts. Run it again in a folder that already has a build to update the scripts to the current version. This leaves the build itself alone.
+It always overwrites existing bootstrap scripts. Run it again in a folder that already has a build to update the scripts to the current version, see [Updating baun](#updating-baun). This leaves the build itself alone.
+
+## Updating baun
+
+The baun CLI and the Baun package your build references are versioned separately, so updating one doesn't update the other. To move an existing build to a new version of baun, update both and then let init regenerate the files it manages:
+
+1. Update the tool:
+
+   ```shell
+   dotnet tool update --global Baun.Cli
+   ```
+
+2. Update the Baun package of the build. For a project build, this sets the `PackageReference` in the `.csproj` to the latest version, and for a single-file build the `#:package` line in `Build.cs`:
+
+   ```shell
+   dotnet package add Baun --project build  # project build
+   dotnet package add Baun --file Build.cs  # single-file build
+   ```
+
+   Add `--version <version>` to pick a version other than the latest one.
+
+3. In the folder of the build, the root of your repository, run init again:
+
+   ```shell
+   baun init
+   ```
+
+   In a folder that already has a build, init doesn't create a new one. It updates the files it manages to the version of the tool, so update the tool first.
+
+4. Run `baun --version` to check which version the build now uses, review the changes with `git diff`, and commit them.
+
+Check the [changelog](https://github.com/sandrofigo/baun/blob/main/CHANGELOG.md) for changes that affect your build before you update.
+
+### What Init Updates
+
+In an existing build, `baun init` overwrites these files with the current version:
+
+- The [bootstrap scripts](#running-without-the-net-sdk), `build.sh`, `build.ps1` and `build.cmd`, and stages build.sh as executable in git
+- In a project build, `build/.editorconfig` and `build/_build.csproj.DotSettings`, the [IDE settings](../../guides/project-or-single-file/#project-builds)
+
+It also adds what's missing and never overwrites what's there:
+
+- `.dotnet/` in `.gitignore`
+- An empty [`.baun/parameters.json`](../../guides/parameters/), when the repository has none
+- `temp/` in `.baun/.gitignore`
+
+It leaves your own files alone: `Build.cs`, the `.csproj` and the other files of the build, as well as `build/Directory.Build.props` and `build/Directory.Build.targets`. That's why you update the version of the Baun package yourself, in step 2. If you changed one of the files init overwrites, such as the bootstrap scripts, it overwrites your changes too, so review the diff before you commit.
+
+In an existing build, init takes no options. It fails when you pass `--project`, `--single-file` or `--no-bootstrap`, and when the build isn't in the place the bootstrap scripts expect, a `Build.cs` or `build/_build.csproj` in the current folder.
 
 ## Running a Build
 

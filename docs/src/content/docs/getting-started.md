@@ -15,7 +15,7 @@ description: Install the baun CLI, create a build and run it.
    dotnet tool install --global Baun.Cli
    ```
 
-   To update it later, run `dotnet tool update --global Baun.Cli`.
+   To update the CLI and your build project later, see [Updating baun](../reference/cli/#updating-baun).
 
 2. In the root of your repository, create a build:
 
