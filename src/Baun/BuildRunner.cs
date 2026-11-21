@@ -57,7 +57,7 @@ internal sealed class BuildRunner(
     {
         if (HasOption(arguments, "version", "-v"))
         {
-            console.WriteLine(GetVersion());
+            console.WriteLine(BaunVersion.Get(typeof(BuildRunner).Assembly));
             return 0;
         }
 
@@ -502,20 +502,6 @@ internal sealed class BuildRunner(
         console.Write(optionRows);
         console.WriteLine();
         console.WriteLine($"    Each option also works with the prefix --{OptionPrefix}, such as --{OptionPrefix}{PlanOption}.");
-    }
-
-    /// <summary>
-    /// Gets the version of baun the build uses.
-    /// </summary>
-    private static string GetVersion()
-    {
-        string version = typeof(BuildRunner).Assembly
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()!
-            .InformationalVersion;
-
-        // Drop build metadata such as "+3a69508".
-        int metadata = version.IndexOf('+');
-        return metadata >= 0 ? version[..metadata] : version;
     }
 
     private List<ResolvedStep> ResolveSteps()
