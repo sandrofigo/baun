@@ -18,7 +18,7 @@ Step Pack() => _ => _
     });
 ```
 
-Properties with a path, such as `GitHub.Workspace`, `GitHub.StepSummary` and `GitHub.RunnerTemp`, return an `AbsolutePath`. A property is `null` (or `false`) when its variable isn't set or is empty, such as outside GitHub Actions. The variables are read each time a property is used, so you can set them yourself to try a run locally: `GITHUB_REF_TYPE=tag GITHUB_REF_NAME=v1.2.3 baun Pack`. To also accept a value on the command line, use the property as a parameter's initial value:
+Properties with a path, such as `GitHub.Workspace`, return an `AbsolutePath`. A property is null, or false, when its variable isn't set or is empty, such as outside GitHub Actions. The variables are read each time a property is used, so you can set them yourself to try a run locally: `GITHUB_REF_TYPE=tag GITHUB_REF_NAME=v1.2.3 baun Pack`. To also accept a value on the command line, use the property as a parameter's initial value:
 
 ```csharp
 [Parameter("Tag to release")]
@@ -27,7 +27,7 @@ string? Tag = GitHub.Tag;
 
 ## GitHub Releases
 
-`GitHub.CreateOrUpdateRelease` creates the GitHub release for a tag, or updates its title, notes and prerelease flag if it already exists, so the step can be run again. GitHub creates the tag if it doesn't exist yet. The returned `GitHubRelease` has the `Id`, `Tag`, `Name`, `Notes`, `Prerelease` flag and `Url` of the release:
+`GitHub.CreateOrUpdateRelease` creates the GitHub release for a tag, or updates its title, notes and prerelease flag if it already exists, so the step can be run again. GitHub creates the tag if it doesn't exist yet. The returned release has its ID, tag, name, notes, prerelease flag and URL:
 
 ```csharp
 Step Release() => _ => _
@@ -48,7 +48,7 @@ The other parameters are optional:
 | `repository` | `GitHub.Repository`. To release to another repository, pass `new GitHubRepository("octocat", "Hello-World")` or `GitHubRepository.Parse("octocat/Hello-World")` |
 | `token` | `GitHub.Token` |
 
-The API URL is `GitHub.ApiUrl`. Without a token or a repository, `CreateOrUpdateRelease` throws an `InvalidOperationException` that says which one is missing.
+The API URL is `GitHub.ApiUrl`. Without a token or a repository, the method throws an `InvalidOperationException` that says which one is missing.
 
 The token needs permission to write releases. GitHub Actions doesn't set `GITHUB_TOKEN` as an environment variable by itself, so pass the token of the run to the step that runs the build:
 
@@ -64,9 +64,18 @@ steps:
 
 ## Changelog
 
-`Changelog` reads a changelog in the [Keep a Changelog](https://keepachangelog.com/) format. `Changelog.Read()` reads `CHANGELOG.md` in `RootDirectory`. Pass an `AbsolutePath` to read another file, such as `Changelog.Read(RootDirectory / "docs" / "CHANGES.md")`, or use `Changelog.Parse(text)` for text. An invalid file throws a `ChangelogFormatException` that names the line.
+`Changelog` reads a changelog in the [Keep a Changelog](https://keepachangelog.com/) format. `Changelog.Read()` reads CHANGELOG.md in the root directory. Pass a path to read another file, such as `Changelog.Read(RootDirectory / "docs" / "CHANGES.md")`, or use `Changelog.Parse` for text. An invalid file throws a `ChangelogFormatException` that names the line.
 
-A changelog has the `Unreleased` section, its `Releases` in the order of the file, and the `LatestRelease` (the one with the highest version). `GetRelease("1.2.3")` returns a release and throws if there's none, while `TryGetRelease` doesn't throw. Each `ChangelogRelease` has its `Version`, `Date`, `IsYanked`, the URL of its `Link` from the end of the file (`https://github.com/...` from `[1.2.3]: https://github.com/...`), or `null` if it has none, and `Categories`, such as `Added` and `Fixed`, with their `Entries`. `GetReleaseNotes("1.2.3")` (or a release's `Notes`) returns the categories with entries as Markdown, in the order of Keep a Changelog and without the release heading, so they work as the notes of a GitHub release:
+A changelog has:
+
+- `Unreleased`: the Unreleased section
+- `Releases`: the releases in the order of the file
+- `LatestRelease`: the release with the highest version
+- `GetRelease("1.2.3")`: a release by version, which throws if there's none. `TryGetRelease` doesn't throw.
+
+Each release has its version, date and whether it's yanked, its link from the end of the file if it has one, such as the URL in `[1.2.3]: https://github.com/...`, and its categories, such as Added and Fixed, with their entries.
+
+`GetReleaseNotes("1.2.3")`, or a release's `Notes`, returns the categories with entries as Markdown, in the order of Keep a Changelog and without the release heading, so they work as the notes of a GitHub release:
 
 ```csharp
 Step Release() => _ => _

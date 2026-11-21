@@ -37,7 +37,7 @@ The build class is generic or nested in another type. Declare it as a non-generi
 
 ## BAUN004
 
-The `[Entry]` attribute names something that isn't a step of the build class. Use `nameof` with the step method, such as `[Entry(nameof(Test))]`, so the compiler checks the name.
+The entry attribute names something that isn't a step of the build class. Use nameof with the step method, such as `[Entry(nameof(Test))]`, so the compiler checks the name.
 
 ## BAUN005
 
@@ -45,15 +45,15 @@ The build has more than one class with steps and no entry point of its own, so b
 
 ## BAUN006
 
-Two steps have names that differ only in case, such as `Test` and `test`. Step names are case-insensitive on the command line, so rename one of them.
+Two steps have names that differ only in case, such as Test and test. Step names are case-insensitive on the command line, so rename one of them.
 
 ## BAUN007
 
-A step has the same name as a command of the baun CLI, such as `Init`, so `baun Init` runs the command instead of the step. Run the step with `baun --step Init` (see [Steps Named Like Commands](../../reference/cli/#steps-named-like-commands)), or rename it.
+A step has the same name as a command of the baun CLI, such as Init, so `baun Init` runs the command instead of the step. Run the step with `baun --step Init` (see [Steps Named Like Commands](../../reference/cli/#steps-named-like-commands)), or rename it.
 
 ## BAUN008
 
-A parameter can't be set: it's a `const` or `static` field, or a `static` property, a property without a `set` accessor or one with only an `init` accessor. Make it an instance field, which may be `readonly`, or an instance property with a `set` accessor.
+A parameter can't be set: it's a const or static field, a static property, or a property with no setter or only an init accessor. Make it an instance field, which may be readonly, or an instance property with a setter.
 
 ## BAUN009
 
@@ -61,18 +61,18 @@ A parameter has a type that baun can't set. See [Types](../../guides/parameters/
 
 ## BAUN010
 
-A field or property with `[Parameter]` is in a class without steps, so baun never sets it. Move it to the build class.
+A parameter is in a class without steps, so baun never sets it. Move it to the build class.
 
 ## BAUN011
 
-A parameter's name conflicts with another name. Names match case-insensitively and ignore `-` and `_`, so `NuGetApiKey` and `NUGET_API_KEY` are the same name. The parameter conflicts with:
+A parameter's name conflicts with another name. Names match case-insensitively and ignore dashes and underscores, so NuGetApiKey and NUGET_API_KEY are the same name. The parameter conflicts with:
 
 - another parameter of the same name,
 - the built-in option `--help`, `--version`, `-h` or `-v`, or
-- the prefix `--baun-` of the built-in options, because its name starts with `Baun`.
+- the prefix `--baun-` of the built-in options, because its name starts with Baun.
 
 Rename it, or set another name with `[Parameter(Name = "...")]`.
 
 ## BAUN012
 
-A parameter has the same name as the built-in option `--plan`, `--step` or `--verbosity`, so it takes over that option. The built-in option stays available as `--baun-plan`, `--baun-step` or `--baun-verbosity` (see [Built-in Options](../../guides/parameters/#built-in-options)). Set another name with `[Parameter(Name = "...")]` to keep the short option, or add `BAUN012` to `<NoWarn>` if the parameter takes over the option on purpose.
+A parameter has the same name as the built-in option `--plan`, `--step` or `--verbosity`, so it takes over that option. The built-in option stays available with the prefix `--baun-`, such as `--baun-plan` (see [Built-in Options](../../guides/parameters/#built-in-options)). Set another name with `[Parameter(Name = "...")]` to keep the short option, or add BAUN012 to `<NoWarn>` if the parameter takes over the option on purpose.

@@ -35,7 +35,7 @@ partial class Build : IOnStepFailed, IOnBuildFailed
 | `IOnBuildFailed` | `OnBuildFailedAsync()` | After a step fails |
 | `IOnBuildCompleted` | `OnBuildCompletedAsync()` | After `IOnBuildSucceeded` or `IOnBuildFailed` |
 
-`step` is the name of the step, such as `Compile`.
+The step argument is the name of the step, such as Compile.
 
 `IOnBuildInitialized` and the build hooks after it only run for a build that starts its steps, not for `--help`, `--plan` or an error such as a missing parameter. The build hooks run before the summary, so what they write appears above it.
 
