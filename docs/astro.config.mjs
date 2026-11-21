@@ -14,6 +14,7 @@ export default defineConfig({
 			},
 			favicon: '/baun_favicon.png',
 			customCss: ['./src/styles/custom.css'],
+			routeMiddleware: './src/routeData.ts',
 			description: 'A build pipeline system for .NET that lets you write any kind of workflow in plain C#.',
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/sandrofigo/baun' }],
 			editLink: {
