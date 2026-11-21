@@ -106,6 +106,15 @@ public class DotNetTests
     }
 
     [Fact]
+    public async Task Allows_a_typed_command_to_fail()
+    {
+        var result = await RunAsync(new DotNetBuild(() => DotNet.Build("no-such-project-for-baun.csproj").AllowFailure().Command));
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("MSB1009", result.Output);
+    }
+
+    [Fact]
     public void Rejects_a_null_logger()
     {
         Assert.Throws<ArgumentNullException>(() => DotNet.Logger = null!);

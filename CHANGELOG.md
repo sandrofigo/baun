@@ -18,11 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Git` runs git, in the new `Baun.Git` namespace, which builds import automatically. `Git.GetCurrentTagAsync` returns the tag of the current commit and `Git.GetCurrentBranchAsync` the current branch.
 - `GitLogger`, the default logger of `Git`, writes git's `fatal:` and `error:` lines as `Error`, `warning:` lines as `Warning`, and its progress on the standard error as `Debug` instead of `Warning`. Change it for all commands with `Git.Logger`.
 - `ToolCommand<TSelf>` is the base of typed commands, to add typed commands for other tools.
+- `AllowFailure` on a tool command returns the result for any exit code instead of throwing a `ToolException`, for tools that answer with their exit code, such as `Tool.Command("git").Arguments("diff", "--quiet").AllowFailure()`. It works on typed commands too.
 - `TempDirectory` returns baun's temp directory, `.baun/temp`, or `baun` in the temp directory of the system without a `.baun` folder. Build classes get it as a property, like `RootDirectory`, and `BaunBuild.TempDirectory` works anywhere. `BaunBuild.CreateTempFile` and `BaunBuild.CreateTempDirectory` create an empty file or directory with a unique name in it, such as `BaunBuild.CreateTempFile(".json")`.
 - Hooks run code at points of a build. A build class implements one interface for each hook it needs, such as `IOnBuildFailed` with `OnBuildFailedAsync()`. There are hooks for when the build is created, initialized, succeeds, fails or completes, and for when each step starts, succeeds, fails or completes.
 
 ### Changed
 
+- A tool that can't be started throws an `InvalidOperationException` that names the tool and says why, such as `Couldn't start gh. Make sure it's installed and in the PATH.`, that the file or the working directory doesn't exist, or the reason of the system, such as `Permission denied`. Before, it threw the `Win32Exception` of `Process.Start`.
 - `[Parameter]` fields can be `readonly`, such as `[Parameter] readonly string Configuration = "Debug";`. Before, they were a build error (`BAUN008`).
 - A parameter named after `--plan`, `--step` or `--verbosity` takes over the option instead of failing the build, and the new warning `BAUN012` reports it. The built-in option stays available with the prefix `--baun-`. Parameters named after `--help` or `--version`, or starting with `Baun`, are a build error (`BAUN011`).
 

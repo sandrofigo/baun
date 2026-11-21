@@ -49,6 +49,9 @@ public abstract class ToolCommand<TSelf>
     /// <inheritdoc cref="ToolCommand.Logger"/>
     public TSelf Logger(ToolLogger logger) => With(Command.Logger(logger));
 
+    /// <inheritdoc cref="ToolCommand.AllowFailure"/>
+    public TSelf AllowFailure() => With(Command.AllowFailure());
+
     /// <inheritdoc cref="ToolCommand.RunAsync"/>
     public Task<ToolResult> RunAsync(CancellationToken cancellationToken = default) => Command.RunAsync(cancellationToken);
 

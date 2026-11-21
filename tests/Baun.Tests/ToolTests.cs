@@ -126,6 +126,96 @@ public class ToolTests
     }
 
     [Fact]
+    public async Task Returns_the_result_for_an_exit_code_other_than_0_with_allow_failure()
+    {
+        var build = new ToolBuild();
+
+        var result = await RunAsync(build, "AllowedFailure");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.NotEqual(0, build.Result!.ExitCode);
+        Assert.Matches(new Regex(@"^\d\d:\d\d:\d\d WRN \S", RegexOptions.Multiline), result.Output);
+        Assert.DoesNotContain("failed with exit code", result.Output);
+    }
+
+    [Fact]
+    public void Leaves_the_command_it_allows_to_fail_unchanged()
+    {
+        ToolCommand command = Tool.Command("git").Arguments("diff", "--quiet");
+
+        ToolCommand other = command.AllowFailure();
+
+        Assert.NotSame(command, other);
+        Assert.Equal(command.ToString(), other.ToString());
+    }
+
+    [Fact]
+    public async Task Fails_the_step_with_the_name_of_a_tool_that_can_not_be_started()
+    {
+        var result = await RunAsync(new ToolBuild(), "MissingTool");
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("ERR Step MissingTool failed", result.Output);
+        Assert.Contains($"Couldn't start {ToolBuild.MissingToolName}. Make sure it's installed and in the PATH.", result.Output);
+    }
+
+    [Fact]
+    public async Task Throws_when_the_working_directory_does_not_exist()
+    {
+        AbsolutePath directory = (AbsolutePath)Path.GetTempPath() / Path.GetRandomFileName();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => Tool.Command("dotnet").Arguments("--version").WorkingDirectory(directory).RunAsync(TestContext.Current.CancellationToken));
+
+        Assert.Equal($"Couldn't start dotnet, because the working directory {directory} doesn't exist.", exception.Message);
+    }
+
+    [Fact]
+    public async Task Throws_when_the_file_of_a_tool_given_as_a_path_does_not_exist()
+    {
+        AbsolutePath file = (AbsolutePath)Path.GetTempPath() / Path.GetRandomFileName() / "tool";
+
+        var exception = await RunOutsideABuildAsync(file);
+
+        Assert.Equal($"Couldn't start {file}, because the file doesn't exist.", exception.Message);
+    }
+
+    [Fact]
+    public async Task Throws_with_the_reason_of_the_system_when_a_tool_can_not_be_started()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.Skip("Needs a file without the permission to execute it, as on Linux and macOS.");
+            return; // Tells the platform analyzer that the rest only runs on Linux and macOS.
+        }
+
+        AbsolutePath file = (AbsolutePath)Path.GetTempPath() / Path.GetRandomFileName();
+        await File.WriteAllTextAsync(file, "#!/bin/sh\n", TestContext.Current.CancellationToken);
+        File.SetUnixFileMode(file, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+
+        try
+        {
+            var exception = await RunOutsideABuildAsync(file);
+
+            Assert.Equal($"Couldn't start {file}: Permission denied.", exception.Message);
+        }
+        finally
+        {
+            file.Delete();
+        }
+    }
+
+    private static async Task<InvalidOperationException> RunOutsideABuildAsync(string fileName)
+    {
+        // Outside a build, messages go to the real console, where they would end up in the output of dotnet test.
+        using var backend = SerilogBackend.ForConsole(new TestConsole(), LogLevel.Debug);
+        using IDisposable scope = Log.Use(backend);
+
+        return await Assert.ThrowsAsync<InvalidOperationException>(
+            () => Tool.Command(fileName).RunAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
     public async Task Runs_in_the_working_directory()
     {
         AbsolutePath directory = (AbsolutePath)Path.GetTempPath() / Path.GetRandomFileName();
@@ -189,6 +279,14 @@ internal sealed partial class ToolBuild
 
     public Step Unknown() => _ => _
         .Executes(async () => Result = await Tool.RunAsync("dotnet", "no-such-command-for-baun"));
+
+    public Step AllowedFailure() => _ => _
+        .Executes(async () => Result = await Tool.Command("dotnet").Arguments("no-such-command-for-baun").AllowFailure().RunAsync());
+
+    public const string MissingToolName = "baun-no-such-tool-4f2a";
+
+    public Step MissingTool() => _ => _
+        .Executes(async () => Result = await Tool.RunAsync(MissingToolName));
 
     public Step CustomLogger() => _ => _
         .Executes(async () => Result = await Tool.Command("dotnet").Arguments("--version").Logger(new PrefixLogger()).RunAsync());
