@@ -29,7 +29,7 @@ A project build is a regular .NET console project, for example in a `build` fold
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Baun" Version="0.6.0" />
+    <PackageReference Include="Baun" Version="0.7.0" />
   </ItemGroup>
 
 </Project>
@@ -117,7 +117,7 @@ On Linux and macOS you can also make the build directly executable. Add a sheban
 
 ```csharp
 #!/usr/bin/env dotnet
-#:package Baun@0.6.0
+#:package Baun@0.7.0
 ```
 
 Then mark the file as executable and run it:
