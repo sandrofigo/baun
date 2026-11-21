@@ -1,0 +1,13 @@
+// Serves the built site from dist/ as Cloudflare Workers static assets.
+// https://developers.cloudflare.com/workers/static-assets/
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "baun-docs",
+	"compatibility_date": "2026-11-21",
+	"assets": {
+		"directory": "./dist",
+		"not_found_handling": "404-page"
+	},
+	// Requires the baun.dev zone in the same Cloudflare account. Wrangler creates the DNS record and certificate.
+	"routes": [{ "pattern": "baun.dev", "custom_domain": true }]
+}
