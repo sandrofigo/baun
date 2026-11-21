@@ -676,7 +676,7 @@ internal sealed class BuildRunner(
         {
             ResolvedStep step = steps.FirstOrDefault(step => step.IsEntry)
                                 ?? throw new BuildConfigurationException(
-                                    $"No step was named and {build.GetType().Name} has no entry step. Name a step, or add [Entry(nameof(...))] to the build class. Available steps: {string.Join(", ", steps.Select(step => step.Name))}.");
+                                    $"No step was named and {build.GetType().Name} has no entry step. Name a step, or add [Entry(nameof(...))] to the build class. {AvailableSteps()}");
 
             return [step];
         }
@@ -687,12 +687,14 @@ internal sealed class BuildRunner(
         {
             ResolvedStep step = steps.FirstOrDefault(step => string.Equals(step.Name, name, StringComparison.OrdinalIgnoreCase))
                                 ?? throw new BuildConfigurationException(
-                                    $"Unknown step {name}. Available steps: {string.Join(", ", steps.Select(step => step.Name))}.");
+                                    $"Unknown step {name}. {AvailableSteps()}");
 
             requested.Add(step);
         }
 
         return requested;
+
+        string AvailableSteps() => $"Available steps: {string.Join(", ", steps.Select(step => step.Name))}.";
     }
 
     private static List<ResolvedStep> CreateExecutionPlan(List<ResolvedStep> requested)
