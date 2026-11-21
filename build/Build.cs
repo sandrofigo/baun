@@ -4,7 +4,7 @@ partial class Build
     [Parameter("Solution to test and pack")]
     readonly Solution Solution;
 
-    static AbsolutePath ArtifactsDirectory => RootDirectory / "artifacts";
+    readonly AbsolutePath ArtifactsDirectory = RootDirectory / "artifacts";
 
     [Parameter("Configuration to test and pack")]
     readonly Configuration Configuration = Configuration.Release;
