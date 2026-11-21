@@ -1,5 +1,5 @@
 ---
-title: Running tools
+title: Running Tools
 description: Run command-line tools such as dotnet and git from steps.
 ---
 
@@ -45,7 +45,7 @@ A tool that can't be started throws an `InvalidOperationException` that names th
 
 The output of a tool is written without colors, because baun reads it instead of the terminal.
 
-## Tool loggers
+## Tool Loggers
 
 Each line a tool writes goes to a `ToolLogger`, which picks its level. The default one writes the standard output as `Debug` and the standard error as `Warning`, as described above. The `dotnet` and `git` tools below come with loggers of their own that write errors and warnings of the tool as `Error` and `Warning` messages. To change how a tool's output is logged, derive from `ToolLogger` (or from a tool's logger, such as `DotNetLogger`) and override `GetLevel`, calling the base method for the lines you don't handle. Override `Write` instead to skip or change lines:
 

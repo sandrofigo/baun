@@ -54,7 +54,7 @@ Parameters can be `string`, `bool`, `char`, any number type, an enum, `Guid`, `U
 
 A parameter can't be named after `--help` or `--version`, or start with `Baun`, so the built-in options always work (`BAUN011`). A parameter named after another built-in option, such as `Plan`, takes it over: `--plan` sets the parameter, and the source generator warns about it (`BAUN012`). Every built-in option also works with the prefix `--baun-`, such as `--baun-plan`, so it stays available, and a script can use that form to work with any build. Add `BAUN012` to `<NoWarn>` in the project file of the build if the parameter takes over the option on purpose.
 
-## Required parameters
+## Required Parameters
 
 A parameter of a non-nullable reference type without an initial value is required, so every run needs a value for it:
 

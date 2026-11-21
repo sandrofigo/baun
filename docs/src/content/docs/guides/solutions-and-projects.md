@@ -1,5 +1,5 @@
 ---
-title: Solutions and projects
+title: Solutions and Projects
 description: Read .sln, .slnx and project files.
 ---
 

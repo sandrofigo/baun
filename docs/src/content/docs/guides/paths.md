@@ -1,5 +1,5 @@
 ---
-title: Paths and files
+title: Paths and Files
 description: RootDirectory, TempDirectory and AbsolutePath helpers.
 ---
 
