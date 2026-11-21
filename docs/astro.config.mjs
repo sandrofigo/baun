@@ -13,6 +13,10 @@ export default defineConfig({
 				replacesTitle: true,
 			},
 			favicon: '/baun_favicon.png',
+			head: [
+				{ tag: 'meta', attrs: { property: 'og:image', content: 'https://baun.dev/og.png' } },
+				{ tag: 'meta', attrs: { name: 'twitter:image', content: 'https://baun.dev/og.png' } },
+			],
 			customCss: ['./src/styles/custom.css'],
 			// VS Code's themes color C# types, methods and keywords apart, which Starlight's default themes don't.
 			// The frames and backgrounds of code blocks keep the colors of the site.
