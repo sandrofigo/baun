@@ -80,7 +80,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         }
 
         await WriteBootstrapScriptsAsync(cancellationToken);
-        AddToGitIgnore(context.Directory / ".gitignore", BootstrapScripts.DotnetFolder);
+        await AddToGitIgnoreAsync(context.Directory / ".gitignore", [BootstrapScripts.DotnetFolder], cancellationToken);
         await CreateParametersFileAsync(cancellationToken);
         await MarkExecutableAsync([context.Directory / BootstrapScripts.ShellScriptName]);
 
@@ -103,11 +103,10 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
         if (!File.Exists(path))
         {
-            await File.WriteAllTextAsync(path, "{}\n", cancellationToken);
-            console.WriteSuccess($"Created {Markup.Escape(Relative(path))}");
+            await WriteFileAsync(path, "{}\n", cancellationToken);
         }
 
-        AddToGitIgnore(folder / ".gitignore", RepositoryRoot.TempFolderName + "/");
+        await AddToGitIgnoreAsync(folder / ".gitignore", [RepositoryRoot.TempFolderName + "/"], cancellationToken);
     }
 
     /// <summary>
@@ -117,9 +116,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
     {
         foreach ((AbsolutePath path, string content) in BootstrapScripts.Create(context.Directory))
         {
-            bool exists = File.Exists(path);
-            await File.WriteAllTextAsync(path, content, cancellationToken);
-            console.WriteSuccess($"{(exists ? "Updated" : "Created")} {Markup.Escape(Relative(path))}");
+            await WriteFileAsync(path, content, cancellationToken);
         }
     }
 
@@ -161,8 +158,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         foreach ((AbsolutePath path, string content) in files)
         {
             Directory.CreateDirectory(path.Parent!);
-            await File.WriteAllTextAsync(path, content, cancellationToken);
-            console.WriteSuccess($"Created {Markup.Escape(Relative(path))}");
+            await WriteFileAsync(path, content, cancellationToken);
         }
 
         if (kind == BuildKind.Project)
@@ -191,7 +187,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
         if (ignored.Count > 0)
         {
-            AddToGitIgnore(gitIgnore, [.. ignored]);
+            await AddToGitIgnoreAsync(gitIgnore, ignored, cancellationToken);
         }
 
         await CreateParametersFileAsync(cancellationToken);
@@ -228,16 +224,24 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
     /// Adds the <paramref name="entries"/> that are missing to the <c>.gitignore</c> at <paramref name="path"/>, creating
     /// the file if needed.
     /// </summary>
-    private void AddToGitIgnore(AbsolutePath path, params string[] entries)
+    private async Task AddToGitIgnoreAsync(AbsolutePath path, IReadOnlyList<string> entries, CancellationToken cancellationToken)
     {
         if (!File.Exists(path))
         {
-            File.WriteAllText(path, string.Concat(entries.Select(entry => entry + "\n")));
-            console.WriteSuccess($"Created {Markup.Escape(Relative(path))}");
+            await WriteFileAsync(path, string.Concat(entries.Select(entry => entry + "\n")), cancellationToken);
             return;
         }
 
-        string content = File.ReadAllText(path);
+        string content;
+        Encoding encoding;
+
+        // Keeps the encoding of the existing file, such as a BOM, when it's rewritten.
+        using (var reader = new StreamReader(path, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), detectEncodingFromByteOrderMarks: true))
+        {
+            content = await reader.ReadToEndAsync(cancellationToken);
+            encoding = reader.CurrentEncoding;
+        }
+
         var ignored = content
             .Split('\n')
             .Select(line => line.Trim().Trim('/'))
@@ -250,8 +254,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         }
 
         string separator = content.Length == 0 || content.EndsWith('\n') ? string.Empty : "\n";
-        File.AppendAllText(path, separator + string.Concat(missing.Select(entry => entry + "\n")));
-        console.WriteSuccess($"Updated {Markup.Escape(Relative(path))}");
+        await WriteFileAsync(path, content + separator + string.Concat(missing.Select(entry => entry + "\n")), encoding, cancellationToken);
     }
 
     /// <summary>
@@ -446,6 +449,22 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
 
     private string Relative(AbsolutePath path) => Path.GetRelativePath(context.Directory, path);
 
+    /// <summary>
+    /// Writes a file as UTF-8 without a BOM, replacing an existing one, and reports it as created or updated.
+    /// </summary>
+    private Task WriteFileAsync(AbsolutePath path, string content, CancellationToken cancellationToken) =>
+        WriteFileAsync(path, content, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), cancellationToken);
+
+    /// <summary>
+    /// Writes a file, replacing an existing one, and reports it as created or updated.
+    /// </summary>
+    private async Task WriteFileAsync(AbsolutePath path, string content, Encoding encoding, CancellationToken cancellationToken)
+    {
+        bool existed = File.Exists(path);
+        await File.WriteAllTextAsync(path, content, encoding, cancellationToken);
+        console.WriteSuccess($"{(existed ? "Updated" : "Created")} {Markup.Escape(Relative(path))}");
+    }
+
     private BuildKind AskForKind() =>
         Select(
             "Which kind of build do you want to create?",
@@ -506,8 +525,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
                 continue;
             }
 
-            await File.WriteAllTextAsync(path, DirectoryBuildFile.ReplaceLineEndings("\n"), cancellationToken);
-            console.WriteSuccess($"Created {Markup.Escape(Relative(path))}");
+            await WriteFileAsync(path, DirectoryBuildFile.ReplaceLineEndings("\n"), cancellationToken);
         }
     }
 
@@ -535,9 +553,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
         foreach ((string name, string content, Encoding encoding) in files)
         {
             AbsolutePath path = context.Directory / "build" / name;
-            bool exists = File.Exists(path);
-            await File.WriteAllTextAsync(path, content.ReplaceLineEndings("\n"), encoding, cancellationToken);
-            console.WriteSuccess($"{(exists ? "Updated" : "Created")} {Markup.Escape(Relative(path))}");
+            await WriteFileAsync(path, content.ReplaceLineEndings("\n"), encoding, cancellationToken);
         }
     }
 
