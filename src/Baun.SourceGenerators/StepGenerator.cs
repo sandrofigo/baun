@@ -251,9 +251,9 @@ public sealed class StepGenerator : IIncrementalGenerator
 
     private static bool IsSupportedScalar(ITypeSymbol type)
     {
-        if (type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable)
+        if (IsNullableValueType(type))
         {
-            type = nullable.TypeArguments[0];
+            type = ((INamedTypeSymbol)type).TypeArguments[0];
         }
 
         if (type.TypeKind == TypeKind.Enum)
