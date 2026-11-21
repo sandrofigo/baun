@@ -1,0 +1,18 @@
+/* Accent color #6b81ff, the primary color of the baun CLI. */
+
+/* Dark mode */
+:root {
+	--sl-color-accent-low: #1b2050;
+	--sl-color-accent: #6b81ff;
+	--sl-color-accent-high: #d6ddff;
+	/* Buttons and links use this, not --sl-color-accent */
+	--sl-color-text-accent: #6b81ff;
+}
+
+/* Light mode */
+:root[data-theme='light'] {
+	--sl-color-accent-low: #d6ddff;
+	--sl-color-accent: #6b81ff;
+	--sl-color-accent-high: #1e2a7a;
+	--sl-color-text-accent: #6b81ff;
+}

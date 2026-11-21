@@ -1,0 +1,113 @@
+---
+title: Running tools
+description: Run command-line tools such as dotnet and git from steps.
+---
+
+`Tool.RunAsync` runs a command-line tool, such as `dotnet` or `git`, and writes it to the log as an `Information` message, such as `14:03:52 INF › dotnet test --no-build` (with `>` on consoles without Unicode), followed by its output: each line of its standard output as a `Debug` message, and each line of its standard error as a `Warning`, because many tools write progress there. If the tool exits with a code other than 0, it throws a `ToolException`, which fails the step:
+
+```csharp
+Step Test() => _ => _
+    .DependsOn(Compile)
+    .Executes(async () =>
+    {
+        await Tool.RunAsync("dotnet", "test", "--no-build", "--configuration", Configuration);
+    });
+```
+
+Each argument is passed as it is, so an argument with spaces, such as a path, doesn't need quotes. Pass a list of arguments, a working directory and a `CancellationToken` with `Tool.RunAsync("dotnet", arguments, RootDirectory / "src")`. The result has the `ExitCode` and the lines of the `StandardOutput` and `StandardError`, so you can use what a tool writes:
+
+```csharp
+ToolResult result = await Tool.RunAsync("git", "rev-parse", "HEAD");
+string commit = result.StandardOutput[0];
+```
+
+`Tool.Command` builds a command step by step instead: `Arguments` adds arguments, `Secret` adds an argument such as an API key, `WorkingDirectory` sets the directory to run in, and `RunAsync` runs it. A secret is passed to the tool as it is, but written to the log as `***`, both in the command and in the output of the tool. Each method returns a new command, so a command can be the base of others:
+
+```csharp
+await Tool.Command("dotnet")
+    .Arguments("nuget", "push", package)
+    .Arguments("--api-key").Secret(NuGetApiKey)
+    .Arguments("--source", "https://api.nuget.org/v3/index.json")
+    .RunAsync();
+// 14:03:52 INF › dotnet nuget push App.1.0.0.nupkg --api-key *** --source https://api.nuget.org/v3/index.json
+```
+
+The result still has the output as the tool wrote it, including secrets.
+
+Some tools answer with their exit code, such as `git diff --quiet`, which exits with 1 when there are unstaged changes. `AllowFailure` returns the result for any exit code instead of throwing a `ToolException`:
+
+```csharp
+ToolResult diff = await Tool.Command("git").Arguments("diff", "--quiet").AllowFailure().RunAsync();
+bool hasUnstagedChanges = diff.ExitCode != 0;
+```
+
+A tool that can't be started throws an `InvalidOperationException` that names the tool and says why, such as that it isn't installed or in the `PATH`, that the working directory doesn't exist, or that the file isn't executable. That's also the case with `AllowFailure`.
+
+The output of a tool is written without colors, because baun reads it instead of the terminal.
+
+## Tool loggers
+
+Each line a tool writes goes to a `ToolLogger`, which picks its level. The default one writes the standard output as `Debug` and the standard error as `Warning`, as described above. The `dotnet` and `git` tools below come with loggers of their own that write errors and warnings of the tool as `Error` and `Warning` messages. To change how a tool's output is logged, derive from `ToolLogger` (or from a tool's logger, such as `DotNetLogger`) and override `GetLevel`, calling the base method for the lines you don't handle. Override `Write` instead to skip or change lines:
+
+```csharp
+class TestLogger : DotNetLogger
+{
+    protected override LogLevel GetLevel(ToolOutputLine line) =>
+        line.Text.StartsWith("failed ") ? LogLevel.Error : base.GetLevel(line);
+}
+```
+
+Use it for one command with `Logger`, or for every command a tool creates from then on with the tool's `Logger` property, such as `DotNet.Logger`, `Git.Logger` or `Tool.Logger`:
+
+```csharp
+await DotNet.Test().Solution(Solution).Logger(new TestLogger()).RunAsync();
+
+DotNet.Logger = new TestLogger();
+```
+
+`ToolOutputLine` has the `Stream` the line comes from (`StandardOutput` or `StandardError`) and its `Text`, with secrets as `***`. The two streams are read at the same time, so a logger can be called from two threads at once: keep it without state, or make it thread-safe.
+
+## dotnet
+
+`DotNet` runs the .NET CLI with typed commands: `Build`, `Test`, `Pack`, `Publish`, `Restore`, `Clean` and `NuGetPush`. Each takes the project or solution (optional, except for the package of `NuGetPush`) and has methods for its options, such as `Configuration`, `Framework`, `Runtime`, `Property` (`-p:Name=Value`), `NoRestore` and `Verbosity` for the commands that run MSBuild, `Output` and `NoBuild` where they apply, `Version` for `Pack`, `Solution` and `Project` for `Test` with Microsoft.Testing.Platform, and `ApiKey`, `Source` and `SkipDuplicate` for `NuGetPush`. `ApiKey` adds the key as a secret. Like `Tool.Command`, each method returns a new command, and `Arguments`, `Secret`, `WorkingDirectory`, `Logger` and `AllowFailure` work on typed commands too, for options without a method of their own:
+
+```csharp
+await DotNet.Pack(Solution)
+    .Configuration(Configuration)
+    .Output(ArtifactsDirectory)
+    .Version("1.2.3")
+    .Property("ContinuousIntegrationBuild", "true")
+    .RunAsync();
+
+await DotNet.NuGetPush(package)
+    .ApiKey(NuGetApiKey)
+    .Source("https://api.nuget.org/v3/index.json")
+    .SkipDuplicate()
+    .Arguments("--timeout", "600")
+    .RunAsync();
+```
+
+For other commands, `DotNet.Command("format", "--verify-no-changes")` returns a `ToolCommand`, and `DotNet.RunAsync(...)` runs one, like `Tool.Command` and `Tool.RunAsync`. All of them write the output with `DotNet.Logger`, a `DotNetLogger` by default, which writes MSBuild diagnostics such as `Program.cs(3,1): error CS1002: ; expected` as `Error` and `warning NETSDK1138: ...` as `Warning`, as well as NuGet's `error:` and `warn :` lines.
+
+## git
+
+`Git` runs git, with `Git.Command(...)` and `Git.RunAsync(...)` like `DotNet`, and reads information about the repository:
+
+- `Git.GetCurrentTagAsync()` returns the tag of the commit that is checked out, such as `v1.2.3`, or `null` if it has none. With several tags, it returns the one with the highest version.
+- `Git.GetCurrentBranchAsync()` returns the branch that is checked out, such as `main`, or `null` when no branch is checked out, such as when a CI server checks out a tag or a pull request.
+
+Both take an optional directory in the repository and a `CancellationToken`, and throw a `ToolException` outside a repository. Since they run git, use them in a step rather than as a parameter's initial value, for example to release the tag of the current commit unless `--tag` is passed:
+
+```csharp
+[Parameter("Tag to release. Defaults to the tag of the current commit")]
+string? Tag;
+
+Step Pack() => _ => _
+    .Executes(async () =>
+    {
+        Tag ??= await Git.GetCurrentTagAsync();
+        // ...
+    });
+```
+
+`Git.Logger`, a `GitLogger` by default, writes lines of the standard error that start with `fatal:` or `error:` as `Error` and `warning:` as `Warning`. Other lines, such as progress and hints, which git also writes to its standard error, are written as `Debug`.

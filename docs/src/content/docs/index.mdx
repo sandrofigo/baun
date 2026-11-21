@@ -1,0 +1,46 @@
+---
+title: baun
+description: A build pipeline system for .NET that lets you write any kind of workflow, such as CI/CD, releases, or local automation, in plain C#.
+template: splash
+hero:
+  tagline: A build pipeline system for .NET that lets you write any kind of workflow, such as CI/CD, releases, or local automation, in plain C#.
+  actions:
+    - text: Get started
+      link: getting-started/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/sandrofigo/baun
+      icon: external
+      variant: minimal
+---
+
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+Inspired by [NUKE](https://github.com/nuke-build/nuke), baun treats your build as a regular C# program. You define steps and their dependencies in C#, and you get the full power of the language and its tooling: IntelliSense, refactoring, debugging, and NuGet packages. You don't have to maintain YAML or shell scripts.
+
+<Aside type="caution" title="Status">
+	baun is in early development. APIs and features described here may change.
+</Aside>
+
+## Goals
+
+<CardGrid>
+	<Card title="Builds as code" icon="pencil">
+		Define pipelines in strongly typed C# instead of YAML, PowerShell, or Bash.
+	</Card>
+	<Card title="Any workflow" icon="rocket">
+		Use it for CI/CD, packaging, publishing, code generation, or any other repeatable task.
+	</Card>
+	<Card title="Project or single file" icon="document">
+		Use a regular build project that grows with your repository, or keep a small build in one `Build.cs` file. Run either with `baun Test`.
+	</Card>
+	<Card title="Simple by default" icon="star">
+		Getting started takes little ceremony, and complex scenarios are still possible.
+	</Card>
+	<Card title="Runs anywhere" icon="laptop">
+		Run the same build locally and on any CI server, with the same results.
+	</Card>
+	<Card title="First-class tooling" icon="setting">
+		Debug your build like any other .NET application.
+	</Card>
+</CardGrid>
