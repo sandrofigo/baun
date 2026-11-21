@@ -411,7 +411,7 @@ internal sealed class InitCommand(IAnsiConsole console, CliContext context) : As
     /// </summary>
     /// <returns>
     /// <see langword="true"/> if the process exited with code 0; <see langword="false"/> if it failed or couldn't
-    /// be started, for example because it isn't on the PATH.
+    /// be started, for example because it isn't in the PATH.
     /// </returns>
     private async Task<bool> TryRunAsync(string fileName, IEnumerable<string> arguments)
     {

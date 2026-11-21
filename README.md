@@ -346,6 +346,15 @@ await Tool.Command("dotnet")
 
 The result still has the output as the tool wrote it, including secrets.
 
+Some tools answer with their exit code, such as `git diff --quiet`, which exits with 1 when there are changes. `AllowFailure` returns the result for any exit code instead of throwing a `ToolException`:
+
+```csharp
+ToolResult diff = await Tool.Command("git").Arguments("diff", "--quiet").AllowFailure().RunAsync();
+bool hasChanges = diff.ExitCode != 0;
+```
+
+A tool that can't be started throws an `InvalidOperationException` that names the tool and says why, such as that it isn't installed or in the `PATH`, that the working directory doesn't exist, or that the file isn't executable. That's also the case with `AllowFailure`.
+
 The output of a tool is written without colors, because baun reads it instead of the terminal.
 
 ### Tool loggers
@@ -372,7 +381,7 @@ DotNet.Logger = new TestLogger();
 
 ### dotnet
 
-`DotNet` runs the .NET CLI with typed commands: `Build`, `Test`, `Pack`, `Publish`, `Restore`, `Clean` and `NuGetPush`. Each takes the project or solution (optional, except for the package of `NuGetPush`) and has methods for its options, such as `Configuration`, `Framework`, `Runtime`, `Property` (`-p:Name=Value`), `NoRestore` and `Verbosity` for the commands that run MSBuild, `Output` and `NoBuild` where they apply, `Version` for `Pack`, `Solution` and `Project` for `Test` with Microsoft.Testing.Platform, and `ApiKey`, `Source` and `SkipDuplicate` for `NuGetPush`. `ApiKey` adds the key as a secret. Like `Tool.Command`, each method returns a new command, and `Arguments`, `Secret`, `WorkingDirectory` and `Logger` work on typed commands too, for options without a method of their own:
+`DotNet` runs the .NET CLI with typed commands: `Build`, `Test`, `Pack`, `Publish`, `Restore`, `Clean` and `NuGetPush`. Each takes the project or solution (optional, except for the package of `NuGetPush`) and has methods for its options, such as `Configuration`, `Framework`, `Runtime`, `Property` (`-p:Name=Value`), `NoRestore` and `Verbosity` for the commands that run MSBuild, `Output` and `NoBuild` where they apply, `Version` for `Pack`, `Solution` and `Project` for `Test` with Microsoft.Testing.Platform, and `ApiKey`, `Source` and `SkipDuplicate` for `NuGetPush`. `ApiKey` adds the key as a secret. Like `Tool.Command`, each method returns a new command, and `Arguments`, `Secret`, `WorkingDirectory`, `Logger` and `AllowFailure` work on typed commands too, for options without a method of their own:
 
 ```csharp
 await DotNet.Pack(Solution)

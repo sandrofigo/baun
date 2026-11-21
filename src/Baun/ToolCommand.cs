@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Diagnostics;
 using Baun.Logging;
 
@@ -21,18 +22,21 @@ public sealed class ToolCommand
 
     private readonly ToolLogger logger;
 
+    private readonly bool allowFailure;
+
     internal ToolCommand(string fileName)
-        : this(fileName, [], null, ToolLogger.Default)
+        : this(fileName, [], null, ToolLogger.Default, allowFailure: false)
     {
         ArgumentException.ThrowIfNullOrEmpty(fileName);
     }
 
-    private ToolCommand(string fileName, ImmutableArray<ToolArgument> arguments, AbsolutePath? workingDirectory, ToolLogger logger)
+    private ToolCommand(string fileName, ImmutableArray<ToolArgument> arguments, AbsolutePath? workingDirectory, ToolLogger logger, bool allowFailure)
     {
         FileName = fileName;
         this.arguments = arguments;
         this.workingDirectory = workingDirectory;
         this.logger = logger;
+        this.allowFailure = allowFailure;
     }
 
     /// <summary>
@@ -62,7 +66,7 @@ public sealed class ToolCommand
             added.Add(new ToolArgument(argument, IsSecret: false));
         }
 
-        return new(FileName, this.arguments.AddRange(added), workingDirectory, logger);
+        return new(FileName, this.arguments.AddRange(added), workingDirectory, logger, allowFailure);
     }
 
     /// <summary>
@@ -74,14 +78,14 @@ public sealed class ToolCommand
     {
         ArgumentException.ThrowIfNullOrEmpty(value);
 
-        return new(FileName, arguments.Add(new ToolArgument(value, IsSecret: true)), workingDirectory, logger);
+        return new(FileName, arguments.Add(new ToolArgument(value, IsSecret: true)), workingDirectory, logger, allowFailure);
     }
 
     /// <summary>
     /// Returns a command that runs in <paramref name="directory"/>.
     /// </summary>
     /// <param name="directory">The directory to run the tool in, or <see langword="null"/> for the current one.</param>
-    public ToolCommand WorkingDirectory(AbsolutePath? directory) => new(FileName, arguments, directory, logger);
+    public ToolCommand WorkingDirectory(AbsolutePath? directory) => new(FileName, arguments, directory, logger, allowFailure);
 
     /// <summary>
     /// Returns a command that writes the output of the tool with <paramref name="logger"/>.
@@ -91,17 +95,34 @@ public sealed class ToolCommand
     {
         ArgumentNullException.ThrowIfNull(logger);
 
-        return new(FileName, arguments, workingDirectory, logger);
+        return new(FileName, arguments, workingDirectory, logger, allowFailure);
     }
 
     /// <summary>
-    /// Runs the tool, and throws if it fails.
+    /// Returns a command whose <see cref="RunAsync"/> returns the result when the tool exits with a code other than 0,
+    /// instead of throwing a <see cref="ToolException"/>. Use it for tools whose exit code is an answer, such as
+    /// <c>git diff --quiet</c>, which exits with 1 when there are changes.
+    /// </summary>
+    public ToolCommand AllowFailure() => new(FileName, arguments, workingDirectory, logger, allowFailure: true);
+
+    /// <summary>
+    /// Runs the tool, and throws if it fails, unless the command was created with <see cref="AllowFailure"/>.
     /// </summary>
     /// <param name="cancellationToken">Stops the tool, with the processes it started, when it's canceled.</param>
-    /// <returns>What the tool wrote, as it wrote it, so including secrets.</returns>
-    /// <exception cref="ToolException">The tool exited with a code other than 0.</exception>
+    /// <returns>What the tool wrote, as it wrote it, so including secrets, with its exit code.</returns>
+    /// <exception cref="ToolException">
+    /// The tool exited with a code other than 0, and the command wasn't created with <see cref="AllowFailure"/>.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The tool couldn't be started, for example because it isn't installed or the working directory doesn't exist.
+    /// </exception>
     public async Task<ToolResult> RunAsync(CancellationToken cancellationToken = default)
     {
+        if (workingDirectory is not null && !workingDirectory.DirectoryExists)
+        {
+            throw new InvalidOperationException($"Couldn't start {FileName}, because the working directory {workingDirectory} doesn't exist.");
+        }
+
         var startInfo = new ProcessStartInfo(FileName)
         {
             RedirectStandardOutput = true,
@@ -121,8 +142,7 @@ public sealed class ToolCommand
 
         Log.WriteCommand(ToString());
 
-        using Process process = Process.Start(startInfo)
-            ?? throw new InvalidOperationException($"Couldn't start {FileName}.");
+        using Process process = Start(startInfo);
 
         var standardOutput = new List<string>();
         var standardError = new List<string>();
@@ -144,12 +164,46 @@ public sealed class ToolCommand
 
         var result = new ToolResult(process.ExitCode, standardOutput, standardError);
 
-        if (result.ExitCode != 0)
+        if (result.ExitCode != 0 && !allowFailure)
         {
             throw new ToolException(FileName, result);
         }
 
         return result;
+    }
+
+    private Process Start(ProcessStartInfo startInfo)
+    {
+        try
+        {
+            return Process.Start(startInfo) ?? throw new InvalidOperationException($"Couldn't start {FileName}.");
+        }
+        catch (Win32Exception exception)
+        {
+            throw new InvalidOperationException(GetStartFailure(exception.NativeErrorCode), exception);
+        }
+    }
+
+    /// <summary>
+    /// Returns why the tool couldn't be started. The message of the <see cref="Win32Exception"/> that
+    /// <see cref="Process.Start(ProcessStartInfo)"/> throws is long, so only the reason of the system is used.
+    /// </summary>
+    private string GetStartFailure(int errorCode)
+    {
+        // ERROR_FILE_NOT_FOUND on Windows and ENOENT on Linux and macOS.
+        const int FileNotFound = 2;
+
+        if (errorCode != FileNotFound)
+        {
+            return $"Couldn't start {FileName}: {new Win32Exception(errorCode).Message.TrimEnd('.')}.";
+        }
+
+        // Only a name without a directory is searched in the PATH.
+        bool isPath = FileName.Contains(Path.DirectorySeparatorChar) || FileName.Contains(Path.AltDirectorySeparatorChar);
+
+        return isPath
+            ? $"Couldn't start {FileName}, because the file doesn't exist."
+            : $"Couldn't start {FileName}. Make sure it's installed and in the PATH.";
     }
 
     /// <summary>
