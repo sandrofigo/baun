@@ -4,8 +4,7 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
-	site: 'https://sandrofigo.github.io',
-	base: '/baun',
+	site: 'https://baun.dev',
 	integrations: [
 		starlight({
 			title: 'baun',

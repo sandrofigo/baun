@@ -1,7 +1,11 @@
 name: Docs
 
-# Builds the Starlight site in docs/ and deploys it to GitHub Pages.
-# Requires Settings → Pages → Source set to "GitHub Actions".
+# Builds the Starlight site in docs/ and deploys it to Cloudflare Workers at https://baun.dev.
+# Pull requests only build the site.
+#
+# Requires these repository secrets (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN:  an API token with the "Edit Cloudflare Workers" template permissions
+#   CLOUDFLARE_ACCOUNT_ID: the ID of the Cloudflare account that owns the baun.dev zone
 
 on:
   push:
@@ -21,35 +25,38 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: docs
 
 jobs:
-  build:
+  docs:
     runs-on: ubuntu-latest
 
     steps:
       - name: Check out
         uses: actions/checkout@v7
 
-      - name: Build
-        uses: withastro/action@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
         with:
-          path: docs
+          node-version: 24
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
 
-  deploy:
-    if: github.event_name != 'pull_request'
-    needs: build
-    runs-on: ubuntu-latest
+      - name: Install
+        run: npm ci
 
-    permissions:
-      pages: write
-      id-token: write
+      - name: Build
+        run: npm run build
 
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
-
-    steps:
       - name: Deploy
-        id: deploy
-        uses: actions/deploy-pages@v5
+        if: github.event_name != 'pull_request'
+        uses: cloudflare/wrangler-action@v4
+        with:
+          workingDirectory: docs
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
