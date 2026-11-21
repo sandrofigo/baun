@@ -177,3 +177,12 @@
 [data-has-hero] .sl-markdown-content .card-grid {
 	margin-top: 2.5rem;
 }
+
+/* Slimmer primary button in the hero. Center the row, so the other buttons don't stretch it back. */
+[data-has-hero] .hero .actions {
+	align-items: center;
+}
+
+[data-has-hero] .hero .sl-link-button.primary {
+	padding-block: 0.5625rem;
+}
