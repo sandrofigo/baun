@@ -62,6 +62,5 @@ public sealed class ParameterNullabilitySuppressor : DiagnosticSuppressor
     }
 
     private static bool IsParameterAttribute(INamedTypeSymbol? type) =>
-        type is { Name: "ParameterAttribute", ContainingNamespace: { Name: "Baun", ContainingNamespace.IsGlobalNamespace: true } }
-        && type.ContainingAssembly?.Name == "Baun";
+        type is { Name: "ParameterAttribute" } && BaunSymbols.IsInBaunNamespace(type);
 }
