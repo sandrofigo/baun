@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - A tool that can't be started throws an `InvalidOperationException` that names the tool and says why, such as `Couldn't start gh. Make sure it's installed and in the PATH.`, that the file or the working directory doesn't exist, or the reason of the system, such as `Permission denied`. Before, it threw the `Win32Exception` of `Process.Start`.
-- `[Parameter]` fields can be `readonly`, such as `[Parameter] readonly string Configuration = "Debug";`. Before, they were a build error (`BAUN008`).
+- `[Parameter]` fields can be `readonly`, such as `[Parameter] readonly string Configuration = "Debug";`. Before, they were a build error (`BAUN008`). Rider and ReSharper don't report them as never assigned.
 - A parameter named after `--plan`, `--step` or `--verbosity` takes over the option instead of failing the build, and the new warning `BAUN012` reports it. The built-in option stays available with the prefix `--baun-`. Parameters named after `--help` or `--version`, or starting with `Baun`, are a build error (`BAUN011`).
 
 ### Fixed
