@@ -9,6 +9,11 @@
 	--sl-color-text-accent: #6b81ff;
 }
 
+/* Always reserve space for the scrollbar, so content doesn't shift between short and long pages */
+html {
+	scrollbar-gutter: stable;
+}
+
 /* Light mode */
 :root[data-theme='light'] {
 	--sl-color-accent-low: #d6ddff;
