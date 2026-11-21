@@ -1,11 +1,14 @@
 ---
-// Starlight's SocialIcons with a title, so each link shows its label as a tooltip.
+// Starlight's SocialIcons with a title, so each link shows its label as a tooltip,
+// and the baun version in front of the links.
 import config from 'virtual:starlight/user-config';
 import { Icon } from '@astrojs/starlight/components';
+import Version from './Version.astro';
 
 const links = config.social || [];
 ---
 
+<Version />
 {links.length > 0 && (
 	<>
 		{links.map(({ label, href, icon }) => <a {href} rel="me" class="sl-flex" title={label}>

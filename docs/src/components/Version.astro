@@ -1,0 +1,39 @@
+---
+// The latest baun version from CHANGELOG.md, linking to its GitHub release.
+import fs from 'node:fs';
+import path from 'node:path';
+
+// The first "## [x.y.z] - date" heading below [Unreleased] is the latest release.
+const changelog = fs.readFileSync(path.resolve(process.cwd(), '../CHANGELOG.md'), 'utf8');
+const version = changelog.match(/^## \[(\d[^\]]*)\]/m)?.[1];
+---
+
+{version && (
+	<a
+		class="version"
+		href={`https://github.com/sandrofigo/baun/releases/tag/v${version}`}
+		title={`Release notes for baun ${version}`}
+	>
+		v{version}
+	</a>
+)}
+
+<style>
+	@layer starlight.core {
+		.version {
+			align-self: center;
+			padding: 0.125rem 0.5rem;
+			border: 1px solid var(--sl-color-gray-5);
+			border-radius: 999rem;
+			color: var(--sl-color-gray-2);
+			font-family: var(--sl-font-mono);
+			font-size: var(--sl-text-xs);
+			line-height: 1.5;
+			text-decoration: none;
+		}
+		.version:hover {
+			border-color: var(--sl-color-text-accent);
+			color: var(--sl-color-text-accent);
+		}
+	}
+</style>
