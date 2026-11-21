@@ -56,6 +56,10 @@ An empty environment variable counts as not set, because CI servers often pass u
 
 On the command line, a value follows the option, as in `--configuration Release` or `--configuration=Release`. A bool parameter given alone, such as `--verbose`, is true.
 
+:::tip
+A project build shows `parameters.json` in a `.baun` folder of the project, so you can open it from the IDE.
+:::
+
 ## Names
 
 Names are case-insensitive and ignore dashes and underscores, so a parameter named NuGetApiKey is set by any of these:

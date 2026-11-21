@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `AllowFailure` on a tool command returns the result for any exit code instead of throwing a `ToolException`, for tools that answer with their exit code, such as `Tool.Command("git").Arguments("diff", "--quiet").AllowFailure()`. It works on typed commands too.
 - `TempDirectory` returns baun's temp directory, `.baun/temp`, or `baun` in the temp directory of the system without a `.baun` folder. Build classes get it as a property, like `RootDirectory`, and `BaunBuild.TempDirectory` works anywhere. `BaunBuild.CreateTempFile` and `BaunBuild.CreateTempDirectory` create an empty file or directory with a unique name in it, such as `BaunBuild.CreateTempFile(".json")`.
 - Hooks run code at points of a build. A build class implements one interface for each hook it needs, such as `IOnBuildFailed` with `OnBuildFailedAsync()`. There are hooks for when the build is created, initialized, succeeds, fails or completes, and for when each step starts, succeeds, fails or completes.
+- A project build shows `.baun/parameters.json` in a `.baun` folder of the project, so the parameter values can be opened from the IDE.
 
 ### Changed
 
