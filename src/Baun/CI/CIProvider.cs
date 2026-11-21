@@ -43,7 +43,7 @@ internal static class CIProviders
     /// </summary>
     public static CIProvider Detect()
     {
-        if (IsTrue("GITHUB_ACTIONS"))
+        if (GitHub.IsActions)
         {
             return CIProvider.GitHubActions;
         }
