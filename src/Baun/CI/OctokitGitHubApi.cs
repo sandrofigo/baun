@@ -23,14 +23,19 @@ internal sealed class OctokitGitHubApi : IGitHubApi
         client.Credentials = new Credentials(token);
     }
 
-    public async Task<GitHubRelease?> GetReleaseByTag(GitHubRepository repository, string tag, CancellationToken cancellationToken)
+    public async Task<GitHubRelease?> GetReleaseByTag(
+        GitHubRepository repository, string tag, bool includeDrafts = true, CancellationToken cancellationToken = default)
     {
         try
         {
             return Map(await client.Repository.Release.Get(repository.Owner, repository.Name, tag));
         }
+        catch (NotFoundException) when (includeDrafts)
+        {
+        }
         catch (NotFoundException)
         {
+            return null;
         }
 
         // Getting a release by its tag doesn't find drafts, which only the list of all releases has.
