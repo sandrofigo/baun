@@ -1,7 +1,9 @@
 name: Docs
 
 # Builds the Starlight site in docs/ and deploys it to Cloudflare Workers at https://baun.dev.
-# The version in the header comes from CHANGELOG.md, so a release redeploys the site.
+# The Release workflow calls this after publishing a stable version, so the site only shows released docs.
+# To deploy a docs fix between releases, run it manually on a branch created from the latest release tag.
+# Don't run it manually on main, because that would deploy the docs of unreleased features.
 # Pull requests only build the site.
 #
 # Requires these repository secrets (Settings → Secrets and variables → Actions):
@@ -9,25 +11,24 @@ name: Docs
 #   CLOUDFLARE_ACCOUNT_ID: the ID of the Cloudflare account that owns the baun.dev zone
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'docs/**'
-      - 'CHANGELOG.md'
-      - '.github/workflows/docs.yml'
   pull_request:
     paths:
       - 'docs/**'
       - 'CHANGELOG.md'
       - '.github/workflows/docs.yml'
   workflow_dispatch:
+  workflow_call:
+    secrets:
+      CLOUDFLARE_API_TOKEN:
+        required: true
+      CLOUDFLARE_ACCOUNT_ID:
+        required: true
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: docs-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 defaults:

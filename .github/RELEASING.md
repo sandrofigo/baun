@@ -40,7 +40,8 @@ Already in place. Check these if publishing fails or when setting up a fork.
 
    Don't create the GitHub release yourself.
 6. **Approve** the `publish` job in the `Release` run if the environment requires reviewers.
-7. **Verify** with `dotnet tool update --global Baun.Cli --version 1.2.3`, then run `baun init` and `baun` in an empty folder. The new build references the Baun package of the same version, so this checks both packages.
+7. **Check the docs.** After a stable release, the `docs` job deploys [baun.dev](https://baun.dev) from the tag. Preview releases don't deploy the docs.
+8. **Verify** with `dotnet tool update --global Baun.Cli --version 1.2.3`, then run `baun init` and `baun` in an empty folder. The new build references the Baun package of the same version, so this checks both packages.
 
 The build fails before publishing if:
 
@@ -49,6 +50,22 @@ The build fails before publishing if:
 - the section isn't dated today (UTC), or is marked `[YANKED]`,
 - the section has no entries,
 - the comparison link for the version is missing.
+
+## Deploying Docs Fixes Between Releases
+
+The docs site is only deployed on stable releases, so docs for unreleased features on `main` stay unpublished. To ship a fix to the current docs:
+
+1. Create a branch from the latest release tag, commit the fix and push it:
+
+   ```shell
+   git switch -c docs-fix v1.2.3
+   git push -u origin docs-fix
+   ```
+
+2. Run the [`Docs`](workflows/docs.yml) workflow manually (**Actions → Docs → Run workflow**) on that branch.
+3. Merge the fix into `main` too, so the next release keeps it.
+
+Don't run the `Docs` workflow on `main`, because it would deploy the unreleased docs.
 
 ## If Something Goes Wrong
 

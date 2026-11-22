@@ -6,6 +6,7 @@ name: Release
 # Runs when a version tag is pushed, for example v1.2.3, which publishes version 1.2.3.
 # The steps are in the baun build in build/, run with build.sh, which installs the .NET SDK if it's missing.
 # Pack validates CHANGELOG.md, tests and packs; GitHubRelease pushes the packages and creates the GitHub release with the version's changelog entries.
+# After a stable release (not a -preview.N tag), the docs job deploys the docs site from the tag with the Docs workflow.
 #
 # The trusted publishing policy on nuget.org must match this workflow:
 #   Repository Owner: sandrofigo
@@ -83,3 +84,11 @@ jobs:
         env:
           NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docs:
+    needs: publish
+    if: ${{ !contains(github.ref_name, '-') }}
+    uses: ./.github/workflows/docs.yml
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
