@@ -49,10 +49,7 @@ public static class Git
     /// <param name="cancellationToken">Stops git when it's canceled.</param>
     /// <returns>What git wrote.</returns>
     /// <exception cref="ToolException">git exited with a code other than 0.</exception>
-    public static Task<ToolResult> RunAsync(
-        IEnumerable<string> arguments,
-        AbsolutePath? workingDirectory = null,
-        CancellationToken cancellationToken = default) =>
+    public static Task<ToolResult> RunAsync(IEnumerable<string> arguments, AbsolutePath? workingDirectory = null, CancellationToken cancellationToken = default) =>
         Command().Arguments(arguments).WorkingDirectory(workingDirectory).RunAsync(cancellationToken);
 
     /// <summary>
@@ -72,8 +69,7 @@ public static class Git
     /// <param name="workingDirectory">A directory in the repository, or <see langword="null"/> for the current one.</param>
     /// <param name="cancellationToken">Stops git when it's canceled.</param>
     /// <exception cref="ToolException">git failed, for example outside a repository.</exception>
-    public static async Task<IReadOnlyList<string>> GetCurrentTagsAsync(
-        AbsolutePath? workingDirectory = null, CancellationToken cancellationToken = default)
+    public static async Task<IReadOnlyList<string>> GetCurrentTagsAsync(AbsolutePath? workingDirectory = null, CancellationToken cancellationToken = default)
     {
         ToolResult result = await RunAsync(["tag", "--points-at", "HEAD", "--sort=-version:refname"], workingDirectory, cancellationToken);
 
@@ -96,6 +92,5 @@ public static class Git
 
     private static string? FirstLine(ToolResult result) => Lines(result).FirstOrDefault();
 
-    private static IEnumerable<string> Lines(ToolResult result) =>
-        result.StandardOutput.Select(line => line.Trim()).Where(line => line.Length > 0);
+    private static IEnumerable<string> Lines(ToolResult result) => result.StandardOutput.Select(line => line.Trim()).Where(line => line.Length > 0);
 }
