@@ -159,7 +159,7 @@ public sealed class GitHubTests : IDisposable
     {
         System.Environment.SetEnvironmentVariable("GITHUB_REPOSITORY", "octocat/Hello-World");
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => GitHub.Release("v1.2.3").GetAsync(cancellationToken: TestContext.Current.CancellationToken));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => GitHub.GetReleaseAsync("v1.2.3", cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Contains("GITHUB_TOKEN", exception.Message);
     }
@@ -169,5 +169,14 @@ public sealed class GitHubTests : IDisposable
     {
         Assert.Throws<ArgumentException>(() => GitHub.Release(""));
         Assert.Throws<ArgumentException>(() => GitHub.Release("v1.2.3").Token(""));
+    }
+
+    [Theory]
+    [InlineData("v1.2.3", "")]
+    [InlineData("", "token")]
+    public async Task Getting_a_release_throws_for_an_empty_tag_or_token(string tag, string token)
+    {
+        await Assert.ThrowsAsync<ArgumentException>(() => GitHub.GetReleaseAsync(
+            tag, repository: new GitHubRepository("octocat", "Hello-World"), token: token, cancellationToken: TestContext.Current.CancellationToken));
     }
 }

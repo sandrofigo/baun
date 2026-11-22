@@ -9,10 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added `GitHub.Release(tag)`, a builder for the GitHub release of a tag with `Name`, `Notes`, `Prerelease`, `Draft`, `Assets`, `Repository` and `Token`. `CreateOrUpdateAsync` creates the release or updates it, and `GetAsync` returns the existing one.
+- Added `GitHub.Release(tag)`, which scaffolds the GitHub release of a tag with `Name`, `Notes`, `Prerelease`, `Draft`, `Assets`, `Repository` and `Token`. `CreateOrUpdateAsync` creates the release or updates it.
 - Added draft releases. `Draft()` creates a draft and `Draft(false)` publishes an existing one.
 - Added release assets. `Assets(files)` attaches files and replaces attached assets with the same name. A release with assets that is to be published is kept a draft until the uploads are done.
-- Added `UploadAssetAsync`, `UploadAssetsAsync`, `DeleteAssetAsync`, `PublishAsync` and `DeleteAsync` to `GitHubRelease`, which change the release on GitHub right away. `GitHubRelease` also has `Repository`, `Draft` and `Assets`, with `GitHubReleaseAsset` for each attached file.
+- Added `GitHub.GetReleaseAsync(tag)`, which gets an existing release, also a draft unless `includeDrafts` is `false`.
+- Added `UpdateAsync`, `UploadAssetAsync`, `UploadAssetsAsync`, `DeleteAssetAsync`, `PublishAsync` and `DeleteAsync` to `GitHubRelease`, which change the release on GitHub right away. `GitHubRelease` also has `Repository`, `Draft` and `Assets`, with `GitHubReleaseAsset` for each attached file.
 
 ### Changed
 

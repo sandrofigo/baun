@@ -1,8 +1,8 @@
 namespace Baun.CI;
 
 /// <summary>
-/// Describes the GitHub release for a tag, which <see cref="GitHub.Release"/> creates. Apply it with
-/// <see cref="CreateOrUpdateAsync"/>, or get the existing release with <see cref="GetAsync"/>.
+/// Scaffolds the GitHub release for a tag, which <see cref="GitHub.Release"/> creates. Create the release, or update
+/// it if it already exists, with <see cref="CreateOrUpdateAsync"/>.
 /// </summary>
 /// <remarks>
 /// A builder doesn't change: each method returns a new builder, so one can be the base of others.
@@ -126,27 +126,7 @@ public sealed class GitHubReleaseBuilder
     /// <see cref="Token"/> isn't set and <see cref="GitHub.Token"/> is <see langword="null"/>.
     /// </exception>
     public Task<GitHubRelease> CreateOrUpdateAsync(CancellationToken cancellationToken = default) =>
-        CreateOrUpdateCoreAsync(CreateApi(), ResolveRepository(), cancellationToken);
-
-    /// <summary>
-    /// Gets the release for the tag, or <see langword="null"/> if there's none. Only <see cref="Repository"/> and
-    /// <see cref="Token"/> are used.
-    /// </summary>
-    /// <param name="includeDrafts">Whether to also find a draft release for the tag.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>The release, or <see langword="null"/>.</returns>
-    /// <exception cref="InvalidOperationException">
-    /// <see cref="Repository"/> isn't set and <see cref="GitHub.Repository"/> is <see langword="null"/>, or
-    /// <see cref="Token"/> isn't set and <see cref="GitHub.Token"/> is <see langword="null"/>.
-    /// </exception>
-    public Task<GitHubRelease?> GetAsync(bool includeDrafts = true, CancellationToken cancellationToken = default) =>
-        GetCoreAsync(CreateApi(), ResolveRepository(), includeDrafts, cancellationToken);
-
-    internal async Task<GitHubRelease?> GetCoreAsync(
-        IGitHubApi api, GitHubRepository repository, bool includeDrafts, CancellationToken cancellationToken) =>
-        await api.GetReleaseByTag(repository, tag, includeDrafts, cancellationToken) is { } snapshot
-            ? new GitHubRelease(api, repository, snapshot)
-            : null;
+        CreateOrUpdateCoreAsync(GitHub.CreateApi(token), GitHub.ResolveRepository(repository), cancellationToken);
 
     internal async Task<GitHubRelease> CreateOrUpdateCoreAsync(IGitHubApi api, GitHubRepository repository, CancellationToken cancellationToken)
     {
@@ -178,18 +158,6 @@ public sealed class GitHubReleaseBuilder
         }
 
         return release;
-    }
-
-    private GitHubRepository ResolveRepository() =>
-        repository ?? GitHub.Repository
-        ?? throw new InvalidOperationException("The repository isn't set and GITHUB_REPOSITORY isn't set to owner/name.");
-
-    private OctokitGitHubApi CreateApi()
-    {
-        string resolvedToken = token ?? GitHub.Token
-            ?? throw new InvalidOperationException("The token isn't set and GITHUB_TOKEN isn't set. In a workflow, set it with env: GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}.");
-
-        return new OctokitGitHubApi(resolvedToken, GitHub.ApiUrl is { } url ? new Uri(url) : null);
     }
 
     private GitHubReleaseBuilder With(Action<GitHubReleaseBuilder> change)

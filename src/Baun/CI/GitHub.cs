@@ -253,9 +253,9 @@ public static class GitHub
     public static string? Token => Get("GITHUB_TOKEN");
 
     /// <summary>
-    /// Describes the GitHub release for <paramref name="tag"/>. Set its values with the methods of the builder, then
-    /// create or update it with <see cref="GitHubReleaseBuilder.CreateOrUpdateAsync"/>, or get the existing release
-    /// with <see cref="GitHubReleaseBuilder.GetAsync"/>.
+    /// Scaffolds the GitHub release for <paramref name="tag"/>. Set its values with the methods of the builder, then
+    /// create the release, or update it if it already exists, with <see cref="GitHubReleaseBuilder.CreateOrUpdateAsync"/>.
+    /// To change an existing release, get it with <see cref="GetReleaseAsync"/>.
     /// </summary>
     /// <example>
     /// <code>
@@ -269,4 +269,57 @@ public static class GitHub
     /// <returns>A builder for the release.</returns>
     /// <exception cref="ArgumentException"><paramref name="tag"/> is empty.</exception>
     public static GitHubReleaseBuilder Release(string tag) => new(tag);
+
+    /// <summary>
+    /// Gets the GitHub release for <paramref name="tag"/>, or <see langword="null"/> if there's none. Change it with
+    /// the methods of the returned release, such as <see cref="GitHubRelease.UpdateAsync"/>.
+    /// </summary>
+    /// <example>
+    /// <code>
+    /// GitHubRelease? release = await GitHub.GetReleaseAsync("v1.2.3");
+    /// await release!.UpdateAsync(name: "Version 1.2.3");
+    /// </code>
+    /// </example>
+    /// <param name="tag">The tag of the release, such as <c>v1.2.3</c>.</param>
+    /// <param name="includeDrafts">Whether to also find a draft release for <paramref name="tag"/>.</param>
+    /// <param name="repository">The repository of the release. Defaults to <see cref="Repository"/>.</param>
+    /// <param name="token">
+    /// A token that may read releases of the repository, and write them to change the release. Defaults to
+    /// <see cref="Token"/>.
+    /// </param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The release, or <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="tag"/> or <paramref name="token"/> is empty.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// <paramref name="repository"/> isn't passed and <see cref="Repository"/> is <see langword="null"/>, or
+    /// <paramref name="token"/> isn't passed and <see cref="Token"/> is <see langword="null"/>.
+    /// </exception>
+    public static Task<GitHubRelease?> GetReleaseAsync(
+        string tag,
+        bool includeDrafts = true,
+        GitHubRepository? repository = null,
+        string? token = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(tag);
+
+        if (token is not null)
+        {
+            ArgumentException.ThrowIfNullOrEmpty(token);
+        }
+
+        return GitHubRelease.GetAsync(CreateApi(token), ResolveRepository(repository), tag, includeDrafts, cancellationToken);
+    }
+
+    internal static GitHubRepository ResolveRepository(GitHubRepository? repository) =>
+        repository ?? Repository
+        ?? throw new InvalidOperationException("The repository isn't set and GITHUB_REPOSITORY isn't set to owner/name.");
+
+    internal static IGitHubApi CreateApi(string? token)
+    {
+        token ??= Token
+            ?? throw new InvalidOperationException("The token isn't set and GITHUB_TOKEN isn't set. In a workflow, set it with env: GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}.");
+
+        return new OctokitGitHubApi(token, ApiUrl is { } url ? new Uri(url) : null);
+    }
 }

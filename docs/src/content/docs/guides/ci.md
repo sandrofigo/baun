@@ -27,7 +27,7 @@ string? Tag = GitHub.Tag;
 
 ## GitHub Releases
 
-`GitHub.Release(tag)` describes the GitHub release for a tag. Set its values with the builder's methods, then call `CreateOrUpdateAsync` to create the release, or update it if it already exists, also as a draft, so the step can be run again:
+`GitHub.Release(tag)` scaffolds the GitHub release for a tag. Set its values with the builder's methods, then call `CreateOrUpdateAsync` to create the release, or update it if it already exists, also as a draft, so the step can be run again:
 
 ```csharp
 Step Release() => _ => _
@@ -90,16 +90,28 @@ When the step runs again, an attached asset with the same name is replaced and t
 
 ### Working With a Release
 
-`CreateOrUpdateAsync` returns a `GitHubRelease` with its repository, ID, tag, name, notes, draft and prerelease flags, URL and assets. Its methods change the release on GitHub right away, and its properties follow the changes:
+`GitHub.GetReleaseAsync(tag)` gets an existing release, or null if there's none. It also finds drafts unless you pass `includeDrafts: false`, and takes `repository` and `token` like the builder:
+
+```csharp
+GitHubRelease? release = await GitHub.GetReleaseAsync("v1.2.3");
+
+if (release is not null)
+{
+    await release.UpdateAsync(name: "Version 1.2.3");
+}
+```
+
+A `GitHubRelease`, from `GetReleaseAsync` or `CreateOrUpdateAsync`, has its repository, ID, tag, name, notes, draft and prerelease flags, URL and assets. Its methods change the release on GitHub right away, and its properties follow the changes:
 
 | Method | Does |
 | --- | --- |
+| `UpdateAsync(name, notes, prerelease)` | Changes the passed values in one call and keeps the others |
 | `UploadAssetAsync(file)`, `UploadAssetsAsync(files)` | Uploads files and replaces attached assets with the same names |
 | `DeleteAssetAsync("app.zip")` | Deletes an attached asset by name, and returns whether there was one |
 | `PublishAsync()` | Publishes a draft |
 | `DeleteAsync()` | Deletes the release and keeps the tag |
 
-`GitHub.Release(tag).GetAsync()` returns the existing release, or null if there's none. It also finds drafts unless you pass `includeDrafts: false`. For example, create a draft, check it, then publish it:
+For example, scaffold a draft, attach a file, then publish it:
 
 ```csharp
 GitHubRelease release = await GitHub.Release(GitHub.Tag!)
@@ -108,11 +120,7 @@ GitHubRelease release = await GitHub.Release(GitHub.Tag!)
     .CreateOrUpdateAsync();
 
 await release.UploadAssetAsync(RootDirectory / "artifacts" / "app.zip");
-
-if (release.Assets.Count > 0)
-{
-    await release.PublishAsync();
-}
+await release.PublishAsync();
 ```
 
 ## Changelog

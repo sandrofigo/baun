@@ -192,7 +192,7 @@ public sealed class GitHubReleaseTests : IDisposable
     {
         var api = new FakeGitHubApi(Existing(draft: true));
 
-        GitHubRelease? release = await GitHub.Release("v1.2.3").GetCoreAsync(api, Repository, includeDrafts: false, Token);
+        GitHubRelease? release = await GitHubRelease.GetAsync(api, Repository, "v1.2.3", includeDrafts: false, Token);
 
         Assert.Equal((Repository, "v1.2.3", false), api.Requested);
         Assert.Equal(42, release?.Id);
@@ -203,7 +203,53 @@ public sealed class GitHubReleaseTests : IDisposable
     {
         var api = new FakeGitHubApi(existing: null);
 
-        Assert.Null(await GitHub.Release("v1.2.3").GetCoreAsync(api, Repository, includeDrafts: true, Token));
+        Assert.Null(await GitHubRelease.GetAsync(api, Repository, "v1.2.3", includeDrafts: true, Token));
+    }
+
+    [Fact]
+    public async Task Updates_only_the_passed_values()
+    {
+        var api = new FakeGitHubApi(Existing(draft: true));
+        var release = new GitHubRelease(api, Repository, Existing(draft: true));
+
+        await release.UpdateAsync(name: "Version 1.2.3", cancellationToken: Token);
+
+        Assert.Equal([(42L, new GitHubReleaseChanges(Name: "Version 1.2.3"))], api.Updated);
+        Assert.Equal("Version 1.2.3", release.Name);
+        Assert.Equal("Old notes", release.Notes);
+        Assert.True(release.Draft);
+    }
+
+    [Fact]
+    public async Task Updates_several_values_in_one_call()
+    {
+        var api = new FakeGitHubApi(Existing(draft: false));
+        var release = new GitHubRelease(api, Repository, Existing(draft: false));
+
+        await release.UpdateAsync(notes: "- Fixed a bug", prerelease: true, cancellationToken: Token);
+
+        Assert.Equal([(42L, new GitHubReleaseChanges(Notes: "- Fixed a bug", Prerelease: true))], api.Updated);
+        Assert.Equal("- Fixed a bug", release.Notes);
+        Assert.True(release.Prerelease);
+    }
+
+    [Fact]
+    public async Task Updating_nothing_does_nothing()
+    {
+        var api = new FakeGitHubApi(Existing(draft: false));
+        var release = new GitHubRelease(api, Repository, Existing(draft: false));
+
+        await release.UpdateAsync(cancellationToken: Token);
+
+        Assert.Empty(api.Calls);
+    }
+
+    [Fact]
+    public async Task Update_throws_for_an_empty_name()
+    {
+        var release = new GitHubRelease(new FakeGitHubApi(Existing(draft: false)), Repository, Existing(draft: false));
+
+        await Assert.ThrowsAsync<ArgumentException>(() => release.UpdateAsync(name: "", cancellationToken: Token));
     }
 
     [Fact]
