@@ -1,6 +1,6 @@
 ---
 title: CI
-description: GitHub Actions, changelogs and log groups on CI servers.
+description: GitHub Actions, GitHub releases, changelogs and log groups on CI servers.
 ---
 
 ## GitHub Actions
@@ -18,7 +18,7 @@ Step Pack() => _ => _
     });
 ```
 
-Properties with a path, such as `GitHubActions.Workspace`, return an `AbsolutePath`. A property is null, or false, when its variable isn't set or is empty, such as outside GitHub Actions. The variables are read each time a property is used, so you can set them yourself to try a run locally: `GITHUB_REF_TYPE=tag GITHUB_REF_NAME=v1.2.3 baun Pack`. To also accept a value on the command line, use the property as a parameter's initial value:
+`GitHubActions.IsRunning` is true when the build runs in GitHub Actions. Properties with a path, such as `GitHubActions.Workspace`, return an `AbsolutePath`. A property is null, or false, when its variable isn't set or is empty, such as outside GitHub Actions. The variables are read each time a property is used, so you can set them yourself to try a run locally: `GITHUB_REF_TYPE=tag GITHUB_REF_NAME=v1.2.3 baun Pack`. To also accept a value on the command line, use the property as a parameter's initial value:
 
 ```csharp
 [Parameter("Tag to release")]
@@ -47,7 +47,9 @@ Step Release() => _ => _
     });
 ```
 
-If a release for the tag already exists, also as a draft, it's updated instead, so the step can be run again. After saving, the release has the values from GitHub, such as its `Id`, `Url` and `Assets`.
+If a release for the tag already exists, also as a draft, it's updated instead, so the step can be run again. After saving, the release has the values from GitHub, such as its `Id`, `Url` and `Assets`. Until then, `Id` and `Url` are null.
+
+When a new `GitHubRelease` updates an existing release, `Draft` and `Prerelease` are set as they are on the object, so saving `new GitHubRelease { Tag = tag }` over a draft publishes it. Set `Draft = true` to keep it a draft, or [get the release](#changing-an-existing-release) first to change only some of its values.
 
 A release has:
 
@@ -62,7 +64,7 @@ A release has:
 
 ### Changing an Existing Release
 
-`GitHubReleases.GetAsync(tag)` gets an existing release, or null if there's none. It also finds drafts unless you pass `includeDrafts: false`, and takes a `repository`. Change the release, then save it:
+`GitHubReleases.GetAsync(tag)` gets an existing release, or null if there's none. It also finds drafts unless you pass `includeDrafts: false`, and takes a `repository` and a [token](#token). Change the release, then save it:
 
 ```csharp
 GitHubRelease? release = await GitHubReleases.GetAsync("v1.2.3");
@@ -76,11 +78,22 @@ if (release is not null)
 }
 ```
 
-A release you got or saved is updated by its ID, so you can also change its `Tag`. `GitHubReleases.DeleteAsync(release)` deletes it and keeps the tag.
+A release you got or saved is updated by its ID, so you can also change its `Tag`.
+
+### Deleting a Release
+
+`GitHubReleases.DeleteAsync(release)` deletes a release you got or saved, and keeps its tag. Afterwards, the release is new again, so saving it creates it again. Deleting a release that was never saved throws an `InvalidOperationException`.
+
+```csharp
+if (await GitHubReleases.GetAsync("v1.2.3-rc.1") is { } candidate)
+{
+    await GitHubReleases.DeleteAsync(candidate);
+}
+```
 
 ### Release Assets
 
-`AddAsset` and `AddAssets` add files to upload when the release is saved, each named after its file. `RemoveAsset("app.zip")` removes an added file, or deletes an attached asset when the release is saved:
+`AddAsset` and `AddAssets` add files to upload when the release is saved, each named after its file. They return the release, so you can chain them:
 
 ```csharp
 Step Release() => _ => _
@@ -95,7 +108,20 @@ Step Release() => _ => _
     });
 ```
 
-`Assets` has the files attached on GitHub, and `AddedAssets` and `RemovedAssets` the changes that aren't saved yet. An added file replaces an attached asset with the same name, and the other assets are kept. A release with added files that is to be published is kept a draft until the uploads are done, so it's never visible without them. A file that doesn't exist throws before anything is sent to GitHub.
+An added file replaces an attached asset with the same name, and the other assets are kept, so the step can be run again. A release with added files that is to be published is kept a draft until the uploads are done, so it's never visible without them.
+
+`RemoveAsset("app.zip")` removes an added file, or deletes an attached asset when the release is saved. It ignores case and returns whether there was an asset with the name:
+
+```csharp
+GitHubRelease? release = await GitHubReleases.GetAsync("v1.2.3");
+
+release!.RemoveAsset("app-preview.zip");
+await GitHubReleases.CreateOrUpdateAsync(release);
+```
+
+`Assets` has the files attached on GitHub, and `AddedAssets` and `RemovedAssets` the changes that aren't saved yet. Each asset has its `Id`, `Name`, `Size` in bytes and `DownloadUrl`.
+
+Adding two files with the same name throws an `ArgumentException`, because GitHub names an asset after its file. An added file that doesn't exist throws a `FileNotFoundException` when you save, before anything is sent to GitHub.
 
 ### Token
 
