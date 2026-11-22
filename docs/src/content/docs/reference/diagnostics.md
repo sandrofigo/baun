@@ -7,17 +7,17 @@ baun's source generator checks the build class when it compiles and reports mist
 
 | ID | Severity | Title |
 | --- | --- | --- |
-| [`BAUN001`](#baun001) | Error | Build class must be partial |
-| [`BAUN002`](#baun002) | Error | Build class is not supported |
-| [`BAUN004`](#baun004) | Error | Entry is not a step |
-| [`BAUN005`](#baun005) | Error | More than one build class without an entry point |
-| [`BAUN006`](#baun006) | Error | Step names differ only in case |
-| [`BAUN007`](#baun007) | Warning | Step name is a baun tool command |
-| [`BAUN008`](#baun008) | Error | Parameter must be writable |
-| [`BAUN009`](#baun009) | Error | Parameter type is not supported |
-| [`BAUN010`](#baun010) | Warning | Parameter is not in a build class |
-| [`BAUN011`](#baun011) | Error | Parameter name conflicts |
-| [`BAUN012`](#baun012) | Warning | Parameter hides a built-in option |
+| [`BAUN001`](#baun001) | <span class="baun-severity-error">Error</span> | Build class must be partial |
+| [`BAUN002`](#baun002) | <span class="baun-severity-error">Error</span> | Build class is not supported |
+| [`BAUN004`](#baun004) | <span class="baun-severity-error">Error</span> | Entry is not a step |
+| [`BAUN005`](#baun005) | <span class="baun-severity-error">Error</span> | More than one build class without an entry point |
+| [`BAUN006`](#baun006) | <span class="baun-severity-error">Error</span> | Step names differ only in case |
+| [`BAUN007`](#baun007) | <span class="baun-severity-warning">Warning</span> | Step name is a baun tool command |
+| [`BAUN008`](#baun008) | <span class="baun-severity-error">Error</span> | Parameter must be writable |
+| [`BAUN009`](#baun009) | <span class="baun-severity-error">Error</span> | Parameter type is not supported |
+| [`BAUN010`](#baun010) | <span class="baun-severity-warning">Warning</span> | Parameter is not in a build class |
+| [`BAUN011`](#baun011) | <span class="baun-severity-error">Error</span> | Parameter name conflicts |
+| [`BAUN012`](#baun012) | <span class="baun-severity-warning">Warning</span> | Parameter hides a built-in option |
 
 To turn off a warning you accept on purpose, add its ID to `<NoWarn>` in the project file of the build:
 

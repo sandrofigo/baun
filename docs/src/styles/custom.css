@@ -257,3 +257,23 @@ html {
 ::view-transition-new(*) {
 	animation: none;
 }
+
+/* Severities in the diagnostics table in a vivid red and orange. Dark mode uses Starlight's shades. In light mode those
+   are too pale and its -high shades too dull, so it uses darker but still saturated ones. */
+:root {
+	--baun-severity-error: var(--sl-color-red);
+	--baun-severity-warning: var(--sl-color-orange);
+}
+
+:root[data-theme='light'] {
+	--baun-severity-error: hsl(var(--sl-hue-red), 85%, 45%);
+	--baun-severity-warning: hsl(30, 95%, 42%);
+}
+
+.baun-severity-error {
+	color: var(--baun-severity-error);
+}
+
+.baun-severity-warning {
+	color: var(--baun-severity-warning);
+}
