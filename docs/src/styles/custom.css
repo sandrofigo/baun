@@ -245,3 +245,15 @@ html {
 [data-has-hero] .hero .sl-link-button.primary {
 	padding-block: 0.5625rem;
 }
+
+/* Swap pages in one step when navigating, instead of briefly painting the new page before it is complete.
+   No animation, so it looks like a normal page load without the flicker. */
+@view-transition {
+	navigation: auto;
+}
+
+::view-transition-group(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+	animation: none;
+}
