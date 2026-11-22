@@ -31,7 +31,7 @@ A build is a `partial class` whose steps are methods that return a `Step`. baun 
 partial class Build
 {
     [Parameter("Configuration to build")]
-    string Configuration = "Debug";
+    string Configuration = "Release";
 
     Step Compile() => _ => _
         .Executes(async () =>
@@ -49,7 +49,7 @@ partial class Build
 ```
 
 ```shell
-baun Test --configuration Release
+baun Test
 ```
 
 ## Documentation
