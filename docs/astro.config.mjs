@@ -50,6 +50,10 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'Tools',
+					items: ['tools/dotnet', 'tools/git'],
+				},
+				{
 					label: 'Reference',
 					items: ['reference/cli', 'reference/diagnostics'],
 				},

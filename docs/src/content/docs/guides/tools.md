@@ -14,7 +14,7 @@ Step Test() => _ => _
     });
 ```
 
-For dotnet and git, baun has [typed commands](#dotnet) with a method for each option.
+For [dotnet](../../tools/dotnet/) and [git](../../tools/git/), baun has typed commands with a method for each option.
 
 ## Output
 
@@ -86,7 +86,7 @@ A tool that can't be started throws an `InvalidOperationException` that names th
 
 ## Tool Loggers
 
-Each line a tool writes goes to a `ToolLogger`, which picks its level. The default one writes the standard output as Debug and the standard error as Warning. The dotnet and git tools below come with loggers of their own that write errors and warnings of the tool as Error and Warning messages.
+Each line a tool writes goes to a `ToolLogger`, which picks its level. The default one writes the standard output as Debug and the standard error as Warning. The [dotnet](../../tools/dotnet/#output) and [git](../../tools/git/#output) tools come with loggers of their own that write errors and warnings of the tool as Error and Warning messages.
 
 To change how a tool's output is logged, derive from `ToolLogger`, or from a tool's logger such as `DotNetLogger`, and override `GetLevel`. Call the base method for the lines you don't handle. To skip or change lines, override `Write` instead:
 
@@ -108,74 +108,9 @@ DotNet.Logger = new TestLogger();
 
 Each line has the stream it comes from, standard output or standard error, and its text, with secrets as `***`. The two streams are read at the same time, so a logger can be called from two threads at once: keep it without state, or make it thread-safe.
 
-## dotnet
-
-`DotNet` runs the .NET CLI with typed commands: Build, Test, Pack, Publish, Restore, Clean and NuGetPush. Each takes the project or solution, which is optional except for the package to push, and has methods for its options:
-
-```csharp
-await DotNet.Pack(Solution)
-    .Configuration(Configuration)
-    .Output(ArtifactsDirectory)
-    .Version("1.2.3")
-    .Property("ContinuousIntegrationBuild", "true")
-    .RunAsync();
-
-await DotNet.NuGetPush(package)
-    .ApiKey(NuGetApiKey)
-    .Source("https://api.nuget.org/v3/index.json")
-    .SkipDuplicate()
-    .Arguments("--timeout", "600")
-    .RunAsync();
-```
-
-| Commands | Methods |
-| --- | --- |
-| All except `NuGetPush` | `Configuration`, `Framework`, `Runtime`, `Property` (`-p:Name=Value`), `NoRestore`, `Verbosity` |
-| `Build`, `Pack`, `Publish` | `Output` |
-| `Test`, `Pack`, `Publish` | `NoBuild` |
-| `Test` | `Solution`, `Project` (with Microsoft.Testing.Platform) |
-| `Pack` | `Version` |
-| `Publish` | `SelfContained` (`--self-contained` or, with `false`, `--no-self-contained`) |
-| `NuGetPush` | `ApiKey`, `Source`, `SkipDuplicate` |
-
-`Verbosity` takes a `DotNetVerbosity`: Quiet, Minimal, Normal, Detailed or Diagnostic. `ApiKey` adds the key as a [secret](#secrets).
-
-Like with `Tool.Command`, each method returns a new command. The general methods, such as `Arguments`, `Secret` and `AllowFailure`, work on typed commands too, for options without a method of their own.
-
-For other commands, `DotNet.Command` returns a plain command and `DotNet.RunAsync` runs one, like their counterparts on `Tool`:
-
-```csharp
-await DotNet.RunAsync("format", "--verify-no-changes");
-```
-
-All of them write the output with `DotNet.Logger`, a `DotNetLogger` by default. It writes MSBuild diagnostics as errors and warnings, such as `Program.cs(3,1): error CS1002: ; expected` and `warning NETSDK1138: ...`, and does the same for NuGet's error and warning lines.
-
-## git
-
-`Git` runs git, with `Git.Command` and `Git.RunAsync` like on `DotNet`, and reads information about the repository:
-
-- `Git.GetCurrentTagAsync()` returns the tag of the commit that is checked out, such as v1.2.3, or null if it has none. With several tags, it returns the one with the highest version.
-- `Git.GetCurrentBranchAsync()` returns the branch that is checked out, such as main, or null when no branch is checked out, such as when a CI server checks out a tag or a pull request.
-
-Both take an optional directory in the repository and a cancellation token, and throw a `ToolException` outside a repository. Since they run git, use them in a step rather than as a parameter's initial value. For example, to release the tag of the current commit unless `--tag` is passed:
-
-```csharp
-[Parameter("Tag to release. Defaults to the tag of the current commit")]
-string? Tag;
-
-Step Pack() => _ => _
-    .Executes(async () =>
-    {
-        Tag ??= await Git.GetCurrentTagAsync();
-        // ...
-    });
-```
-
-`Git.Logger`, a `GitLogger` by default, writes lines of the standard error that start with `fatal:` or `error:` as errors, and lines that start with `warning:` as warnings. Other lines, such as progress and hints, which git also writes to its standard error, are written as Debug.
-
 ## Typed Commands for Other Tools
 
-To give another tool typed commands like `DotNet`, derive from `ToolCommand<TSelf>`, with your command as the type argument. Implement `With`, which wraps a changed command in a new instance of your type, and add methods that call `Arguments`:
+To give another tool typed commands like [`DotNet`](../../tools/dotnet/), derive from `ToolCommand<TSelf>`, with your command as the type argument. Implement `With`, which wraps a changed command in a new instance of your type, and add methods that call `Arguments`:
 
 ```csharp
 class GhReleaseCreateCommand(ToolCommand command) : ToolCommand<GhReleaseCreateCommand>(command)

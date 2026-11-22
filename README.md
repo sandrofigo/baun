@@ -56,7 +56,8 @@ baun Test --configuration Release
 
 - [Concept](https://baun.dev/guides/concept/): steps, dependencies and the entry step
 - [Parameters](https://baun.dev/guides/parameters/): set values from the command line, environment variables or `parameters.json`
-- [Running Tools](https://baun.dev/guides/tools/): run `dotnet`, `git` and other tools from steps
+- [Running Tools](https://baun.dev/guides/tools/): run command-line tools from steps
+- [dotnet](https://baun.dev/tools/dotnet/) and [git](https://baun.dev/tools/git/): typed commands for the .NET CLI and git
 - [CI](https://baun.dev/guides/ci/): GitHub Actions, releases and changelogs
 - [baun CLI](https://baun.dev/reference/cli/): every command and option
 
