@@ -5,9 +5,9 @@
     <Using Include="Baun" />
     <Using Include="Baun.CI" />
     <Using Include="Baun.CI.GitHub" />
-    <Using Include="Baun.DotNet" />
-    <Using Include="Baun.Git" />
     <Using Include="Baun.Logging" />
+    <Using Include="Baun.Tools.DotNet" />
+    <Using Include="Baun.Tools.Git" />
   </ItemGroup>
 
 </Project>

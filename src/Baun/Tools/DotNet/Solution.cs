@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.SolutionPersistence;
 using Microsoft.VisualStudio.SolutionPersistence.Model;
 using Microsoft.VisualStudio.SolutionPersistence.Serializer;
 
-namespace Baun.DotNet;
+namespace Baun.Tools.DotNet;
 
 /// <summary>
 /// A .NET solution file in the <c>.sln</c> or <c>.slnx</c> format, with its projects.

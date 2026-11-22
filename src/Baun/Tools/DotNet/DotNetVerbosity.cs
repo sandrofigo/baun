@@ -1,4 +1,4 @@
-namespace Baun.DotNet;
+namespace Baun.Tools.DotNet;
 
 /// <summary>
 /// The verbosity of MSBuild, which <c>--verbosity</c> of commands such as <c>dotnet build</c> sets.

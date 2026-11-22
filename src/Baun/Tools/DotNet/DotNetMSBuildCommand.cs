@@ -1,4 +1,4 @@
-namespace Baun.DotNet;
+namespace Baun.Tools.DotNet;
 
 /// <summary>
 /// The base of <c>dotnet</c> commands that run MSBuild, such as <c>dotnet build</c>, with the options they share.

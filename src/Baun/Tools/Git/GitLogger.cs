@@ -1,6 +1,6 @@
 using Baun.Logging;
 
-namespace Baun.Git;
+namespace Baun.Tools.Git;
 
 /// <summary>
 /// Writes the output of <c>git</c> to the log, with its errors and warnings as <see cref="LogLevel.Error"/> and

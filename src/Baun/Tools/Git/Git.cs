@@ -1,4 +1,4 @@
-namespace Baun.Git;
+namespace Baun.Tools.Git;
 
 /// <summary>
 /// Runs <c>git</c> and reads information about the repository, such as <see cref="GetCurrentTagAsync"/> and

@@ -1,4 +1,4 @@
-namespace Baun.DotNet;
+namespace Baun.Tools.DotNet;
 
 /// <summary>
 /// Runs <c>dotnet</c>, with typed commands such as <see cref="Build"/>, <see cref="Test"/> and <see cref="Pack"/>, and
