@@ -9,13 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added `draft` to `GitHub.CreateOrUpdateRelease`, which creates the release as a draft. Passing `false` for an existing draft publishes it.
-- Added `assets` to `GitHub.CreateOrUpdateRelease`, which attaches files to the release and replaces attached assets with the same name. A new release with assets is published after the uploads.
-- Added `Draft` and `Assets` to `GitHubRelease`, with `GitHubReleaseAsset` for each attached file.
+- Added `GitHub.Release(tag)`, a builder for the GitHub release of a tag with `Name`, `Notes`, `Prerelease`, `Draft`, `Assets`, `Repository` and `Token`. `CreateOrUpdateAsync` creates the release or updates it, and `GetAsync` returns the existing one.
+- Added draft releases. `Draft()` creates a draft and `Draft(false)` publishes an existing one.
+- Added release assets. `Assets(files)` attaches files and replaces attached assets with the same name. A release with assets that is to be published is kept a draft until the uploads are done.
+- Added `UploadAssetAsync`, `UploadAssetsAsync`, `DeleteAssetAsync`, `PublishAsync` and `DeleteAsync` to `GitHubRelease`, which change the release on GitHub right away. `GitHubRelease` also has `Repository`, `Draft` and `Assets`, with `GitHubReleaseAsset` for each attached file.
 
 ### Changed
 
-- `GitHub.CreateOrUpdateRelease` now also finds an existing draft release for the tag, instead of creating a second release.
+- Updating a release keeps the values that aren't set, instead of resetting the title to the tag and the prerelease flag to `false`.
+- Creating or updating a release now also finds an existing draft for the tag, instead of creating a second release.
+- `GitHubRelease` is now a class instead of a record.
+
+### Removed
+
+- Removed `GitHub.CreateOrUpdateRelease`. Use `GitHub.Release(tag).Notes(notes).CreateOrUpdateAsync()` instead.
 
 ## [0.8.0] - 2026-11-22
 

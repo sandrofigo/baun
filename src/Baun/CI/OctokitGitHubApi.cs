@@ -12,7 +12,7 @@ internal sealed class OctokitGitHubApi : IGitHubApi
 
     private readonly GitHubClient client;
 
-    // The upload URL of a release isn't part of GitHubRelease, so the releases this class returned are kept to upload to.
+    // Octokit uploads to the upload URL of a release, so the releases this class returned are kept to upload to.
     private readonly ConcurrentDictionary<long, Release> releases = new();
 
     public OctokitGitHubApi(string token, Uri? apiUrl)
@@ -23,7 +23,7 @@ internal sealed class OctokitGitHubApi : IGitHubApi
         client.Credentials = new Credentials(token);
     }
 
-    public async Task<GitHubRelease?> GetReleaseByTag(
+    public async Task<GitHubReleaseSnapshot?> GetReleaseByTag(
         GitHubRepository repository, string tag, bool includeDrafts = true, CancellationToken cancellationToken = default)
     {
         try
@@ -60,41 +60,49 @@ internal sealed class OctokitGitHubApi : IGitHubApi
         }
     }
 
-    public async Task<GitHubRelease> CreateRelease(GitHubRepository repository, GitHubReleaseData data, CancellationToken cancellationToken) =>
-        Map(await client.Repository.Release.Create(repository.Owner, repository.Name, new NewRelease(data.Tag)
+    public async Task<GitHubReleaseSnapshot> CreateRelease(GitHubRepository repository, NewGitHubRelease release, CancellationToken cancellationToken) =>
+        Map(await client.Repository.Release.Create(repository.Owner, repository.Name, new NewRelease(release.Tag)
         {
-            Name = data.Name,
-            Body = data.Notes,
-            Draft = data.Draft,
-            Prerelease = data.Prerelease,
+            Name = release.Name,
+            Body = release.Notes,
+            Draft = release.Draft,
+            Prerelease = release.Prerelease,
         }));
 
-    public async Task<GitHubRelease> UpdateRelease(GitHubRepository repository, long id, GitHubReleaseData data, CancellationToken cancellationToken) =>
+    // Octokit leaves out the properties that are null, so GitHub keeps their values.
+    public async Task<GitHubReleaseSnapshot> UpdateRelease(GitHubRepository repository, long id, GitHubReleaseChanges changes, CancellationToken cancellationToken) =>
         Map(await client.Repository.Release.Edit(repository.Owner, repository.Name, id, new ReleaseUpdate
         {
-            Name = data.Name,
-            Body = data.Notes,
-            Draft = data.Draft,
-            Prerelease = data.Prerelease,
+            Name = changes.Name,
+            Body = changes.Notes,
+            Draft = changes.Draft,
+            Prerelease = changes.Prerelease,
         }));
 
-    public async Task<GitHubReleaseAsset> UploadAsset(GitHubRepository repository, GitHubRelease release, AbsolutePath file, CancellationToken cancellationToken)
+    public async Task DeleteRelease(GitHubRepository repository, long id, CancellationToken cancellationToken)
     {
-        if (!releases.TryGetValue(release.Id, out Release? octokitRelease))
+        await client.Repository.Release.Delete(repository.Owner, repository.Name, id);
+        releases.TryRemove(id, out _);
+    }
+
+    public async Task<GitHubReleaseAsset> UploadAsset(GitHubRepository repository, long releaseId, AbsolutePath file, CancellationToken cancellationToken)
+    {
+        if (!releases.TryGetValue(releaseId, out Release? release))
         {
-            octokitRelease = await client.Repository.Release.Get(repository.Owner, repository.Name, release.Id);
+            Map(await client.Repository.Release.Get(repository.Owner, repository.Name, releaseId));
+            release = releases[releaseId];
         }
 
         await using FileStream stream = File.OpenRead(file);
         var upload = new ReleaseAssetUpload(file.Name, "application/octet-stream", stream, UploadTimeout);
 
-        return Map(await client.Repository.Release.UploadAsset(octokitRelease, upload, cancellationToken));
+        return Map(await client.Repository.Release.UploadAsset(release, upload, cancellationToken));
     }
 
     public Task DeleteAsset(GitHubRepository repository, long id, CancellationToken cancellationToken) =>
         client.Repository.Release.DeleteAsset(repository.Owner, repository.Name, checked((int)id));
 
-    private GitHubRelease Map(Release release)
+    private GitHubReleaseSnapshot Map(Release release)
     {
         releases[release.Id] = release;
 

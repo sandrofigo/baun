@@ -138,7 +138,7 @@ public sealed class GitHubTests : IDisposable
     [Fact]
     public async Task Release_needs_a_repository()
     {
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => GitHub.CreateOrUpdateRelease("v1.2.3", token: "token", cancellationToken: TestContext.Current.CancellationToken));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => GitHub.Release("v1.2.3").Token("token").CreateOrUpdateAsync(TestContext.Current.CancellationToken));
 
         Assert.Contains("GITHUB_REPOSITORY", exception.Message);
     }
@@ -149,7 +149,7 @@ public sealed class GitHubTests : IDisposable
         System.Environment.SetEnvironmentVariable("GITHUB_REPOSITORY", "noslash");
         System.Environment.SetEnvironmentVariable("GITHUB_TOKEN", "token");
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => GitHub.CreateOrUpdateRelease("v1.2.3", cancellationToken: TestContext.Current.CancellationToken));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => GitHub.Release("v1.2.3").CreateOrUpdateAsync(TestContext.Current.CancellationToken));
 
         Assert.Contains("GITHUB_REPOSITORY", exception.Message);
     }
@@ -159,16 +159,15 @@ public sealed class GitHubTests : IDisposable
     {
         System.Environment.SetEnvironmentVariable("GITHUB_REPOSITORY", "octocat/Hello-World");
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => GitHub.CreateOrUpdateRelease("v1.2.3", cancellationToken: TestContext.Current.CancellationToken));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => GitHub.Release("v1.2.3").GetAsync(cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Contains("GITHUB_TOKEN", exception.Message);
     }
 
-    [Theory]
-    [InlineData("v1.2.3", "")]
-    [InlineData("", "token")]
-    public async Task Release_throws_for_an_empty_tag_or_token(string tag, string token)
+    [Fact]
+    public void Release_throws_for_an_empty_tag_or_token()
     {
-        await Assert.ThrowsAsync<ArgumentException>(() => GitHub.CreateOrUpdateRelease(tag, repository: new GitHubRepository("octocat", "Hello-World"), token: token, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Throws<ArgumentException>(() => GitHub.Release(""));
+        Assert.Throws<ArgumentException>(() => GitHub.Release("v1.2.3").Token(""));
     }
 }
