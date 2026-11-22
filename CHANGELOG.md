@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-22
+
 ### Added
 
 - Added `--plan`, which opens the steps a run would execute in the browser without running them, such as `baun Pack --plan`. The page graphs all steps and their dependencies and numbers the ones that run in order.
@@ -164,7 +166,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Single-file (`Build.cs`) and project (`build/Build.csproj`) builds, with Spectre.Console output.
 - `baun` tool (`Baun.Cli`) that runs builds and creates or updates them with `baun init`, including bootstrap scripts that install the .NET SDK locally when it's missing.
 
-[Unreleased]: https://github.com/sandrofigo/baun/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/sandrofigo/baun/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/sandrofigo/baun/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/sandrofigo/baun/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/sandrofigo/baun/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/sandrofigo/baun/compare/v0.4.0...v0.5.0

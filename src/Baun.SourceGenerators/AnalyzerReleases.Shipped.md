@@ -24,3 +24,11 @@ BAUN008 | Baun | Error | StepGenerator
 BAUN009 | Baun | Error | StepGenerator
 BAUN010 | Baun | Warning | StepGenerator
 BAUN011 | Baun | Error | StepGenerator
+
+## Release 0.8.0
+
+### New Rules
+
+Rule ID | Category | Severity | Notes
+--------|----------|----------|-------
+BAUN012 | Baun | Warning | StepGenerator
