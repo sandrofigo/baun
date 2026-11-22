@@ -1,4 +1,4 @@
-namespace Baun.CI;
+namespace Baun.CI.GitHub;
 
 /// <summary>
 /// Gets, saves and deletes <see cref="GitHubRelease"/>s with an <see cref="IGitHubApi"/>, for <see cref="GitHub"/>.

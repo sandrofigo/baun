@@ -1,4 +1,4 @@
-using Baun.CI;
+using Baun.CI.GitHub;
 
 namespace Baun.Tests;
 

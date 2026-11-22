@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using Octokit;
 
-namespace Baun.CI;
+namespace Baun.CI.GitHub;
 
 /// <summary>
 /// Calls the GitHub API with Octokit.

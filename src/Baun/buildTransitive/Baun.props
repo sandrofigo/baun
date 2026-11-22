@@ -4,6 +4,7 @@
   <ItemGroup>
     <Using Include="Baun" />
     <Using Include="Baun.CI" />
+    <Using Include="Baun.CI.GitHub" />
     <Using Include="Baun.DotNet" />
     <Using Include="Baun.Git" />
     <Using Include="Baun.Logging" />

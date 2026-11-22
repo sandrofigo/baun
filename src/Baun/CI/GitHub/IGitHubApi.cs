@@ -1,4 +1,4 @@
-namespace Baun.CI;
+namespace Baun.CI.GitHub;
 
 /// <summary>
 /// The GitHub API calls that <see cref="GitHub"/> uses for releases, so the client library behind them can be exchanged.

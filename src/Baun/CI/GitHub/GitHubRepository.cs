@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace Baun.CI;
+namespace Baun.CI.GitHub;
 
 /// <summary>
 /// A GitHub repository, identified by its owner and name, such as <c>octocat/Hello-World</c>.
