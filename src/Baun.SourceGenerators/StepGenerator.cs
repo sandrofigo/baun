@@ -285,7 +285,7 @@ public sealed class StepGenerator : IIncrementalGenerator
                {
                    "System" => named.Name is "Guid" or "Uri" or "TimeSpan",
                    "Baun" => named.Name is "AbsolutePath",
-                   "Baun.DotNet" => named.Name is "Solution" or "Project",
+                   "Baun.Tools.DotNet" => named.Name is "Solution" or "Project",
                    _ => false,
                };
     }

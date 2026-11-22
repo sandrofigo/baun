@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using Baun.Logging;
 
-namespace Baun.DotNet;
+namespace Baun.Tools.DotNet;
 
 /// <summary>
 /// Writes the output of <c>dotnet</c> to the log, with errors and warnings of MSBuild and NuGet as

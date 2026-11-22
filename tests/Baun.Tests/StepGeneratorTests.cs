@@ -385,7 +385,7 @@ public class StepGeneratorTests
     [InlineData("int[,]")]
     [InlineData("object")]
     [InlineData("System.DateTime")]
-    [InlineData("Baun.DotNet.SolutionFormatException")]
+    [InlineData("Baun.Tools.DotNet.SolutionFormatException")]
     public void Reports_an_error_for_a_parameter_of_an_unsupported_type(string type)
     {
         var (diagnostics, _) = RunGenerator($$"""
@@ -417,10 +417,10 @@ public class StepGeneratorTests
     [InlineData("System.DayOfWeek[]")]
     [InlineData("int[]")]
     [InlineData("AbsolutePath?")]
-    [InlineData("Baun.DotNet.Solution")]
-    [InlineData("Baun.DotNet.Solution?")]
-    [InlineData("Baun.DotNet.Project")]
-    [InlineData("Baun.DotNet.Project[]")]
+    [InlineData("Baun.Tools.DotNet.Solution")]
+    [InlineData("Baun.Tools.DotNet.Solution?")]
+    [InlineData("Baun.Tools.DotNet.Project")]
+    [InlineData("Baun.Tools.DotNet.Project[]")]
     public void Accepts_parameters_of_supported_types(string type)
     {
         var (diagnostics, _) = RunGenerator($$"""

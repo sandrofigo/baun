@@ -1,4 +1,4 @@
-namespace Baun.DotNet;
+namespace Baun.Tools.DotNet;
 
 /// <summary>
 /// A .NET project file, such as <c>src/App/App.csproj</c>.

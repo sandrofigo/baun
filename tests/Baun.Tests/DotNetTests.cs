@@ -1,12 +1,10 @@
 using System.Text.RegularExpressions;
 using Baun.CI;
-using Baun.DotNet;
 using Baun.Logging;
+using Baun.Tools.DotNet;
 using Spectre.Console.Testing;
 
 namespace Baun.Tests;
-
-using DotNet = Baun.DotNet.DotNet;
 
 public class DotNetTests
 {

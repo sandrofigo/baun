@@ -520,10 +520,10 @@ internal sealed partial class ParameterBuild
     public AbsolutePath[] Inputs = [];
 
     [Parameter]
-    public Baun.DotNet.Solution? Solution;
+    public Baun.Tools.DotNet.Solution? Solution;
 
     [Parameter]
-    public Baun.DotNet.Project[] ProjectFiles = [];
+    public Baun.Tools.DotNet.Project[] ProjectFiles = [];
 
     [Parameter]
     public readonly string Channel = "stable";

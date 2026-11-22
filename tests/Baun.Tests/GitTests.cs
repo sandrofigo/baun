@@ -1,10 +1,8 @@
-using Baun.Git;
 using Baun.Logging;
+using Baun.Tools.Git;
 using Spectre.Console.Testing;
 
 namespace Baun.Tests;
-
-using Git = Baun.Git.Git;
 
 public sealed class GitTests : IDisposable
 {

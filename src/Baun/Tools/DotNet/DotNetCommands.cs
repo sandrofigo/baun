@@ -1,4 +1,4 @@
-namespace Baun.DotNet;
+namespace Baun.Tools.DotNet;
 
 /// <summary>
 /// A <c>dotnet build</c> command, which <see cref="DotNet.Build"/> creates.

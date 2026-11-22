@@ -1,4 +1,4 @@
-namespace Baun.DotNet;
+namespace Baun.Tools.DotNet;
 
 /// <summary>
 /// The exception that is thrown when a solution file isn't a valid <c>.sln</c> or <c>.slnx</c> file.
