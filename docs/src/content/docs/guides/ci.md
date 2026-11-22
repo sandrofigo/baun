@@ -27,36 +27,79 @@ string? Tag = GitHub.Tag;
 
 ## GitHub Releases
 
-`GitHub.Release(tag)` scaffolds the GitHub release for a tag. Set its values with the builder's methods, then call `CreateOrUpdateAsync` to create the release, or update it if it already exists, also as a draft, so the step can be run again:
+A `GitHubRelease` is a release you change in code, then save to GitHub with `GitHub.CreateOrUpdateReleaseAsync`. Changing it doesn't call GitHub: the changes, also the added and removed assets, are sent when you save it.
+
+Create a new release with its tag and save it:
 
 ```csharp
 Step Release() => _ => _
     .Executes(async () =>
     {
-        GitHubRelease release = await GitHub.Release(GitHub.Tag!)
-            .Notes("- Fixed a bug")
-            .Prerelease()
-            .CreateOrUpdateAsync();
+        var release = new GitHubRelease
+        {
+            Tag = GitHub.Tag!,
+            Notes = "- Fixed a bug",
+            Prerelease = true,
+        };
 
+        await GitHub.CreateOrUpdateReleaseAsync(release);
         Log.Information("Released {Url}", release.Url);
     });
 ```
 
-All methods are optional:
+If a release for the tag already exists, also as a draft, it's updated instead, so the step can be run again. After saving, the release has the values from GitHub, such as its `Id`, `Url` and `Assets`.
 
-| Method | Default for a new release |
+A release has:
+
+| Property | Default for a new release |
 | --- | --- |
-| `Name("Version 1.2.3")` | The tag |
-| `Notes(notes)` | No notes. Markdown, such as the notes from the [changelog](#changelog) |
-| `Prerelease()` | Not a prerelease. `Prerelease(false)` unmarks one |
-| `Draft()` | Not a draft. A draft is only visible to people with write access to the repository. `Draft(false)` publishes an existing draft |
-| `Assets(files)` | No assets. Files to attach, see [Release Assets](#release-assets) |
-| `Repository(repository)` | `GitHub.Repository`. To release to another repository, pass `new GitHubRepository("octocat", "Hello-World")` or `GitHubRepository.Parse("octocat/Hello-World")` |
-| `Token(token)` | `GitHub.Token` |
+| `Tag` | Required. GitHub creates the tag, if it doesn't exist yet, when the release is published |
+| `Name` | The tag. If it's null, an existing release keeps its title |
+| `Notes` | No notes. Markdown, such as the notes from the [changelog](#changelog). If they're null, an existing release keeps its notes |
+| `Draft` | `false`. A draft is only visible to people with write access to the repository. Setting it to `false` publishes a draft |
+| `Prerelease` | `false` |
+| `Repository` | `GitHub.Repository`. To release to another repository, set `new GitHubRepository("octocat", "Hello-World")` or `GitHubRepository.Parse("octocat/Hello-World")` |
 
-An existing release keeps the values you don't set, so `GitHub.Release(tag).Notes(notes)` only changes the notes, and a draft stays a draft. GitHub creates the tag, if it doesn't exist yet, when the release is published.
+### Changing an Existing Release
 
-Each method returns a new builder, so one builder can be the base of others. The API URL is `GitHub.ApiUrl`. Without a token or a repository, `CreateOrUpdateAsync` throws an `InvalidOperationException` that says which one is missing.
+`GitHub.GetReleaseAsync(tag)` gets an existing release, or null if there's none. It also finds drafts unless you pass `includeDrafts: false`, and takes a `repository`. Change the release, then save it:
+
+```csharp
+GitHubRelease? release = await GitHub.GetReleaseAsync("v1.2.3");
+
+if (release is not null)
+{
+    release.Name = "Version 1.2.3";
+    release.Draft = false;
+
+    await GitHub.CreateOrUpdateReleaseAsync(release);
+}
+```
+
+A release you got or saved is updated by its ID, so you can also change its `Tag`. `GitHub.DeleteReleaseAsync(release)` deletes it and keeps the tag.
+
+### Release Assets
+
+`AddAsset` and `AddAssets` add files to upload when the release is saved, each named after its file. `RemoveAsset("app.zip")` removes an added file, or deletes an attached asset when the release is saved:
+
+```csharp
+Step Release() => _ => _
+    .Executes(async () =>
+    {
+        AbsolutePath artifacts = RootDirectory / "artifacts";
+
+        var release = new GitHubRelease { Tag = GitHub.Tag! }
+            .AddAssets(artifacts.GlobFiles("*.nupkg", "*.zip"));
+
+        await GitHub.CreateOrUpdateReleaseAsync(release);
+    });
+```
+
+`Assets` has the files attached on GitHub, and `AddedAssets` and `RemovedAssets` the changes that aren't saved yet. An added file replaces an attached asset with the same name, and the other assets are kept. A release with added files that is to be published is kept a draft until the uploads are done, so it's never visible without them. A file that doesn't exist throws before anything is sent to GitHub.
+
+### Token
+
+The methods take a `token`, which defaults to `GitHub.Token`. The API URL is `GitHub.ApiUrl`. Without a token or a repository, they throw an `InvalidOperationException` that says which one is missing.
 
 The token needs permission to write releases. GitHub Actions doesn't set `GITHUB_TOKEN` as an environment variable by itself, so pass the token of the run to the step that runs the build:
 
@@ -68,59 +111,6 @@ steps:
   - run: ./build.sh Release
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
-
-### Release Assets
-
-`Assets` attaches files to the release, each named after its file. Call it more than once to add more files:
-
-```csharp
-Step Release() => _ => _
-    .Executes(async () =>
-    {
-        AbsolutePath artifacts = RootDirectory / "artifacts";
-
-        await GitHub.Release(GitHub.Tag!)
-            .Assets(artifacts.GlobFiles("*.nupkg", "*.zip"))
-            .CreateOrUpdateAsync();
-    });
-```
-
-When the step runs again, an attached asset with the same name is replaced and the other assets are kept. A release with assets that is to be published is kept a draft until the uploads are done, so it's never visible without them. A file that doesn't exist, or two files with the same name, throw before anything is sent to GitHub.
-
-### Working With a Release
-
-`GitHub.GetReleaseAsync(tag)` gets an existing release, or null if there's none. It also finds drafts unless you pass `includeDrafts: false`, and takes `repository` and `token` like the builder:
-
-```csharp
-GitHubRelease? release = await GitHub.GetReleaseAsync("v1.2.3");
-
-if (release is not null)
-{
-    await release.UpdateAsync(name: "Version 1.2.3");
-}
-```
-
-A `GitHubRelease`, from `GetReleaseAsync` or `CreateOrUpdateAsync`, has its repository, ID, tag, name, notes, draft and prerelease flags, URL and assets. Its methods change the release on GitHub right away, and its properties follow the changes:
-
-| Method | Does |
-| --- | --- |
-| `UpdateAsync(name, notes, prerelease)` | Changes the passed values in one call and keeps the others |
-| `UploadAssetAsync(file)`, `UploadAssetsAsync(files)` | Uploads files and replaces attached assets with the same names |
-| `DeleteAssetAsync("app.zip")` | Deletes an attached asset by name, and returns whether there was one |
-| `PublishAsync()` | Publishes a draft |
-| `DeleteAsync()` | Deletes the release and keeps the tag |
-
-For example, scaffold a draft, attach a file, then publish it:
-
-```csharp
-GitHubRelease release = await GitHub.Release(GitHub.Tag!)
-    .Notes(notes)
-    .Draft()
-    .CreateOrUpdateAsync();
-
-await release.UploadAssetAsync(RootDirectory / "artifacts" / "app.zip");
-await release.PublishAsync();
 ```
 
 ## Changelog
@@ -145,7 +135,7 @@ Step Release() => _ => _
         string tag = GitHub.Tag!;
         string notes = Changelog.Read().GetReleaseNotes(tag.TrimStart('v'));
 
-        await GitHub.Release(tag).Notes(notes).CreateOrUpdateAsync();
+        await GitHub.CreateOrUpdateReleaseAsync(new GitHubRelease { Tag = tag, Notes = notes });
     });
 ```
 

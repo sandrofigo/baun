@@ -73,6 +73,7 @@ internal sealed class OctokitGitHubApi : IGitHubApi
     public async Task<GitHubReleaseSnapshot> UpdateRelease(GitHubRepository repository, long id, GitHubReleaseChanges changes, CancellationToken cancellationToken) =>
         Map(await client.Repository.Release.Edit(repository.Owner, repository.Name, id, new ReleaseUpdate
         {
+            TagName = changes.Tag,
             Name = changes.Name,
             Body = changes.Notes,
             Draft = changes.Draft,

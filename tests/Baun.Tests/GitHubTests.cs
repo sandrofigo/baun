@@ -138,7 +138,9 @@ public sealed class GitHubTests : IDisposable
     [Fact]
     public async Task Release_needs_a_repository()
     {
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => GitHub.Release("v1.2.3").Token("token").CreateOrUpdateAsync(TestContext.Current.CancellationToken));
+        var release = new GitHubRelease { Tag = "v1.2.3" };
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => GitHub.CreateOrUpdateReleaseAsync(release, token: "token", TestContext.Current.CancellationToken));
 
         Assert.Contains("GITHUB_REPOSITORY", exception.Message);
     }
@@ -149,7 +151,7 @@ public sealed class GitHubTests : IDisposable
         System.Environment.SetEnvironmentVariable("GITHUB_REPOSITORY", "noslash");
         System.Environment.SetEnvironmentVariable("GITHUB_TOKEN", "token");
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => GitHub.Release("v1.2.3").CreateOrUpdateAsync(TestContext.Current.CancellationToken));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => GitHub.GetReleaseAsync("v1.2.3", cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Contains("GITHUB_REPOSITORY", exception.Message);
     }
@@ -164,13 +166,6 @@ public sealed class GitHubTests : IDisposable
         Assert.Contains("GITHUB_TOKEN", exception.Message);
     }
 
-    [Fact]
-    public void Release_throws_for_an_empty_tag_or_token()
-    {
-        Assert.Throws<ArgumentException>(() => GitHub.Release(""));
-        Assert.Throws<ArgumentException>(() => GitHub.Release("v1.2.3").Token(""));
-    }
-
     [Theory]
     [InlineData("v1.2.3", "")]
     [InlineData("", "token")]
@@ -178,5 +173,21 @@ public sealed class GitHubTests : IDisposable
     {
         await Assert.ThrowsAsync<ArgumentException>(() => GitHub.GetReleaseAsync(
             tag, repository: new GitHubRepository("octocat", "Hello-World"), token: token, cancellationToken: TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task Saving_a_release_throws_for_an_empty_token()
+    {
+        var release = new GitHubRelease { Tag = "v1.2.3", Repository = new GitHubRepository("octocat", "Hello-World") };
+
+        await Assert.ThrowsAsync<ArgumentException>(() => GitHub.CreateOrUpdateReleaseAsync(release, token: "", TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task Deleting_a_release_that_isnt_saved_throws()
+    {
+        var release = new GitHubRelease { Tag = "v1.2.3" };
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => GitHub.DeleteReleaseAsync(release, token: "token", TestContext.Current.CancellationToken));
     }
 }

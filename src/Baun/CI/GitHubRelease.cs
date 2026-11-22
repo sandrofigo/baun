@@ -1,243 +1,190 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Baun.CI;
 
 /// <summary>
-/// A release of a GitHub repository, which <see cref="GitHub.GetReleaseAsync"/> and
-/// <see cref="GitHubReleaseBuilder.CreateOrUpdateAsync"/> return.
+/// A release of a GitHub repository. Get an existing one with <see cref="GitHub.GetReleaseAsync"/>, or create a new one
+/// such as <c>new GitHubRelease { Tag = "v1.2.3" }</c>, change it, then save it with
+/// <see cref="GitHub.CreateOrUpdateReleaseAsync"/>.
 /// </summary>
 /// <remarks>
-/// The methods change the release on GitHub right away, and the properties follow the changes.
+/// Changing a release doesn't call GitHub. The changes, also the added and removed assets, are sent when the release is
+/// saved.
 /// </remarks>
 public sealed class GitHubRelease
 {
-    private readonly IGitHubApi api;
-    private bool deleted;
+    private readonly List<AbsolutePath> addedAssets = [];
+    private readonly List<GitHubReleaseAsset> removedAssets = [];
 
-    internal GitHubRelease(IGitHubApi api, GitHubRepository repository, GitHubReleaseSnapshot snapshot)
+    /// <summary>
+    /// Creates a new release. Set at least its <see cref="Tag"/>.
+    /// </summary>
+    public GitHubRelease()
     {
-        this.api = api;
+    }
+
+    [SetsRequiredMembers]
+    internal GitHubRelease(GitHubRepository repository, GitHubReleaseSnapshot snapshot)
+    {
         Repository = repository;
         Apply(snapshot);
     }
 
     /// <summary>
-    /// Gets the repository of the release.
+    /// Gets the ID of the release, or <see langword="null"/> if it isn't saved yet.
     /// </summary>
-    public GitHubRepository Repository { get; }
+    public long? Id { get; private set; }
 
     /// <summary>
-    /// Gets the ID of the release.
+    /// Gets or sets the tag of the release, such as <c>v1.2.3</c>. GitHub creates the tag, if it doesn't exist, when
+    /// the release is published.
     /// </summary>
-    public long Id { get; private set; }
+    public required string Tag { get; set; }
 
     /// <summary>
-    /// Gets the tag of the release, such as <c>v1.2.3</c>.
+    /// Gets or sets the title of the release. If it's <see langword="null"/>, a new release is titled after its tag
+    /// and an existing release keeps its title.
     /// </summary>
-    public string Tag { get; private set; } = "";
+    public string? Name { get; set; }
 
     /// <summary>
-    /// Gets the title of the release.
+    /// Gets or sets the release notes, in Markdown, such as the notes from <see cref="Changelog.GetReleaseNotes"/>. If
+    /// they're <see langword="null"/>, an existing release keeps its notes.
     /// </summary>
-    public string Name { get; private set; } = "";
+    public string? Notes { get; set; }
 
     /// <summary>
-    /// Gets the release notes, in Markdown.
+    /// Gets or sets whether the release is a draft, which only people with write access to the repository see.
+    /// Setting it to <see langword="false"/> publishes a draft when the release is saved.
     /// </summary>
-    public string? Notes { get; private set; }
+    public bool Draft { get; set; }
 
     /// <summary>
-    /// Gets whether the release is a draft, which only people with write access to the repository see.
+    /// Gets or sets whether the release is marked as a prerelease.
     /// </summary>
-    public bool Draft { get; private set; }
+    public bool Prerelease { get; set; }
 
     /// <summary>
-    /// Gets whether the release is marked as a prerelease.
+    /// Gets or sets the repository of the release. If it's <see langword="null"/>, the release is saved to
+    /// <see cref="GitHub.Repository"/>.
     /// </summary>
-    public bool Prerelease { get; private set; }
+    public GitHubRepository? Repository { get; set; }
 
     /// <summary>
-    /// Gets the URL of the release page on GitHub.
+    /// Gets the URL of the release page on GitHub, or <see langword="null"/> if it isn't saved yet.
     /// </summary>
-    public Uri Url { get; private set; } = null!;
+    public Uri? Url { get; private set; }
 
     /// <summary>
-    /// Gets the files attached to the release.
+    /// Gets the files attached to the release on GitHub, without the changes that aren't saved yet.
     /// </summary>
     public IReadOnlyList<GitHubReleaseAsset> Assets { get; private set; } = [];
 
     /// <summary>
-    /// Uploads <paramref name="file"/> as an asset named after the file, and replaces an attached asset with the same name.
+    /// Gets the files that are uploaded when the release is saved.
+    /// </summary>
+    public IReadOnlyList<AbsolutePath> AddedAssets => addedAssets;
+
+    /// <summary>
+    /// Gets the attached assets that are deleted when the release is saved.
+    /// </summary>
+    public IReadOnlyList<GitHubReleaseAsset> RemovedAssets => removedAssets;
+
+    internal bool IsDraftOnGitHub { get; private set; }
+
+    /// <summary>
+    /// Adds a file to upload when the release is saved, named after the file. It replaces an attached asset with the
+    /// same name.
     /// </summary>
     /// <param name="file">The file to attach.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>The uploaded asset.</returns>
-    /// <exception cref="FileNotFoundException"><paramref name="file"/> doesn't exist.</exception>
-    /// <exception cref="InvalidOperationException">The release is deleted.</exception>
-    public async Task<GitHubReleaseAsset> UploadAssetAsync(AbsolutePath file, CancellationToken cancellationToken = default) =>
-        (await UploadAssetsAsync([file], cancellationToken))[0];
+    /// <returns>This release.</returns>
+    /// <exception cref="ArgumentException">An added file has the same name.</exception>
+    public GitHubRelease AddAsset(AbsolutePath file)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+
+        if (addedAssets.FirstOrDefault(added => SameName(added.Name, file.Name)) is { } duplicate)
+        {
+            throw new ArgumentException($"An asset named {file.Name} is already added: {duplicate}.", nameof(file));
+        }
+
+        addedAssets.Add(file);
+        return this;
+    }
 
     /// <summary>
-    /// Uploads <paramref name="files"/> as assets named after each file, and replaces attached assets with the same
-    /// names. Other attached assets are kept.
+    /// Adds files to upload when the release is saved, each named after its file. They replace attached assets with
+    /// the same names.
     /// </summary>
     /// <param name="files">The files to attach.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>The uploaded assets, in the order of <paramref name="files"/>.</returns>
-    /// <exception cref="FileNotFoundException">A file doesn't exist.</exception>
+    /// <returns>This release.</returns>
     /// <exception cref="ArgumentException">Two files have the same name.</exception>
-    /// <exception cref="InvalidOperationException">The release is deleted.</exception>
-    public async Task<IReadOnlyList<GitHubReleaseAsset>> UploadAssetsAsync(
-        IEnumerable<AbsolutePath> files, CancellationToken cancellationToken = default)
+    public GitHubRelease AddAssets(IEnumerable<AbsolutePath> files)
     {
         ArgumentNullException.ThrowIfNull(files);
-        ThrowIfDeleted();
 
-        AbsolutePath[] uploads = [.. files];
-        ValidateAssets(uploads, nameof(files));
-
-        var uploaded = new List<GitHubReleaseAsset>(uploads.Length);
-
-        foreach (AbsolutePath file in uploads)
+        foreach (AbsolutePath file in files)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            await DeleteAssetAsync(file.Name, cancellationToken);
-
-            GitHubReleaseAsset asset = await api.UploadAsset(Repository, Id, file, cancellationToken);
-            Assets = [.. Assets, asset];
-            uploaded.Add(asset);
+            AddAsset(file);
         }
 
-        return uploaded;
+        return this;
     }
 
     /// <summary>
-    /// Deletes the attached asset named <paramref name="name"/>.
+    /// Removes the asset named <paramref name="name"/>: an added file isn't uploaded, and an attached asset is deleted
+    /// when the release is saved.
     /// </summary>
     /// <param name="name">The file name of the asset, ignoring case.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>Whether an asset with the name was attached.</returns>
-    /// <exception cref="InvalidOperationException">The release is deleted.</exception>
-    public async Task<bool> DeleteAssetAsync(string name, CancellationToken cancellationToken = default)
+    /// <returns>Whether an asset with the name was added or attached.</returns>
+    public bool RemoveAsset(string name)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
-        ThrowIfDeleted();
 
-        if (Assets.FirstOrDefault(asset => string.Equals(asset.Name, name, StringComparison.OrdinalIgnoreCase)) is not { } existing)
+        bool removed = addedAssets.RemoveAll(added => SameName(added.Name, name)) > 0;
+
+        if (Assets.FirstOrDefault(asset => SameName(asset.Name, name)) is { } attached && !removedAssets.Contains(attached))
         {
-            return false;
+            removedAssets.Add(attached);
+            removed = true;
         }
 
-        await api.DeleteAsset(Repository, existing.Id, cancellationToken);
-        Assets = [.. Assets.Where(asset => asset.Id != existing.Id)];
-
-        return true;
-    }
-
-    /// <summary>
-    /// Changes the values that are passed in one call, and keeps the others.
-    /// </summary>
-    /// <example>
-    /// <code>
-    /// await release.UpdateAsync(name: "Version 1.2.3", prerelease: false);
-    /// </code>
-    /// </example>
-    /// <param name="name">The new title, or <see langword="null"/> to keep it.</param>
-    /// <param name="notes">The new release notes, in Markdown, or <see langword="null"/> to keep them.</param>
-    /// <param name="prerelease">Whether the release is a prerelease, or <see langword="null"/> to keep it.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <exception cref="ArgumentException"><paramref name="name"/> is empty.</exception>
-    /// <exception cref="InvalidOperationException">The release is deleted.</exception>
-    public async Task UpdateAsync(
-        string? name = null, string? notes = null, bool? prerelease = null, CancellationToken cancellationToken = default)
-    {
-        if (name is not null)
-        {
-            ArgumentException.ThrowIfNullOrEmpty(name);
-        }
-
-        ThrowIfDeleted();
-
-        if (name is null && notes is null && prerelease is null)
-        {
-            return;
-        }
-
-        Apply(await api.UpdateRelease(Repository, Id, new GitHubReleaseChanges(name, notes, Prerelease: prerelease), cancellationToken));
-    }
-
-    /// <summary>
-    /// Publishes the release if it's a draft. GitHub creates the tag if it doesn't exist.
-    /// </summary>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <exception cref="InvalidOperationException">The release is deleted.</exception>
-    public async Task PublishAsync(CancellationToken cancellationToken = default)
-    {
-        ThrowIfDeleted();
-
-        if (Draft)
-        {
-            Apply(await api.UpdateRelease(Repository, Id, new GitHubReleaseChanges(Draft: false), cancellationToken));
-        }
-    }
-
-    /// <summary>
-    /// Deletes the release from GitHub and keeps its tag. The release can't be used afterwards.
-    /// </summary>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <exception cref="InvalidOperationException">The release is already deleted.</exception>
-    public async Task DeleteAsync(CancellationToken cancellationToken = default)
-    {
-        ThrowIfDeleted();
-
-        await api.DeleteRelease(Repository, Id, cancellationToken);
-        deleted = true;
+        return removed;
     }
 
     /// <inheritdoc/>
-    public override string ToString() => $"{Name} ({Url})";
+    public override string ToString() => Url is null ? Tag : $"{Name ?? Tag} ({Url})";
 
-    internal static async Task<GitHubRelease?> GetAsync(
-        IGitHubApi api, GitHubRepository repository, string tag, bool includeDrafts, CancellationToken cancellationToken) =>
-        await api.GetReleaseByTag(repository, tag, includeDrafts, cancellationToken) is { } snapshot
-            ? new GitHubRelease(api, repository, snapshot)
-            : null;
+    internal static bool SameName(string left, string right) => string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
 
-    internal static void ValidateAssets(IReadOnlyCollection<AbsolutePath> files, string parameterName)
-    {
-        foreach (AbsolutePath file in files)
-        {
-            ArgumentNullException.ThrowIfNull(file, parameterName);
-
-            if (!file.FileExists)
-            {
-                throw new FileNotFoundException($"The asset {file} doesn't exist.", file);
-            }
-        }
-
-        if (files.GroupBy(file => file.Name, StringComparer.OrdinalIgnoreCase).FirstOrDefault(group => group.Count() > 1) is { } duplicate)
-        {
-            throw new ArgumentException($"More than one asset is named {duplicate.Key}: {string.Join(", ", duplicate)}.", parameterName);
-        }
-    }
-
-    private void Apply(GitHubReleaseSnapshot snapshot)
+    [MemberNotNull(nameof(Tag))]
+    internal void Apply(GitHubReleaseSnapshot snapshot)
     {
         Id = snapshot.Id;
         Tag = snapshot.Tag;
         Name = snapshot.Name;
         Notes = snapshot.Notes;
         Draft = snapshot.Draft;
+        IsDraftOnGitHub = snapshot.Draft;
         Prerelease = snapshot.Prerelease;
         Url = snapshot.Url;
         Assets = snapshot.Assets;
     }
 
-    private void ThrowIfDeleted()
+    internal void ClearAssetChanges()
     {
-        if (deleted)
-        {
-            throw new InvalidOperationException($"The release {Tag} is deleted.");
-        }
+        addedAssets.Clear();
+        removedAssets.Clear();
+    }
+
+    // After deleting, the release is new again, so saving it creates it again.
+    internal void Detach()
+    {
+        Id = null;
+        Url = null;
+        Assets = [];
+        IsDraftOnGitHub = false;
+        removedAssets.Clear();
     }
 }
 
