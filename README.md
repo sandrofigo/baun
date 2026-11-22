@@ -1,4 +1,4 @@
-# ![baun](https://raw.githubusercontent.com/sandrofigo/baun/main/docs/src/assets/baun_logotype.png)
+# ![baun](https://raw.githubusercontent.com/sandrofigo/baun/main/docs/src/assets/baun_logotype_cropped.png)
 
 [![NuGet](https://img.shields.io/nuget/v/Baun.svg)](https://www.nuget.org/packages/Baun) [![NuGet downloads](https://img.shields.io/nuget/dt/Baun.svg)](https://www.nuget.org/packages/Baun)
 
