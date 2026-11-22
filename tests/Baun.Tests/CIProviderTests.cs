@@ -4,9 +4,9 @@ namespace Baun.Tests;
 
 /// <summary>
 /// Sets environment variables, which are shared by the whole process, so it runs in the collection of
-/// <see cref="GitHubTests"/>, which doesn't run in parallel with other tests.
+/// <see cref="GitHubActionsTests"/>, which doesn't run in parallel with other tests.
 /// </summary>
-[Collection(nameof(GitHubTests))]
+[Collection(nameof(GitHubActionsTests))]
 public sealed class CIProviderTests : IDisposable
 {
     private static readonly string[] Variables = ["GITHUB_ACTIONS", "TF_BUILD", "GITLAB_CI", "TEAMCITY_VERSION"];

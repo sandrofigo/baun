@@ -3,9 +3,9 @@ using System.Diagnostics.CodeAnalysis;
 namespace Baun.CI.GitHub;
 
 /// <summary>
-/// A release of a GitHub repository. Get an existing one with <see cref="GitHub.GetReleaseAsync"/>, or create a new one
+/// A release of a GitHub repository. Get an existing one with <see cref="GitHubReleases.GetAsync"/>, or create a new one
 /// such as <c>new GitHubRelease { Tag = "v1.2.3" }</c>, change it, then save it with
-/// <see cref="GitHub.CreateOrUpdateReleaseAsync"/>.
+/// <see cref="GitHubReleases.CreateOrUpdateAsync"/>.
 /// </summary>
 /// <remarks>
 /// Changing a release doesn't call GitHub. The changes, also the added and removed assets, are sent when the release is
@@ -66,7 +66,7 @@ public sealed class GitHubRelease
 
     /// <summary>
     /// Gets or sets the repository of the release. If it's <see langword="null"/>, the release is saved to
-    /// <see cref="GitHub.Repository"/>.
+    /// <see cref="GitHubActions.Repository"/>.
     /// </summary>
     public GitHubRepository? Repository { get; set; }
 

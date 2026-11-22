@@ -1,3 +1,4 @@
+using Baun.CI.GitHub;
 using static Baun.EnvironmentVariables;
 
 namespace Baun.CI;
@@ -43,7 +44,7 @@ internal static class CIProviders
     /// </summary>
     public static CIProvider Detect()
     {
-        if (GitHub.GitHub.IsActions)
+        if (GitHubActions.IsRunning)
         {
             return CIProvider.GitHubActions;
         }
