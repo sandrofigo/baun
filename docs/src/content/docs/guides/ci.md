@@ -27,7 +27,7 @@ string? Tag = GitHub.Tag;
 
 ## GitHub Releases
 
-`GitHub.CreateOrUpdateRelease` creates the GitHub release for a tag, or updates its title, notes and prerelease flag if it already exists, so the step can be run again. GitHub creates the tag if it doesn't exist yet. The returned release has its ID, tag, name, notes, prerelease flag and URL:
+`GitHub.CreateOrUpdateRelease` creates the GitHub release for a tag, or updates its title, notes, draft and prerelease flags if it already exists, so the step can be run again. GitHub creates the tag if it doesn't exist yet when the release is published. The returned release has its ID, tag, name, notes, draft and prerelease flags, URL and assets:
 
 ```csharp
 Step Release() => _ => _
@@ -44,6 +44,8 @@ The other parameters are optional:
 | --- | --- |
 | `notes` | No notes. Markdown, such as the notes from the [changelog](#changelog) |
 | `prerelease` | `false` |
+| `draft` | `false`. A draft is only visible to people with write access to the repository. Passing `false` for an existing draft publishes it |
+| `assets` | No assets. Files to attach to the release, see [Release Assets](#release-assets) |
 | `name` | The tag |
 | `repository` | `GitHub.Repository`. To release to another repository, pass `new GitHubRepository("octocat", "Hello-World")` or `GitHubRepository.Parse("octocat/Hello-World")` |
 | `token` | `GitHub.Token` |
@@ -61,6 +63,22 @@ steps:
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
+
+### Release Assets
+
+`assets` attaches files to the release, each named after its file:
+
+```csharp
+Step Release() => _ => _
+    .Executes(async () =>
+    {
+        AbsolutePath artifacts = RootDirectory / "artifacts";
+
+        await GitHub.CreateOrUpdateRelease(GitHub.Tag!, assets: artifacts.GlobFiles("*.nupkg", "*.zip"));
+    });
+```
+
+When the step runs again, an attached asset with the same name is replaced and the other assets are kept. A new release with assets is created as a draft and published after the uploads, so it's never visible without them. Pass `draft: true` to keep it a draft, for example to check the release before you publish it on GitHub. A file that doesn't exist, or two files with the same name, throw before anything is sent to GitHub.
 
 ## Changelog
 
