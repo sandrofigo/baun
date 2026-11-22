@@ -27,30 +27,36 @@ string? Tag = GitHub.Tag;
 
 ## GitHub Releases
 
-`GitHub.CreateOrUpdateRelease` creates the GitHub release for a tag, or updates its title, notes, draft and prerelease flags if it already exists, so the step can be run again. GitHub creates the tag if it doesn't exist yet when the release is published. The returned release has its ID, tag, name, notes, draft and prerelease flags, URL and assets:
+`GitHub.Release(tag)` describes the GitHub release for a tag. Set its values with the builder's methods, then call `CreateOrUpdateAsync` to create the release, or update it if it already exists, also as a draft, so the step can be run again:
 
 ```csharp
 Step Release() => _ => _
     .Executes(async () =>
     {
-        GitHubRelease release = await GitHub.CreateOrUpdateRelease(GitHub.Tag!, notes: "- Fixed a bug");
+        GitHubRelease release = await GitHub.Release(GitHub.Tag!)
+            .Notes("- Fixed a bug")
+            .Prerelease()
+            .CreateOrUpdateAsync();
+
         Log.Information("Released {Url}", release.Url);
     });
 ```
 
-The other parameters are optional:
+All methods are optional:
 
-| Parameter | Default |
+| Method | Default for a new release |
 | --- | --- |
-| `notes` | No notes. Markdown, such as the notes from the [changelog](#changelog) |
-| `prerelease` | `false` |
-| `draft` | `false`. A draft is only visible to people with write access to the repository. Passing `false` for an existing draft publishes it |
-| `assets` | No assets. Files to attach to the release, see [Release Assets](#release-assets) |
-| `name` | The tag |
-| `repository` | `GitHub.Repository`. To release to another repository, pass `new GitHubRepository("octocat", "Hello-World")` or `GitHubRepository.Parse("octocat/Hello-World")` |
-| `token` | `GitHub.Token` |
+| `Name("Version 1.2.3")` | The tag |
+| `Notes(notes)` | No notes. Markdown, such as the notes from the [changelog](#changelog) |
+| `Prerelease()` | Not a prerelease. `Prerelease(false)` unmarks one |
+| `Draft()` | Not a draft. A draft is only visible to people with write access to the repository. `Draft(false)` publishes an existing draft |
+| `Assets(files)` | No assets. Files to attach, see [Release Assets](#release-assets) |
+| `Repository(repository)` | `GitHub.Repository`. To release to another repository, pass `new GitHubRepository("octocat", "Hello-World")` or `GitHubRepository.Parse("octocat/Hello-World")` |
+| `Token(token)` | `GitHub.Token` |
 
-The API URL is `GitHub.ApiUrl`. Without a token or a repository, the method throws an `InvalidOperationException` that says which one is missing.
+An existing release keeps the values you don't set, so `GitHub.Release(tag).Notes(notes)` only changes the notes, and a draft stays a draft. GitHub creates the tag, if it doesn't exist yet, when the release is published.
+
+Each method returns a new builder, so one builder can be the base of others. The API URL is `GitHub.ApiUrl`. Without a token or a repository, `CreateOrUpdateAsync` throws an `InvalidOperationException` that says which one is missing.
 
 The token needs permission to write releases. GitHub Actions doesn't set `GITHUB_TOKEN` as an environment variable by itself, so pass the token of the run to the step that runs the build:
 
@@ -66,7 +72,7 @@ steps:
 
 ### Release Assets
 
-`assets` attaches files to the release, each named after its file:
+`Assets` attaches files to the release, each named after its file. Call it more than once to add more files:
 
 ```csharp
 Step Release() => _ => _
@@ -74,11 +80,40 @@ Step Release() => _ => _
     {
         AbsolutePath artifacts = RootDirectory / "artifacts";
 
-        await GitHub.CreateOrUpdateRelease(GitHub.Tag!, assets: artifacts.GlobFiles("*.nupkg", "*.zip"));
+        await GitHub.Release(GitHub.Tag!)
+            .Assets(artifacts.GlobFiles("*.nupkg", "*.zip"))
+            .CreateOrUpdateAsync();
     });
 ```
 
-When the step runs again, an attached asset with the same name is replaced and the other assets are kept. A new release with assets is created as a draft and published after the uploads, so it's never visible without them. Pass `draft: true` to keep it a draft, for example to check the release before you publish it on GitHub. A file that doesn't exist, or two files with the same name, throw before anything is sent to GitHub.
+When the step runs again, an attached asset with the same name is replaced and the other assets are kept. A release with assets that is to be published is kept a draft until the uploads are done, so it's never visible without them. A file that doesn't exist, or two files with the same name, throw before anything is sent to GitHub.
+
+### Working With a Release
+
+`CreateOrUpdateAsync` returns a `GitHubRelease` with its repository, ID, tag, name, notes, draft and prerelease flags, URL and assets. Its methods change the release on GitHub right away, and its properties follow the changes:
+
+| Method | Does |
+| --- | --- |
+| `UploadAssetAsync(file)`, `UploadAssetsAsync(files)` | Uploads files and replaces attached assets with the same names |
+| `DeleteAssetAsync("app.zip")` | Deletes an attached asset by name, and returns whether there was one |
+| `PublishAsync()` | Publishes a draft |
+| `DeleteAsync()` | Deletes the release and keeps the tag |
+
+`GitHub.Release(tag).GetAsync()` returns the existing release, or null if there's none. It also finds drafts unless you pass `includeDrafts: false`. For example, create a draft, check it, then publish it:
+
+```csharp
+GitHubRelease release = await GitHub.Release(GitHub.Tag!)
+    .Notes(notes)
+    .Draft()
+    .CreateOrUpdateAsync();
+
+await release.UploadAssetAsync(RootDirectory / "artifacts" / "app.zip");
+
+if (release.Assets.Count > 0)
+{
+    await release.PublishAsync();
+}
+```
 
 ## Changelog
 
@@ -102,7 +137,7 @@ Step Release() => _ => _
         string tag = GitHub.Tag!;
         string notes = Changelog.Read().GetReleaseNotes(tag.TrimStart('v'));
 
-        await GitHub.CreateOrUpdateRelease(tag, notes: notes);
+        await GitHub.Release(tag).Notes(notes).CreateOrUpdateAsync();
     });
 ```
 

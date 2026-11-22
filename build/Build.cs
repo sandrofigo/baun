@@ -124,7 +124,10 @@ partial class Build
             string version = await GetVersionAsync();
             string notes = Changelog.Read().GetReleaseNotes(version);
 
-            GitHubRelease release = await GitHub.CreateOrUpdateRelease($"v{version}", notes: notes, prerelease: version.Contains('-'));
+            GitHubRelease release = await GitHub.Release($"v{version}")
+                .Notes(notes)
+                .Prerelease(version.Contains('-'))
+                .CreateOrUpdateAsync();
 
             Log.Information("Released {Release}: {Url}", release.Name, release.Url);
 

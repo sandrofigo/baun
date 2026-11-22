@@ -1,7 +1,8 @@
 namespace Baun.CI;
 
 /// <summary>
-/// The GitHub API calls that <see cref="GitHub"/> uses, so the client library behind them can be exchanged.
+/// The GitHub API calls that <see cref="GitHubRelease"/> and <see cref="GitHubReleaseBuilder"/> use, so the client
+/// library behind them can be exchanged.
 /// </summary>
 internal interface IGitHubApi
 {
@@ -15,22 +16,38 @@ internal interface IGitHubApi
     /// a release by its tag doesn't find drafts.
     /// </param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
-    Task<GitHubRelease?> GetReleaseByTag(
+    Task<GitHubReleaseSnapshot?> GetReleaseByTag(
         GitHubRepository repository, string tag, bool includeDrafts = true, CancellationToken cancellationToken = default);
 
-    Task<GitHubRelease> CreateRelease(GitHubRepository repository, GitHubReleaseData data, CancellationToken cancellationToken);
-
-    Task<GitHubRelease> UpdateRelease(GitHubRepository repository, long id, GitHubReleaseData data, CancellationToken cancellationToken);
+    Task<GitHubReleaseSnapshot> CreateRelease(GitHubRepository repository, NewGitHubRelease release, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Uploads <paramref name="file"/> as an asset of <paramref name="release"/>, named after the file.
+    /// Changes the values of <paramref name="changes"/> that aren't <see langword="null"/> and keeps the others.
     /// </summary>
-    Task<GitHubReleaseAsset> UploadAsset(GitHubRepository repository, GitHubRelease release, AbsolutePath file, CancellationToken cancellationToken);
+    Task<GitHubReleaseSnapshot> UpdateRelease(GitHubRepository repository, long id, GitHubReleaseChanges changes, CancellationToken cancellationToken);
+
+    Task DeleteRelease(GitHubRepository repository, long id, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Uploads <paramref name="file"/> as an asset of the release, named after the file.
+    /// </summary>
+    Task<GitHubReleaseAsset> UploadAsset(GitHubRepository repository, long releaseId, AbsolutePath file, CancellationToken cancellationToken);
 
     Task DeleteAsset(GitHubRepository repository, long id, CancellationToken cancellationToken);
 }
 
 /// <summary>
-/// The values of a release to create or update.
+/// The state of a release as the API returned it.
 /// </summary>
-internal sealed record GitHubReleaseData(string Tag, string Name, string? Notes, bool Draft, bool Prerelease);
+internal sealed record GitHubReleaseSnapshot(
+    long Id, string Tag, string Name, string? Notes, bool Draft, bool Prerelease, Uri Url, IReadOnlyList<GitHubReleaseAsset> Assets);
+
+/// <summary>
+/// The values of a release to create.
+/// </summary>
+internal sealed record NewGitHubRelease(string Tag, string Name, string? Notes, bool Draft, bool Prerelease);
+
+/// <summary>
+/// The values of a release to change. <see langword="null"/> keeps a value.
+/// </summary>
+internal sealed record GitHubReleaseChanges(string? Name = null, string? Notes = null, bool? Draft = null, bool? Prerelease = null);
