@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Moved `GitHub`, `GitHubRelease`, `GitHubReleaseAsset`, `GitHubRepository` and `GitHubRefType` to the new `Baun.CI.GitHub` namespace, which builds import automatically. Code outside a build that uses them needs `using Baun.CI.GitHub;`.
 - `GitHubRelease` is now a class whose values can be changed, such as `new GitHubRelease { Tag = "v1.2.3", Notes = notes }`, and that's sent to GitHub when it's saved. `Id` and `Url` are null until then.
 - Saving a release keeps the title and notes of an existing release when they're null, instead of resetting the title to the tag.
 - Saving a new release also finds an existing draft for the tag, instead of creating a second release.

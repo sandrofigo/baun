@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace Baun.CI;
+namespace Baun.CI.GitHub;
 
 /// <summary>
 /// A release of a GitHub repository. Get an existing one with <see cref="GitHub.GetReleaseAsync"/>, or create a new one

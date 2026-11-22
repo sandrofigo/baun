@@ -1,6 +1,6 @@
 using static Baun.EnvironmentVariables;
 
-namespace Baun.CI;
+namespace Baun.CI.GitHub;
 
 /// <summary>
 /// The type of the ref a GitHub Actions workflow runs for.
