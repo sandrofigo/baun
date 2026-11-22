@@ -38,6 +38,29 @@ public sealed class GitTests : IDisposable
     }
 
     [Fact]
+    public async Task Returns_all_tags_of_the_current_commit_with_the_highest_version_first()
+    {
+        await InitAsync();
+        await GitAsync("tag", "v0.9.0");
+        await CommitAsync();
+        await GitAsync("tag", "v1.0.0");
+        await GitAsync("tag", "v1.10.0");
+        await GitAsync("tag", "v1.9.0");
+
+        Assert.Equal(["v1.10.0", "v1.9.0", "v1.0.0"], await Git.GetCurrentTagsAsync(repository, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task Returns_no_tags_for_a_commit_without_one()
+    {
+        await InitAsync();
+        await GitAsync("tag", "v1.0.0");
+        await CommitAsync();
+
+        Assert.Empty(await Git.GetCurrentTagsAsync(repository, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
     public async Task Returns_no_tag_for_a_commit_without_one()
     {
         await InitAsync();

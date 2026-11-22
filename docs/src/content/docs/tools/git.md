@@ -14,9 +14,10 @@ await Git.RunAsync("fetch", "--tags");
 `Git` also reads information about the repository:
 
 - `Git.GetCurrentTagAsync()` returns the tag of the commit that is checked out, such as v1.2.3, or null if it has none. With several tags, it returns the one with the highest version.
+- `Git.GetCurrentTagsAsync()` returns all tags of the commit that is checked out, with the highest version first, or an empty list if it has none.
 - `Git.GetCurrentBranchAsync()` returns the branch that is checked out, such as main, or null when no branch is checked out, such as when a CI server checks out a tag or a pull request.
 
-Both take an optional directory in the repository and a cancellation token, and throw a `ToolException` outside a repository. Since they run git, use them in a step rather than as a parameter's initial value. For example, to release the tag of the current commit unless `--tag` is passed:
+They take an optional directory in the repository and a cancellation token, and throw a `ToolException` outside a repository. Since they run git, use them in a step rather than as a parameter's initial value. For example, to release the tag of the current commit unless `--tag` is passed:
 
 ```csharp
 [Parameter("Tag to release. Defaults to the tag of the current commit")]

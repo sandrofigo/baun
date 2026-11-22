@@ -1,8 +1,8 @@
 namespace Baun.Tools.Git;
 
 /// <summary>
-/// Runs <c>git</c> and reads information about the repository, such as <see cref="GetCurrentTagAsync"/> and
-/// <see cref="GetCurrentBranchAsync"/>. It writes the output of git with <see cref="Logger"/>, which logs its errors and
+/// Runs <c>git</c> and reads information about the repository, such as <see cref="GetCurrentTagAsync"/>,
+/// <see cref="GetCurrentTagsAsync"/> and <see cref="GetCurrentBranchAsync"/>. It writes the output of git with <see cref="Logger"/>, which logs its errors and
 /// warnings as such.
 /// </summary>
 public static class Git
@@ -62,11 +62,22 @@ public static class Git
     /// <param name="workingDirectory">A directory in the repository, or <see langword="null"/> for the current one.</param>
     /// <param name="cancellationToken">Stops git when it's canceled.</param>
     /// <exception cref="ToolException">git failed, for example outside a repository.</exception>
-    public static async Task<string?> GetCurrentTagAsync(AbsolutePath? workingDirectory = null, CancellationToken cancellationToken = default)
+    public static async Task<string?> GetCurrentTagAsync(AbsolutePath? workingDirectory = null, CancellationToken cancellationToken = default) =>
+        (await GetCurrentTagsAsync(workingDirectory, cancellationToken)).FirstOrDefault();
+
+    /// <summary>
+    /// Returns all tags of the commit that is checked out, such as <c>v1.2.3</c> and <c>latest</c>, sorted by version
+    /// with the highest first, or an empty list if it has no tag.
+    /// </summary>
+    /// <param name="workingDirectory">A directory in the repository, or <see langword="null"/> for the current one.</param>
+    /// <param name="cancellationToken">Stops git when it's canceled.</param>
+    /// <exception cref="ToolException">git failed, for example outside a repository.</exception>
+    public static async Task<IReadOnlyList<string>> GetCurrentTagsAsync(
+        AbsolutePath? workingDirectory = null, CancellationToken cancellationToken = default)
     {
         ToolResult result = await RunAsync(["tag", "--points-at", "HEAD", "--sort=-version:refname"], workingDirectory, cancellationToken);
 
-        return FirstLine(result);
+        return [.. Lines(result)];
     }
 
     /// <summary>
@@ -83,6 +94,8 @@ public static class Git
         return FirstLine(result);
     }
 
-    private static string? FirstLine(ToolResult result) =>
-        result.StandardOutput.Select(line => line.Trim()).FirstOrDefault(line => line.Length > 0);
+    private static string? FirstLine(ToolResult result) => Lines(result).FirstOrDefault();
+
+    private static IEnumerable<string> Lines(ToolResult result) =>
+        result.StandardOutput.Select(line => line.Trim()).Where(line => line.Length > 0);
 }

@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added draft releases with `GitHubRelease.Draft`. Setting it to `false` publishes a draft.
 - Added release assets. `GitHubRelease.AddAsset` and `AddAssets` add files to upload, which replace attached assets with the same name, and `RemoveAsset` deletes an attached asset. A release with added files that is to be published is kept a draft until the uploads are done.
 - Added `Draft`, `Repository`, `Assets`, `AddedAssets` and `RemovedAssets` to `GitHubRelease`, with `GitHubReleaseAsset` for each attached file.
+- Added `Git.GetCurrentTagsAsync`, which returns all tags of the current commit with the highest version first.
 
 ### Changed
 
