@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added `draft` to `GitHub.CreateOrUpdateRelease`, which creates the release as a draft. Passing `false` for an existing draft publishes it.
+- Added `assets` to `GitHub.CreateOrUpdateRelease`, which attaches files to the release and replaces attached assets with the same name. A new release with assets is published after the uploads.
+- Added `Draft` and `Assets` to `GitHubRelease`, with `GitHubReleaseAsset` for each attached file.
+
+### Changed
+
+- `GitHub.CreateOrUpdateRelease` now also finds an existing draft release for the tag, instead of creating a second release.
+
 ## [0.8.0] - 2026-11-22
 
 ### Added

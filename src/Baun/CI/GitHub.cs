@@ -253,12 +253,24 @@ public static class GitHub
     public static string? Token => Get("GITHUB_TOKEN");
 
     /// <summary>
-    /// Creates the GitHub release for <paramref name="tag"/>, or updates its title, notes and prerelease flag if it
-    /// already exists, so a step that calls it can be run again.
+    /// Creates the GitHub release for <paramref name="tag"/>, or updates its title, notes, draft and prerelease flags if
+    /// it already exists, so a step that calls it can be run again.
     /// </summary>
-    /// <param name="tag">The tag of the release, such as <c>v1.2.3</c>. GitHub creates the tag if it doesn't exist.</param>
+    /// <param name="tag">
+    /// The tag of the release, such as <c>v1.2.3</c>. GitHub creates the tag if it doesn't exist when the release is
+    /// published.
+    /// </param>
     /// <param name="notes">The release notes, in Markdown.</param>
     /// <param name="prerelease">Whether to mark the release as a prerelease.</param>
+    /// <param name="draft">
+    /// Whether the release is a draft, which only people with write access to the repository see. Passing
+    /// <see langword="false"/> for an existing draft publishes it.
+    /// </param>
+    /// <param name="assets">
+    /// Files to attach to the release, named after the file. An asset with the same name that's already attached is
+    /// replaced, and other attached assets are kept. A new release with assets is published after the uploads, so it's
+    /// never visible without them.
+    /// </param>
     /// <param name="name">The title of the release. Defaults to <paramref name="tag"/>.</param>
     /// <param name="repository">The repository of the release. Defaults to <see cref="Repository"/>.</param>
     /// <param name="token">
@@ -267,7 +279,10 @@ public static class GitHub
     /// </param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The created or updated release.</returns>
-    /// <exception cref="ArgumentException"><paramref name="tag"/> or <paramref name="token"/> is empty.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="tag"/> or <paramref name="token"/> is empty, or two of <paramref name="assets"/> have the same name.
+    /// </exception>
+    /// <exception cref="FileNotFoundException">A file of <paramref name="assets"/> doesn't exist.</exception>
     /// <exception cref="InvalidOperationException">
     /// <paramref name="repository"/> isn't passed and <see cref="Repository"/> is <see langword="null"/>, or
     /// <paramref name="token"/> isn't passed and <see cref="Token"/> is <see langword="null"/>.
@@ -276,12 +291,29 @@ public static class GitHub
         string tag,
         string? notes = null,
         bool prerelease = false,
+        bool draft = false,
+        IEnumerable<AbsolutePath>? assets = null,
         string? name = null,
         GitHubRepository? repository = null,
         string? token = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(tag);
+
+        AbsolutePath[] files = assets?.ToArray() ?? [];
+
+        foreach (AbsolutePath file in files)
+        {
+            if (!file.FileExists)
+            {
+                throw new FileNotFoundException($"The asset {file} doesn't exist.", file);
+            }
+        }
+
+        if (files.GroupBy(file => file.Name, StringComparer.OrdinalIgnoreCase).FirstOrDefault(group => group.Count() > 1) is { } duplicate)
+        {
+            throw new ArgumentException($"More than one asset is named {duplicate.Key}: {string.Join(", ", duplicate)}.", nameof(assets));
+        }
 
         if (token is not null)
         {
@@ -295,8 +327,8 @@ public static class GitHub
             ?? throw new InvalidOperationException("The repository isn't passed and GITHUB_REPOSITORY isn't set to owner/name.");
 
         Uri? apiUrl = ApiUrl is { } url ? new Uri(url) : null;
-        var data = new GitHubReleaseData(tag, name is { Length: > 0 } ? name : tag, notes, prerelease);
+        var data = new GitHubReleaseData(tag, name is { Length: > 0 } ? name : tag, notes, draft, prerelease);
 
-        return await GitHubReleases.CreateOrUpdate(new OctokitGitHubApi(token, apiUrl), repository, data, cancellationToken);
+        return await GitHubReleases.CreateOrUpdate(new OctokitGitHubApi(token, apiUrl), repository, data, files, cancellationToken);
     }
 }
