@@ -16,7 +16,7 @@ public sealed class GitHubReleaseTests
 
         GitHubRelease release = await GitHubReleases.CreateOrUpdate(api, Repository, Data, [], TestContext.Current.CancellationToken);
 
-        Assert.Equal((Repository, "v1.2.3"), api.Requested);
+        Assert.Equal((Repository, "v1.2.3", true), api.Requested);
         Assert.Equal(Data, api.Created);
         Assert.Empty(api.Updated);
         Assert.Equal("v1.2.3", release.Tag);
@@ -114,7 +114,7 @@ public sealed class GitHubReleaseTests
     {
         private long nextAssetId = 100;
 
-        public (GitHubRepository Repository, string Tag)? Requested { get; private set; }
+        public (GitHubRepository Repository, string Tag, bool IncludeDrafts)? Requested { get; private set; }
 
         public GitHubReleaseData? Created { get; private set; }
 
@@ -122,9 +122,10 @@ public sealed class GitHubReleaseTests
 
         public List<string> Calls { get; } = [];
 
-        public Task<GitHubRelease?> GetReleaseByTag(GitHubRepository repository, string tag, CancellationToken cancellationToken)
+        public Task<GitHubRelease?> GetReleaseByTag(
+            GitHubRepository repository, string tag, bool includeDrafts = true, CancellationToken cancellationToken = default)
         {
-            Requested = (repository, tag);
+            Requested = (repository, tag, includeDrafts);
             return Task.FromResult(existing);
         }
 

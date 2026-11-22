@@ -17,7 +17,7 @@ internal static class GitHubReleases
         IReadOnlyList<AbsolutePath> assets,
         CancellationToken cancellationToken)
     {
-        GitHubRelease? existing = await api.GetReleaseByTag(repository, data.Tag, cancellationToken);
+        GitHubRelease? existing = await api.GetReleaseByTag(repository, data.Tag, includeDrafts: true, cancellationToken);
 
         cancellationToken.ThrowIfCancellationRequested();
 

@@ -6,9 +6,17 @@ namespace Baun.CI;
 internal interface IGitHubApi
 {
     /// <summary>
-    /// Gets the release for <paramref name="tag"/>, including a draft, or <see langword="null"/> if there's none.
+    /// Gets the release for <paramref name="tag"/>, or <see langword="null"/> if there's none.
     /// </summary>
-    Task<GitHubRelease?> GetReleaseByTag(GitHubRepository repository, string tag, CancellationToken cancellationToken);
+    /// <param name="repository">The repository of the release.</param>
+    /// <param name="tag">The tag of the release, such as <c>v1.2.3</c>.</param>
+    /// <param name="includeDrafts">
+    /// Whether to also find a draft release for <paramref name="tag"/>, which needs to list the releases because getting
+    /// a release by its tag doesn't find drafts.
+    /// </param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    Task<GitHubRelease?> GetReleaseByTag(
+        GitHubRepository repository, string tag, bool includeDrafts = true, CancellationToken cancellationToken = default);
 
     Task<GitHubRelease> CreateRelease(GitHubRepository repository, GitHubReleaseData data, CancellationToken cancellationToken);
 
