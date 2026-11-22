@@ -1,8 +1,8 @@
 namespace Baun.CI;
 
 /// <summary>
-/// A release of a GitHub repository, which <see cref="GitHubReleaseBuilder.CreateOrUpdateAsync"/> and
-/// <see cref="GitHubReleaseBuilder.GetAsync"/> return.
+/// A release of a GitHub repository, which <see cref="GitHub.GetReleaseAsync"/> and
+/// <see cref="GitHubReleaseBuilder.CreateOrUpdateAsync"/> return.
 /// </summary>
 /// <remarks>
 /// The methods change the release on GitHub right away, and the properties follow the changes.
@@ -134,6 +134,38 @@ public sealed class GitHubRelease
     }
 
     /// <summary>
+    /// Changes the values that are passed in one call, and keeps the others.
+    /// </summary>
+    /// <example>
+    /// <code>
+    /// await release.UpdateAsync(name: "Version 1.2.3", prerelease: false);
+    /// </code>
+    /// </example>
+    /// <param name="name">The new title, or <see langword="null"/> to keep it.</param>
+    /// <param name="notes">The new release notes, in Markdown, or <see langword="null"/> to keep them.</param>
+    /// <param name="prerelease">Whether the release is a prerelease, or <see langword="null"/> to keep it.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <exception cref="ArgumentException"><paramref name="name"/> is empty.</exception>
+    /// <exception cref="InvalidOperationException">The release is deleted.</exception>
+    public async Task UpdateAsync(
+        string? name = null, string? notes = null, bool? prerelease = null, CancellationToken cancellationToken = default)
+    {
+        if (name is not null)
+        {
+            ArgumentException.ThrowIfNullOrEmpty(name);
+        }
+
+        ThrowIfDeleted();
+
+        if (name is null && notes is null && prerelease is null)
+        {
+            return;
+        }
+
+        Apply(await api.UpdateRelease(Repository, Id, new GitHubReleaseChanges(name, notes, Prerelease: prerelease), cancellationToken));
+    }
+
+    /// <summary>
     /// Publishes the release if it's a draft. GitHub creates the tag if it doesn't exist.
     /// </summary>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
@@ -163,6 +195,12 @@ public sealed class GitHubRelease
 
     /// <inheritdoc/>
     public override string ToString() => $"{Name} ({Url})";
+
+    internal static async Task<GitHubRelease?> GetAsync(
+        IGitHubApi api, GitHubRepository repository, string tag, bool includeDrafts, CancellationToken cancellationToken) =>
+        await api.GetReleaseByTag(repository, tag, includeDrafts, cancellationToken) is { } snapshot
+            ? new GitHubRelease(api, repository, snapshot)
+            : null;
 
     internal static void ValidateAssets(IReadOnlyCollection<AbsolutePath> files, string parameterName)
     {
