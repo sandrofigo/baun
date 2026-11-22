@@ -48,9 +48,7 @@ partial class Build
 }
 ```
 
-```shell
-baun Test
-```
+Running `baun` without arguments starts the entry step, so `Compile` runs first and then `Test`.
 
 ## Documentation
 
