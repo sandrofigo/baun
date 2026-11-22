@@ -1,8 +1,7 @@
 namespace Baun.CI;
 
 /// <summary>
-/// The GitHub API calls that <see cref="GitHubRelease"/> and <see cref="GitHubReleaseBuilder"/> use, so the client
-/// library behind them can be exchanged.
+/// The GitHub API calls that <see cref="GitHub"/> uses for releases, so the client library behind them can be exchanged.
 /// </summary>
 internal interface IGitHubApi
 {
@@ -50,4 +49,5 @@ internal sealed record NewGitHubRelease(string Tag, string Name, string? Notes, 
 /// <summary>
 /// The values of a release to change. <see langword="null"/> keeps a value.
 /// </summary>
-internal sealed record GitHubReleaseChanges(string? Name = null, string? Notes = null, bool? Draft = null, bool? Prerelease = null);
+internal sealed record GitHubReleaseChanges(
+    string? Tag = null, string? Name = null, string? Notes = null, bool? Draft = null, bool? Prerelease = null);

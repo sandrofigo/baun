@@ -109,7 +109,7 @@ public sealed class Changelog
     /// </summary>
     /// <remarks>
     /// The notes fit a GitHub release, which shows its title instead of the heading:
-    /// <c>GitHub.Release(tag).Notes(changelog.GetReleaseNotes("1.2.3"))</c>.
+    /// <c>new GitHubRelease { Tag = tag, Notes = changelog.GetReleaseNotes("1.2.3") }</c>.
     /// </remarks>
     /// <exception cref="InvalidOperationException">The changelog has no release with <paramref name="version"/>.</exception>
     public string GetReleaseNotes(string version) => GetRelease(version).Notes;

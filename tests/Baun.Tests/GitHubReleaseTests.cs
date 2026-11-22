@@ -23,179 +23,18 @@ public sealed class GitHubReleaseTests : IDisposable
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task Creates_the_release_with_defaults_if_it_doesnt_exist()
-    {
-        var api = new FakeGitHubApi(existing: null);
-
-        GitHubRelease release = await GitHub.Release("v1.2.3").CreateOrUpdateCoreAsync(api, Repository, Token);
-
-        Assert.Equal((Repository, "v1.2.3", true), api.Requested);
-        Assert.Equal(new NewGitHubRelease("v1.2.3", "v1.2.3", null, Draft: false, Prerelease: false), api.Created);
-        Assert.Empty(api.Updated);
-        Assert.Equal("v1.2.3", release.Tag);
-        Assert.Equal("v1.2.3", release.Name);
-        Assert.Equal(Repository, release.Repository);
-    }
-
-    [Fact]
-    public async Task Creates_the_release_with_the_set_values()
-    {
-        var api = new FakeGitHubApi(existing: null);
-
-        GitHubRelease release = await GitHub.Release("v1.2.3")
-            .Name("Version 1.2.3")
-            .Notes("- Fixed a bug")
-            .Prerelease()
-            .Draft()
-            .CreateOrUpdateCoreAsync(api, Repository, Token);
-
-        Assert.Equal(new NewGitHubRelease("v1.2.3", "Version 1.2.3", "- Fixed a bug", Draft: true, Prerelease: true), api.Created);
-        Assert.True(release.Draft);
-        Assert.True(release.Prerelease);
-        Assert.Equal("- Fixed a bug", release.Notes);
-    }
-
-    [Fact]
-    public async Task Updates_only_the_set_values_of_an_existing_release()
-    {
-        var api = new FakeGitHubApi(Existing(draft: false));
-
-        GitHubRelease release = await GitHub.Release("v1.2.3").Notes("- Fixed a bug").CreateOrUpdateCoreAsync(api, Repository, Token);
-
-        Assert.Null(api.Created);
-        Assert.Equal([(42L, new GitHubReleaseChanges(Notes: "- Fixed a bug"))], api.Updated);
-        Assert.Equal(42, release.Id);
-        Assert.Equal("Old", release.Name);
-        Assert.Equal("- Fixed a bug", release.Notes);
-    }
-
-    [Fact]
-    public async Task Keeps_an_existing_draft_a_draft()
+    public async Task Gets_an_existing_release()
     {
         var api = new FakeGitHubApi(Existing(draft: true));
 
-        GitHubRelease release = await GitHub.Release("v1.2.3").Assets(zip).CreateOrUpdateCoreAsync(api, Repository, Token);
-
-        Assert.Equal(["update", "upload app.zip"], api.Calls);
-        Assert.True(release.Draft);
-    }
-
-    [Fact]
-    public async Task Publishes_an_existing_draft()
-    {
-        var api = new FakeGitHubApi(Existing(draft: true));
-
-        GitHubRelease release = await GitHub.Release("v1.2.3").Draft(false).CreateOrUpdateCoreAsync(api, Repository, Token);
-
-        Assert.Equal([(42L, new GitHubReleaseChanges(Draft: false))], api.Updated);
-        Assert.False(release.Draft);
-    }
-
-    [Fact]
-    public async Task Publishes_a_new_release_with_assets_after_the_uploads()
-    {
-        var api = new FakeGitHubApi(existing: null);
-
-        GitHubRelease release = await GitHub.Release("v1.2.3").Assets(zip, checksums).CreateOrUpdateCoreAsync(api, Repository, Token);
-
-        Assert.True(api.Created!.Draft);
-        Assert.Equal(["create", "upload app.zip", "upload checksums.txt", "update"], api.Calls);
-        Assert.Equal([(1L, new GitHubReleaseChanges(Draft: false))], api.Updated);
-        Assert.False(release.Draft);
-        Assert.Equal(["app.zip", "checksums.txt"], release.Assets.Select(asset => asset.Name));
-    }
-
-    [Fact]
-    public async Task Publishes_an_existing_draft_with_assets_after_the_uploads()
-    {
-        var api = new FakeGitHubApi(Existing(draft: true));
-
-        GitHubRelease release = await GitHub.Release("v1.2.3").Draft(false).Assets(zip).CreateOrUpdateCoreAsync(api, Repository, Token);
-
-        Assert.Equal(["update", "upload app.zip", "update"], api.Calls);
-        Assert.Equal([(42L, new GitHubReleaseChanges()), (42L, new GitHubReleaseChanges(Draft: false))], api.Updated);
-        Assert.False(release.Draft);
-    }
-
-    [Fact]
-    public async Task Keeps_a_published_release_published_while_uploading()
-    {
-        var api = new FakeGitHubApi(Existing(draft: false));
-
-        await GitHub.Release("v1.2.3").Assets(zip).CreateOrUpdateCoreAsync(api, Repository, Token);
-
-        Assert.Equal(["update", "upload app.zip"], api.Calls);
-    }
-
-    [Fact]
-    public async Task Replaces_assets_with_the_same_name_and_keeps_the_others()
-    {
-        GitHubReleaseSnapshot existing = Existing(draft: false) with { Assets = [Asset(7, "app.zip"), Asset(8, "readme.txt")] };
-        var api = new FakeGitHubApi(existing);
-
-        GitHubRelease release = await GitHub.Release("v1.2.3").Assets(zip).CreateOrUpdateCoreAsync(api, Repository, Token);
-
-        Assert.Equal(["update", "delete 7", "upload app.zip"], api.Calls);
-        Assert.Equal(["readme.txt", "app.zip"], release.Assets.Select(asset => asset.Name));
-        Assert.NotEqual(7, release.Assets.Single(asset => asset.Name == "app.zip").Id);
-    }
-
-    [Fact]
-    public async Task Throws_for_a_missing_asset_before_calling_the_api()
-    {
-        var api = new FakeGitHubApi(existing: null);
-
-        await Assert.ThrowsAsync<FileNotFoundException>(() =>
-            GitHub.Release("v1.2.3").Assets(root / "missing.zip").CreateOrUpdateCoreAsync(api, Repository, Token));
-
-        Assert.Null(api.Requested);
-    }
-
-    [Fact]
-    public async Task Throws_for_assets_with_the_same_name_before_calling_the_api()
-    {
-        var api = new FakeGitHubApi(existing: null);
-        AbsolutePath other = (root / "other").CreateDirectory() / "app.zip";
-        File.WriteAllText(other, "zip");
-
-        await Assert.ThrowsAsync<ArgumentException>(() =>
-            GitHub.Release("v1.2.3").Assets(zip).Assets(other).CreateOrUpdateCoreAsync(api, Repository, Token));
-
-        Assert.Null(api.Requested);
-    }
-
-    [Fact]
-    public void Builder_methods_return_a_new_builder()
-    {
-        GitHubReleaseBuilder builder = GitHub.Release("v1.2.3");
-        GitHubReleaseBuilder withNotes = builder.Notes("- Fixed a bug");
-
-        Assert.NotSame(builder, withNotes);
-        Assert.Equal("v1.2.3", withNotes.Tag);
-    }
-
-    [Fact]
-    public async Task Builder_methods_dont_change_the_original_builder()
-    {
-        var api = new FakeGitHubApi(existing: null);
-        GitHubReleaseBuilder builder = GitHub.Release("v1.2.3");
-        _ = builder.Notes("- Fixed a bug").Assets(zip);
-
-        await builder.CreateOrUpdateCoreAsync(api, Repository, Token);
-
-        Assert.Null(api.Created!.Notes);
-        Assert.Equal(["create"], api.Calls);
-    }
-
-    [Fact]
-    public async Task Gets_the_existing_release()
-    {
-        var api = new FakeGitHubApi(Existing(draft: true));
-
-        GitHubRelease? release = await GitHubRelease.GetAsync(api, Repository, "v1.2.3", includeDrafts: false, Token);
+        GitHubRelease? release = await GitHubReleases.Get(api, Repository, "v1.2.3", includeDrafts: false, Token);
 
         Assert.Equal((Repository, "v1.2.3", false), api.Requested);
-        Assert.Equal(42, release?.Id);
+        Assert.NotNull(release);
+        Assert.Equal(42, release.Id);
+        Assert.Equal("Old", release.Name);
+        Assert.True(release.Draft);
+        Assert.Equal(Repository, release.Repository);
     }
 
     [Fact]
@@ -203,116 +42,232 @@ public sealed class GitHubReleaseTests : IDisposable
     {
         var api = new FakeGitHubApi(existing: null);
 
-        Assert.Null(await GitHubRelease.GetAsync(api, Repository, "v1.2.3", includeDrafts: true, Token));
+        Assert.Null(await GitHubReleases.Get(api, Repository, "v1.2.3", includeDrafts: true, Token));
     }
 
     [Fact]
-    public async Task Updates_only_the_passed_values()
+    public void A_new_release_isnt_saved()
     {
-        var api = new FakeGitHubApi(Existing(draft: true));
-        var release = new GitHubRelease(api, Repository, Existing(draft: true));
+        var release = new GitHubRelease { Tag = "v1.2.3" };
 
-        await release.UpdateAsync(name: "Version 1.2.3", cancellationToken: Token);
+        Assert.Null(release.Id);
+        Assert.Null(release.Url);
+        Assert.Empty(release.Assets);
+        Assert.Equal("v1.2.3", release.ToString());
+    }
 
-        Assert.Equal([(42L, new GitHubReleaseChanges(Name: "Version 1.2.3"))], api.Updated);
-        Assert.Equal("Version 1.2.3", release.Name);
-        Assert.Equal("Old notes", release.Notes);
+    [Fact]
+    public async Task Creates_a_new_release_with_defaults()
+    {
+        var api = new FakeGitHubApi(existing: null);
+        var release = new GitHubRelease { Tag = "v1.2.3" };
+
+        GitHubRelease saved = await GitHubReleases.CreateOrUpdate(api, Repository, release, Token);
+
+        Assert.Same(release, saved);
+        Assert.Equal((Repository, "v1.2.3", true), api.Requested);
+        Assert.Equal(new NewGitHubRelease("v1.2.3", "v1.2.3", null, Draft: false, Prerelease: false), api.Created);
+        Assert.Empty(api.Updated);
+        Assert.Equal(1, release.Id);
+        Assert.Equal("v1.2.3", release.Name);
+        Assert.NotNull(release.Url);
+        Assert.Equal(Repository, release.Repository);
+    }
+
+    [Fact]
+    public async Task Creates_a_new_release_with_its_values()
+    {
+        var api = new FakeGitHubApi(existing: null);
+        var release = new GitHubRelease { Tag = "v1.2.3", Name = "Version 1.2.3", Notes = "- Fixed a bug", Draft = true, Prerelease = true };
+
+        await GitHubReleases.CreateOrUpdate(api, Repository, release, Token);
+
+        Assert.Equal(new NewGitHubRelease("v1.2.3", "Version 1.2.3", "- Fixed a bug", Draft: true, Prerelease: true), api.Created);
         Assert.True(release.Draft);
     }
 
     [Fact]
-    public async Task Updates_several_values_in_one_call()
+    public async Task Updates_an_existing_release_with_the_same_tag()
     {
         var api = new FakeGitHubApi(Existing(draft: false));
-        var release = new GitHubRelease(api, Repository, Existing(draft: false));
+        var release = new GitHubRelease { Tag = "v1.2.3", Notes = "- Fixed a bug" };
 
-        await release.UpdateAsync(notes: "- Fixed a bug", prerelease: true, cancellationToken: Token);
+        await GitHubReleases.CreateOrUpdate(api, Repository, release, Token);
 
-        Assert.Equal([(42L, new GitHubReleaseChanges(Notes: "- Fixed a bug", Prerelease: true))], api.Updated);
+        Assert.Null(api.Created);
+        Assert.Equal([(42L, new GitHubReleaseChanges("v1.2.3", null, "- Fixed a bug", Draft: false, Prerelease: false))], api.Updated);
+        Assert.Equal(42, release.Id);
+        Assert.Equal("Old", release.Name);
         Assert.Equal("- Fixed a bug", release.Notes);
-        Assert.True(release.Prerelease);
     }
 
     [Fact]
-    public async Task Updating_nothing_does_nothing()
+    public async Task Updates_a_got_release_by_its_id_without_looking_it_up()
     {
         var api = new FakeGitHubApi(Existing(draft: false));
-        var release = new GitHubRelease(api, Repository, Existing(draft: false));
+        var release = new GitHubRelease(Repository, Existing(draft: false));
 
-        await release.UpdateAsync(cancellationToken: Token);
+        release.Name = "Version 1.2.3";
+        release.Tag = "v1.2.4";
+        await GitHubReleases.CreateOrUpdate(api, Repository, release, Token);
 
-        Assert.Empty(api.Calls);
-    }
-
-    [Fact]
-    public async Task Update_throws_for_an_empty_name()
-    {
-        var release = new GitHubRelease(new FakeGitHubApi(Existing(draft: false)), Repository, Existing(draft: false));
-
-        await Assert.ThrowsAsync<ArgumentException>(() => release.UpdateAsync(name: "", cancellationToken: Token));
+        Assert.Null(api.Requested);
+        Assert.Equal([(42L, new GitHubReleaseChanges("v1.2.4", "Version 1.2.3", "Old notes", Draft: false, Prerelease: false))], api.Updated);
+        Assert.Equal("Version 1.2.3", release.Name);
+        Assert.Equal("v1.2.4", release.Tag);
     }
 
     [Fact]
     public async Task Publishes_a_draft()
     {
         var api = new FakeGitHubApi(Existing(draft: true));
-        var release = new GitHubRelease(api, Repository, Existing(draft: true));
+        var release = new GitHubRelease(Repository, Existing(draft: true)) { Draft = false };
 
-        await release.PublishAsync(Token);
+        await GitHubReleases.CreateOrUpdate(api, Repository, release, Token);
 
-        Assert.Equal([(42L, new GitHubReleaseChanges(Draft: false))], api.Updated);
+        Assert.False(api.Updated.Single().Changes.Draft);
         Assert.False(release.Draft);
     }
 
     [Fact]
-    public async Task Publishing_a_published_release_does_nothing()
+    public async Task Keeps_a_draft_a_draft()
     {
-        var api = new FakeGitHubApi(Existing(draft: false));
-        var release = new GitHubRelease(api, Repository, Existing(draft: false));
+        var api = new FakeGitHubApi(Existing(draft: true));
+        var release = new GitHubRelease(Repository, Existing(draft: true));
 
-        await release.PublishAsync(Token);
+        release.AddAsset(zip);
+        await GitHubReleases.CreateOrUpdate(api, Repository, release, Token);
 
-        Assert.Empty(api.Calls);
+        Assert.Equal(["update", "upload app.zip"], api.Calls);
+        Assert.True(release.Draft);
     }
 
     [Fact]
-    public async Task Uploads_an_asset()
+    public async Task Publishes_a_new_release_with_assets_after_the_uploads()
     {
-        var api = new FakeGitHubApi(Existing(draft: false));
-        var release = new GitHubRelease(api, Repository, Existing(draft: false));
+        var api = new FakeGitHubApi(existing: null);
+        var release = new GitHubRelease { Tag = "v1.2.3" }.AddAsset(zip).AddAsset(checksums);
 
-        GitHubReleaseAsset asset = await release.UploadAssetAsync(zip, Token);
+        await GitHubReleases.CreateOrUpdate(api, Repository, release, Token);
 
-        Assert.Equal("app.zip", asset.Name);
-        Assert.Equal([asset], release.Assets);
+        Assert.True(api.Created!.Draft);
+        Assert.Equal(["create", "upload app.zip", "upload checksums.txt", "update"], api.Calls);
+        Assert.Equal(new GitHubReleaseChanges(Draft: false), api.Updated.Single().Changes);
+        Assert.False(release.Draft);
+        Assert.Equal(["app.zip", "checksums.txt"], release.Assets.Select(asset => asset.Name));
+        Assert.Empty(release.AddedAssets);
     }
 
     [Fact]
-    public async Task Deletes_an_asset_by_name_ignoring_case()
+    public async Task Publishes_a_draft_with_assets_after_the_uploads()
     {
-        GitHubReleaseSnapshot snapshot = Existing(draft: false) with { Assets = [Asset(7, "app.zip"), Asset(8, "readme.txt")] };
-        var api = new FakeGitHubApi(snapshot);
-        var release = new GitHubRelease(api, Repository, snapshot);
+        var api = new FakeGitHubApi(Existing(draft: true));
+        var release = new GitHubRelease(Repository, Existing(draft: true)) { Draft = false }.AddAsset(zip);
 
-        Assert.True(await release.DeleteAssetAsync("APP.zip", Token));
-        Assert.False(await release.DeleteAssetAsync("missing.zip", Token));
+        await GitHubReleases.CreateOrUpdate(api, Repository, release, Token);
 
-        Assert.Equal(["delete 7"], api.Calls);
+        Assert.Equal(["update", "upload app.zip", "update"], api.Calls);
+        Assert.Equal([true, false], api.Updated.Select(update => update.Changes.Draft));
+        Assert.False(release.Draft);
+    }
+
+    [Fact]
+    public async Task Keeps_a_published_release_published_while_uploading()
+    {
+        var api = new FakeGitHubApi(Existing(draft: false));
+        var release = new GitHubRelease(Repository, Existing(draft: false)).AddAsset(zip);
+
+        await GitHubReleases.CreateOrUpdate(api, Repository, release, Token);
+
+        Assert.Equal(["update", "upload app.zip"], api.Calls);
+        Assert.False(api.Updated.Single().Changes.Draft);
+    }
+
+    [Fact]
+    public async Task Replaces_attached_assets_with_the_same_name_and_keeps_the_others()
+    {
+        GitHubReleaseSnapshot existing = Existing(draft: false) with { Assets = [Asset(7, "app.zip"), Asset(8, "readme.txt")] };
+        var api = new FakeGitHubApi(existing);
+        var release = new GitHubRelease { Tag = "v1.2.3" }.AddAsset(zip);
+
+        await GitHubReleases.CreateOrUpdate(api, Repository, release, Token);
+
+        Assert.Equal(["update", "delete 7", "upload app.zip"], api.Calls);
+        Assert.Equal(["readme.txt", "app.zip"], release.Assets.Select(asset => asset.Name));
+        Assert.NotEqual(7, release.Assets.Single(asset => asset.Name == "app.zip").Id);
+    }
+
+    [Fact]
+    public async Task Deletes_removed_assets()
+    {
+        GitHubReleaseSnapshot existing = Existing(draft: false) with { Assets = [Asset(7, "app.zip"), Asset(8, "readme.txt")] };
+        var api = new FakeGitHubApi(existing);
+        var release = new GitHubRelease(Repository, existing);
+
+        Assert.True(release.RemoveAsset("APP.zip"));
+        Assert.Equal([7L], release.RemovedAssets.Select(asset => asset.Id));
+        Assert.Equal(2, release.Assets.Count);
+
+        await GitHubReleases.CreateOrUpdate(api, Repository, release, Token);
+
+        Assert.Equal(["update", "delete 7"], api.Calls);
         Assert.Equal(["readme.txt"], release.Assets.Select(asset => asset.Name));
+        Assert.Empty(release.RemovedAssets);
     }
 
     [Fact]
-    public async Task Cant_be_used_after_it_is_deleted()
+    public void Removes_an_added_asset()
+    {
+        var release = new GitHubRelease { Tag = "v1.2.3" }.AddAssets([zip, checksums]);
+
+        Assert.True(release.RemoveAsset("app.zip"));
+        Assert.False(release.RemoveAsset("missing.zip"));
+
+        Assert.Equal([checksums], release.AddedAssets);
+    }
+
+    [Fact]
+    public void Throws_for_an_added_asset_with_the_same_name()
+    {
+        AbsolutePath other = (root / "other").CreateDirectory() / "APP.zip";
+        var release = new GitHubRelease { Tag = "v1.2.3" }.AddAsset(zip);
+
+        Assert.Throws<ArgumentException>(() => release.AddAsset(other));
+    }
+
+    [Fact]
+    public async Task Throws_for_a_missing_asset_before_calling_the_api()
+    {
+        var api = new FakeGitHubApi(existing: null);
+        var release = new GitHubRelease { Tag = "v1.2.3" }.AddAsset(root / "missing.zip");
+
+        await Assert.ThrowsAsync<FileNotFoundException>(() => GitHubReleases.CreateOrUpdate(api, Repository, release, Token));
+
+        Assert.Null(api.Requested);
+    }
+
+    [Fact]
+    public async Task Throws_for_an_empty_tag()
+    {
+        var api = new FakeGitHubApi(existing: null);
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            GitHubReleases.CreateOrUpdate(api, Repository, new GitHubRelease { Tag = "" }, Token));
+    }
+
+    [Fact]
+    public async Task Deleting_makes_the_release_new_again()
     {
         var api = new FakeGitHubApi(Existing(draft: false));
-        var release = new GitHubRelease(api, Repository, Existing(draft: false));
+        var release = new GitHubRelease(Repository, Existing(draft: false) with { Assets = [Asset(7, "app.zip")] });
 
-        await release.DeleteAsync(Token);
+        await GitHubReleases.Delete(api, Repository, release, Token);
 
         Assert.Equal(["delete release 42"], api.Calls);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => release.PublishAsync(Token));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => release.UploadAssetAsync(zip, Token));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => release.DeleteAsync(Token));
+        Assert.Null(release.Id);
+        Assert.Null(release.Url);
+        Assert.Empty(release.Assets);
+        Assert.Equal("v1.2.3", release.Tag);
     }
 
     private static GitHubReleaseSnapshot Existing(bool draft) =>
@@ -345,7 +300,7 @@ public sealed class GitHubReleaseTests : IDisposable
             Calls.Add("create");
             Created = release;
             existing = new GitHubReleaseSnapshot(
-                1, release.Tag, release.Name, release.Notes, release.Draft, release.Prerelease, ReleaseUrl(repository, release.Tag), []);
+                1, release.Tag, release.Name, release.Notes, release.Draft, release.Prerelease, new Uri($"https://github.com/{repository}/releases/tag/{release.Tag}"), []);
             return Task.FromResult(existing);
         }
 
@@ -355,6 +310,7 @@ public sealed class GitHubReleaseTests : IDisposable
             Updated.Add((id, changes));
             existing = existing! with
             {
+                Tag = changes.Tag ?? existing.Tag,
                 Name = changes.Name ?? existing.Name,
                 Notes = changes.Notes ?? existing.Notes,
                 Draft = changes.Draft ?? existing.Draft,
@@ -383,7 +339,5 @@ public sealed class GitHubReleaseTests : IDisposable
             existing = existing! with { Assets = [.. existing.Assets.Where(asset => asset.Id != id)] };
             return Task.CompletedTask;
         }
-
-        private static Uri ReleaseUrl(GitHubRepository repository, string tag) => new($"https://github.com/{repository}/releases/tag/{tag}");
     }
 }

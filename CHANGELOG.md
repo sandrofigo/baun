@@ -9,21 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added `GitHub.Release(tag)`, which scaffolds the GitHub release of a tag with `Name`, `Notes`, `Prerelease`, `Draft`, `Assets`, `Repository` and `Token`. `CreateOrUpdateAsync` creates the release or updates it.
-- Added draft releases. `Draft()` creates a draft and `Draft(false)` publishes an existing one.
-- Added release assets. `Assets(files)` attaches files and replaces attached assets with the same name. A release with assets that is to be published is kept a draft until the uploads are done.
 - Added `GitHub.GetReleaseAsync(tag)`, which gets an existing release, also a draft unless `includeDrafts` is `false`.
-- Added `UpdateAsync`, `UploadAssetAsync`, `UploadAssetsAsync`, `DeleteAssetAsync`, `PublishAsync` and `DeleteAsync` to `GitHubRelease`, which change the release on GitHub right away. `GitHubRelease` also has `Repository`, `Draft` and `Assets`, with `GitHubReleaseAsset` for each attached file.
+- Added `GitHub.CreateOrUpdateReleaseAsync(release)`, which saves a `GitHubRelease`: it creates the release, or updates it by its ID or, for a new release, by its tag.
+- Added `GitHub.DeleteReleaseAsync(release)`, which deletes a release and keeps its tag.
+- Added draft releases with `GitHubRelease.Draft`. Setting it to `false` publishes a draft.
+- Added release assets. `GitHubRelease.AddAsset` and `AddAssets` add files to upload, which replace attached assets with the same name, and `RemoveAsset` deletes an attached asset. A release with added files that is to be published is kept a draft until the uploads are done.
+- Added `Draft`, `Repository`, `Assets`, `AddedAssets` and `RemovedAssets` to `GitHubRelease`, with `GitHubReleaseAsset` for each attached file.
 
 ### Changed
 
-- Updating a release keeps the values that aren't set, instead of resetting the title to the tag and the prerelease flag to `false`.
-- Creating or updating a release now also finds an existing draft for the tag, instead of creating a second release.
-- `GitHubRelease` is now a class instead of a record.
+- `GitHubRelease` is now a class whose values can be changed, such as `new GitHubRelease { Tag = "v1.2.3", Notes = notes }`, and that's sent to GitHub when it's saved. `Id` and `Url` are null until then.
+- Saving a release keeps the title and notes of an existing release when they're null, instead of resetting the title to the tag.
+- Saving a new release also finds an existing draft for the tag, instead of creating a second release.
 
 ### Removed
 
-- Removed `GitHub.CreateOrUpdateRelease`. Use `GitHub.Release(tag).Notes(notes).CreateOrUpdateAsync()` instead.
+- Removed `GitHub.CreateOrUpdateRelease(tag, notes, ...)`. Use `GitHub.CreateOrUpdateReleaseAsync(new GitHubRelease { Tag = tag, Notes = notes })` instead.
 
 ## [0.8.0] - 2026-11-22
 
