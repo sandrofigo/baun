@@ -28,12 +28,12 @@ public enum GitHubRefType
 /// release build locally, works too. A property is <see langword="null"/> when its variable isn't set or is empty, such
 /// as outside GitHub Actions.
 /// </remarks>
-public static class GitHub
+public static class GitHubActions
 {
     /// <summary>
     /// Gets whether the build runs in GitHub Actions: <c>GITHUB_ACTIONS</c> is <c>true</c>.
     /// </summary>
-    public static bool IsActions => IsTrue("GITHUB_ACTIONS");
+    public static bool IsRunning => IsTrue("GITHUB_ACTIONS");
 
     /// <summary>
     /// Gets the full ref the workflow runs for, such as <c>refs/heads/main</c> or <c>refs/tags/v1.2.3</c>, from <c>GITHUB_REF</c>.
@@ -251,127 +251,4 @@ public static class GitHub
     /// with <c>env: GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}</c>.
     /// </remarks>
     public static string? Token => Get("GITHUB_TOKEN");
-
-    /// <summary>
-    /// Gets the GitHub release for <paramref name="tag"/>, or <see langword="null"/> if there's none. Change the
-    /// returned release, then save the changes with <see cref="CreateOrUpdateReleaseAsync"/>.
-    /// </summary>
-    /// <example>
-    /// <code>
-    /// GitHubRelease? release = await GitHub.GetReleaseAsync("v1.2.3");
-    /// release!.Name = "Version 1.2.3";
-    /// await GitHub.CreateOrUpdateReleaseAsync(release);
-    /// </code>
-    /// </example>
-    /// <param name="tag">The tag of the release, such as <c>v1.2.3</c>.</param>
-    /// <param name="includeDrafts">Whether to also find a draft release for <paramref name="tag"/>.</param>
-    /// <param name="repository">The repository of the release. Defaults to <see cref="Repository"/>.</param>
-    /// <param name="token">A token that may read releases of the repository. Defaults to <see cref="Token"/>.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>The release, or <see langword="null"/>.</returns>
-    /// <exception cref="ArgumentException"><paramref name="tag"/> or <paramref name="token"/> is empty.</exception>
-    /// <exception cref="InvalidOperationException">
-    /// <paramref name="repository"/> isn't passed and <see cref="Repository"/> is <see langword="null"/>, or
-    /// <paramref name="token"/> isn't passed and <see cref="Token"/> is <see langword="null"/>.
-    /// </exception>
-    public static Task<GitHubRelease?> GetReleaseAsync(
-        string tag,
-        bool includeDrafts = true,
-        GitHubRepository? repository = null,
-        string? token = null,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(tag);
-
-        return GitHubReleases.Get(CreateApi(token), ResolveRepository(repository), tag, includeDrafts, cancellationToken);
-    }
-
-    /// <summary>
-    /// Saves <paramref name="release"/> to GitHub: creates it, or updates it if it already exists, also as a draft, so
-    /// a step that calls it can be run again. Then uploads the added assets and deletes the removed ones.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// A release from <see cref="GetReleaseAsync"/> or an earlier save is updated by its ID. A new release is matched
-    /// to an existing one by its tag. The title and notes of an existing release are kept if they're
-    /// <see langword="null"/>, and the draft and prerelease flags are set as they are on <paramref name="release"/>.
-    /// </para>
-    /// <para>
-    /// An added asset replaces an attached asset with the same name. A release with added assets that is to be
-    /// published is kept a draft until the uploads are done, so it's never visible without them. GitHub creates the
-    /// tag, if it doesn't exist, when the release is published.
-    /// </para>
-    /// <para>
-    /// Afterwards, <paramref name="release"/> has the values from GitHub, such as its ID, URL and assets.
-    /// </para>
-    /// </remarks>
-    /// <example>
-    /// <code>
-    /// var release = new GitHubRelease { Tag = "v1.2.3", Notes = notes };
-    /// release.AddAsset(RootDirectory / "artifacts" / "app.zip");
-    /// await GitHub.CreateOrUpdateReleaseAsync(release);
-    /// </code>
-    /// </example>
-    /// <param name="release">The release to save.</param>
-    /// <param name="token">
-    /// A token that may write releases of the repository, such as <c>secrets.GITHUB_TOKEN</c> of a workflow with
-    /// <c>contents: write</c>. Defaults to <see cref="Token"/>.
-    /// </param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns><paramref name="release"/>, with the values from GitHub.</returns>
-    /// <exception cref="ArgumentException">
-    /// The tag of <paramref name="release"/> or <paramref name="token"/> is empty.
-    /// </exception>
-    /// <exception cref="FileNotFoundException">An added asset doesn't exist.</exception>
-    /// <exception cref="InvalidOperationException">
-    /// <see cref="GitHubRelease.Repository"/> and <see cref="Repository"/> are <see langword="null"/>, or
-    /// <paramref name="token"/> isn't passed and <see cref="Token"/> is <see langword="null"/>.
-    /// </exception>
-    public static Task<GitHubRelease> CreateOrUpdateReleaseAsync(
-        GitHubRelease release, string? token = null, CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(release);
-
-        return GitHubReleases.CreateOrUpdate(CreateApi(token), ResolveRepository(release.Repository), release, cancellationToken);
-    }
-
-    /// <summary>
-    /// Deletes <paramref name="release"/> from GitHub and keeps its tag.
-    /// </summary>
-    /// <param name="release">The release to delete, from <see cref="GetReleaseAsync"/> or <see cref="CreateOrUpdateReleaseAsync"/>.</param>
-    /// <param name="token">A token that may write releases of the repository. Defaults to <see cref="Token"/>.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <exception cref="ArgumentException"><paramref name="token"/> is empty.</exception>
-    /// <exception cref="InvalidOperationException">
-    /// <paramref name="release"/> isn't on GitHub, or <paramref name="token"/> isn't passed and <see cref="Token"/>
-    /// is <see langword="null"/>.
-    /// </exception>
-    public static Task DeleteReleaseAsync(GitHubRelease release, string? token = null, CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(release);
-
-        if (release.Id is null)
-        {
-            throw new InvalidOperationException($"The release {release.Tag} isn't on GitHub.");
-        }
-
-        return GitHubReleases.Delete(CreateApi(token), ResolveRepository(release.Repository), release, cancellationToken);
-    }
-
-    private static GitHubRepository ResolveRepository(GitHubRepository? repository) =>
-        repository ?? Repository
-        ?? throw new InvalidOperationException("The repository isn't set and GITHUB_REPOSITORY isn't set to owner/name.");
-
-    private static OctokitGitHubApi CreateApi(string? token)
-    {
-        if (token is not null)
-        {
-            ArgumentException.ThrowIfNullOrEmpty(token);
-        }
-
-        token ??= Token
-            ?? throw new InvalidOperationException("The token isn't passed and GITHUB_TOKEN isn't set. In a workflow, set it with env: GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}.");
-
-        return new OctokitGitHubApi(token, ApiUrl is { } url ? new Uri(url) : null);
-    }
 }

@@ -27,7 +27,7 @@ public sealed class GitHubReleaseTests : IDisposable
     {
         var api = new FakeGitHubApi(Existing(draft: true));
 
-        GitHubRelease? release = await GitHubReleases.Get(api, Repository, "v1.2.3", includeDrafts: false, Token);
+        GitHubRelease? release = await GitHubReleases.GetCoreAsync(api, Repository, "v1.2.3", includeDrafts: false, Token);
 
         Assert.Equal((Repository, "v1.2.3", false), api.Requested);
         Assert.NotNull(release);
@@ -42,7 +42,7 @@ public sealed class GitHubReleaseTests : IDisposable
     {
         var api = new FakeGitHubApi(existing: null);
 
-        Assert.Null(await GitHubReleases.Get(api, Repository, "v1.2.3", includeDrafts: true, Token));
+        Assert.Null(await GitHubReleases.GetCoreAsync(api, Repository, "v1.2.3", includeDrafts: true, Token));
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public sealed class GitHubReleaseTests : IDisposable
         var api = new FakeGitHubApi(existing: null);
         var release = new GitHubRelease { Tag = "v1.2.3" };
 
-        GitHubRelease saved = await GitHubReleases.CreateOrUpdate(api, Repository, release, Token);
+        GitHubRelease saved = await GitHubReleases.CreateOrUpdateCoreAsync(api, Repository, release, Token);
 
         Assert.Same(release, saved);
         Assert.Equal((Repository, "v1.2.3", true), api.Requested);
@@ -80,7 +80,7 @@ public sealed class GitHubReleaseTests : IDisposable
         var api = new FakeGitHubApi(existing: null);
         var release = new GitHubRelease { Tag = "v1.2.3", Name = "Version 1.2.3", Notes = "- Fixed a bug", Draft = true, Prerelease = true };
 
-        await GitHubReleases.CreateOrUpdate(api, Repository, release, Token);
+        await GitHubReleases.CreateOrUpdateCoreAsync(api, Repository, release, Token);
 
         Assert.Equal(new NewGitHubRelease("v1.2.3", "Version 1.2.3", "- Fixed a bug", Draft: true, Prerelease: true), api.Created);
         Assert.True(release.Draft);
@@ -92,7 +92,7 @@ public sealed class GitHubReleaseTests : IDisposable
         var api = new FakeGitHubApi(Existing(draft: false));
         var release = new GitHubRelease { Tag = "v1.2.3", Notes = "- Fixed a bug" };
 
-        await GitHubReleases.CreateOrUpdate(api, Repository, release, Token);
+        await GitHubReleases.CreateOrUpdateCoreAsync(api, Repository, release, Token);
 
         Assert.Null(api.Created);
         Assert.Equal([(42L, new GitHubReleaseChanges("v1.2.3", null, "- Fixed a bug", Draft: false, Prerelease: false))], api.Updated);
@@ -109,7 +109,7 @@ public sealed class GitHubReleaseTests : IDisposable
 
         release.Name = "Version 1.2.3";
         release.Tag = "v1.2.4";
-        await GitHubReleases.CreateOrUpdate(api, Repository, release, Token);
+        await GitHubReleases.CreateOrUpdateCoreAsync(api, Repository, release, Token);
 
         Assert.Null(api.Requested);
         Assert.Equal([(42L, new GitHubReleaseChanges("v1.2.4", "Version 1.2.3", "Old notes", Draft: false, Prerelease: false))], api.Updated);
@@ -123,7 +123,7 @@ public sealed class GitHubReleaseTests : IDisposable
         var api = new FakeGitHubApi(Existing(draft: true));
         var release = new GitHubRelease(Repository, Existing(draft: true)) { Draft = false };
 
-        await GitHubReleases.CreateOrUpdate(api, Repository, release, Token);
+        await GitHubReleases.CreateOrUpdateCoreAsync(api, Repository, release, Token);
 
         Assert.False(api.Updated.Single().Changes.Draft);
         Assert.False(release.Draft);
@@ -136,7 +136,7 @@ public sealed class GitHubReleaseTests : IDisposable
         var release = new GitHubRelease(Repository, Existing(draft: true));
 
         release.AddAsset(zip);
-        await GitHubReleases.CreateOrUpdate(api, Repository, release, Token);
+        await GitHubReleases.CreateOrUpdateCoreAsync(api, Repository, release, Token);
 
         Assert.Equal(["update", "upload app.zip"], api.Calls);
         Assert.True(release.Draft);
@@ -148,7 +148,7 @@ public sealed class GitHubReleaseTests : IDisposable
         var api = new FakeGitHubApi(existing: null);
         var release = new GitHubRelease { Tag = "v1.2.3" }.AddAsset(zip).AddAsset(checksums);
 
-        await GitHubReleases.CreateOrUpdate(api, Repository, release, Token);
+        await GitHubReleases.CreateOrUpdateCoreAsync(api, Repository, release, Token);
 
         Assert.True(api.Created!.Draft);
         Assert.Equal(["create", "upload app.zip", "upload checksums.txt", "update"], api.Calls);
@@ -164,7 +164,7 @@ public sealed class GitHubReleaseTests : IDisposable
         var api = new FakeGitHubApi(Existing(draft: true));
         var release = new GitHubRelease(Repository, Existing(draft: true)) { Draft = false }.AddAsset(zip);
 
-        await GitHubReleases.CreateOrUpdate(api, Repository, release, Token);
+        await GitHubReleases.CreateOrUpdateCoreAsync(api, Repository, release, Token);
 
         Assert.Equal(["update", "upload app.zip", "update"], api.Calls);
         Assert.Equal([true, false], api.Updated.Select(update => update.Changes.Draft));
@@ -177,7 +177,7 @@ public sealed class GitHubReleaseTests : IDisposable
         var api = new FakeGitHubApi(Existing(draft: false));
         var release = new GitHubRelease(Repository, Existing(draft: false)).AddAsset(zip);
 
-        await GitHubReleases.CreateOrUpdate(api, Repository, release, Token);
+        await GitHubReleases.CreateOrUpdateCoreAsync(api, Repository, release, Token);
 
         Assert.Equal(["update", "upload app.zip"], api.Calls);
         Assert.False(api.Updated.Single().Changes.Draft);
@@ -190,7 +190,7 @@ public sealed class GitHubReleaseTests : IDisposable
         var api = new FakeGitHubApi(existing);
         var release = new GitHubRelease { Tag = "v1.2.3" }.AddAsset(zip);
 
-        await GitHubReleases.CreateOrUpdate(api, Repository, release, Token);
+        await GitHubReleases.CreateOrUpdateCoreAsync(api, Repository, release, Token);
 
         Assert.Equal(["update", "delete 7", "upload app.zip"], api.Calls);
         Assert.Equal(["readme.txt", "app.zip"], release.Assets.Select(asset => asset.Name));
@@ -208,7 +208,7 @@ public sealed class GitHubReleaseTests : IDisposable
         Assert.Equal([7L], release.RemovedAssets.Select(asset => asset.Id));
         Assert.Equal(2, release.Assets.Count);
 
-        await GitHubReleases.CreateOrUpdate(api, Repository, release, Token);
+        await GitHubReleases.CreateOrUpdateCoreAsync(api, Repository, release, Token);
 
         Assert.Equal(["update", "delete 7"], api.Calls);
         Assert.Equal(["readme.txt"], release.Assets.Select(asset => asset.Name));
@@ -241,7 +241,7 @@ public sealed class GitHubReleaseTests : IDisposable
         var api = new FakeGitHubApi(existing: null);
         var release = new GitHubRelease { Tag = "v1.2.3" }.AddAsset(root / "missing.zip");
 
-        await Assert.ThrowsAsync<FileNotFoundException>(() => GitHubReleases.CreateOrUpdate(api, Repository, release, Token));
+        await Assert.ThrowsAsync<FileNotFoundException>(() => GitHubReleases.CreateOrUpdateCoreAsync(api, Repository, release, Token));
 
         Assert.Null(api.Requested);
     }
@@ -252,7 +252,7 @@ public sealed class GitHubReleaseTests : IDisposable
         var api = new FakeGitHubApi(existing: null);
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            GitHubReleases.CreateOrUpdate(api, Repository, new GitHubRelease { Tag = "" }, Token));
+            GitHubReleases.CreateOrUpdateCoreAsync(api, Repository, new GitHubRelease { Tag = "" }, Token));
     }
 
     [Fact]
@@ -261,7 +261,7 @@ public sealed class GitHubReleaseTests : IDisposable
         var api = new FakeGitHubApi(Existing(draft: false));
         var release = new GitHubRelease(Repository, Existing(draft: false) with { Assets = [Asset(7, "app.zip")] });
 
-        await GitHubReleases.Delete(api, Repository, release, Token);
+        await GitHubReleases.DeleteCoreAsync(api, Repository, release, Token);
 
         Assert.Equal(["delete release 42"], api.Calls);
         Assert.Null(release.Id);

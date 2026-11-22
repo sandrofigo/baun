@@ -124,7 +124,7 @@ partial class Build
             string version = await GetVersionAsync();
             string notes = Changelog.Read().GetReleaseNotes(version);
 
-            GitHubRelease release = await GitHub.CreateOrUpdateReleaseAsync(new GitHubRelease
+            GitHubRelease release = await GitHubReleases.CreateOrUpdateAsync(new GitHubRelease
             {
                 Tag = $"v{version}",
                 Notes = notes,
@@ -133,7 +133,7 @@ partial class Build
 
             Log.Information("Released {Release}: {Url}", release.Name, release.Url);
 
-            if (GitHub.StepSummary is { } summary)
+            if (GitHubActions.StepSummary is { } summary)
             {
                 await File.AppendAllTextAsync(summary, $"## [{release.Name}]({release.Url})\n\n{notes}\n");
             }

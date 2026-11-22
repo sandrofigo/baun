@@ -61,7 +61,7 @@ baun's types are in six namespaces, which the Baun package imports automatically
 | --- | --- |
 | `Baun` | `Step`, `Entry`, `Parameter`, `BaunBuild`, `AbsolutePath`, `Tool` |
 | `Baun.CI` | CI servers, log groups and `Changelog` |
-| `Baun.CI.GitHub` | GitHub Actions and releases: `GitHub`, `GitHubRelease` and `GitHubRepository` |
+| `Baun.CI.GitHub` | GitHub Actions and releases: `GitHubActions`, `GitHubReleases`, `GitHubRelease` and `GitHubRepository` |
 | `Baun.DotNet` | `Solution`, `Project` and the `DotNet` tool |
 | `Baun.Git` | The `Git` tool |
 | `Baun.Logging` | `Log` and `LogLevel` |

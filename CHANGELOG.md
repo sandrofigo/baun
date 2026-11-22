@@ -9,23 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added `GitHub.GetReleaseAsync(tag)`, which gets an existing release, also a draft unless `includeDrafts` is `false`.
-- Added `GitHub.CreateOrUpdateReleaseAsync(release)`, which saves a `GitHubRelease`: it creates the release, or updates it by its ID or, for a new release, by its tag.
-- Added `GitHub.DeleteReleaseAsync(release)`, which deletes a release and keeps its tag.
+- Added `GitHubReleases`, which gets, saves and deletes GitHub releases. `GitHubReleases.GetAsync(tag)` gets an existing release, also a draft unless `includeDrafts` is `false`.
+- Added `GitHubReleases.CreateOrUpdateAsync(release)`, which saves a `GitHubRelease`: it creates the release, or updates it by its ID or, for a new release, by its tag.
+- Added `GitHubReleases.DeleteAsync(release)`, which deletes a release and keeps its tag.
 - Added draft releases with `GitHubRelease.Draft`. Setting it to `false` publishes a draft.
 - Added release assets. `GitHubRelease.AddAsset` and `AddAssets` add files to upload, which replace attached assets with the same name, and `RemoveAsset` deletes an attached asset. A release with added files that is to be published is kept a draft until the uploads are done.
 - Added `Draft`, `Repository`, `Assets`, `AddedAssets` and `RemovedAssets` to `GitHubRelease`, with `GitHubReleaseAsset` for each attached file.
 
 ### Changed
 
-- Moved `GitHub`, `GitHubRelease`, `GitHubReleaseAsset`, `GitHubRepository` and `GitHubRefType` to the new `Baun.CI.GitHub` namespace, which builds import automatically. Code outside a build that uses them needs `using Baun.CI.GitHub;`.
+- Renamed `GitHub` to `GitHubActions`, such as `GitHubActions.Tag`, and `GitHub.IsActions` to `GitHubActions.IsRunning`.
+- Moved `GitHubActions`, `GitHubRelease`, `GitHubReleaseAsset`, `GitHubRepository` and `GitHubRefType` to the new `Baun.CI.GitHub` namespace, which builds import automatically. Code outside a build that uses them needs `using Baun.CI.GitHub;`.
 - `GitHubRelease` is now a class whose values can be changed, such as `new GitHubRelease { Tag = "v1.2.3", Notes = notes }`, and that's sent to GitHub when it's saved. `Id` and `Url` are null until then.
 - Saving a release keeps the title and notes of an existing release when they're null, instead of resetting the title to the tag.
 - Saving a new release also finds an existing draft for the tag, instead of creating a second release.
 
 ### Removed
 
-- Removed `GitHub.CreateOrUpdateRelease(tag, notes, ...)`. Use `GitHub.CreateOrUpdateReleaseAsync(new GitHubRelease { Tag = tag, Notes = notes })` instead.
+- Removed `GitHub.CreateOrUpdateRelease(tag, notes, ...)`. Use `GitHubReleases.CreateOrUpdateAsync(new GitHubRelease { Tag = tag, Notes = notes })` instead.
 
 ## [0.8.0] - 2026-11-22
 

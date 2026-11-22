@@ -5,29 +5,29 @@ description: GitHub Actions, changelogs and log groups on CI servers.
 
 ## GitHub Actions
 
-`GitHub` reads the [default environment variables](https://docs.github.com/en/actions/reference/variables-reference#default-environment-variables) of the GitHub Actions workflow run the build runs in, with a property for each, such as `GitHub.Tag`, `GitHub.RefName`, `GitHub.Sha` and `GitHub.Token`:
+`GitHubActions` reads the [default environment variables](https://docs.github.com/en/actions/reference/variables-reference#default-environment-variables) of the GitHub Actions workflow run the build runs in, with a property for each, such as `GitHubActions.Tag`, `GitHubActions.RefName`, `GitHubActions.Sha` and `GitHubActions.Token`:
 
 ```csharp
 Step Pack() => _ => _
     .Executes(async () =>
     {
-        if (GitHub.Tag is { } tag)
+        if (GitHubActions.Tag is { } tag)
         {
             // runs for a tag, such as v1.2.3
         }
     });
 ```
 
-Properties with a path, such as `GitHub.Workspace`, return an `AbsolutePath`. A property is null, or false, when its variable isn't set or is empty, such as outside GitHub Actions. The variables are read each time a property is used, so you can set them yourself to try a run locally: `GITHUB_REF_TYPE=tag GITHUB_REF_NAME=v1.2.3 baun Pack`. To also accept a value on the command line, use the property as a parameter's initial value:
+Properties with a path, such as `GitHubActions.Workspace`, return an `AbsolutePath`. A property is null, or false, when its variable isn't set or is empty, such as outside GitHub Actions. The variables are read each time a property is used, so you can set them yourself to try a run locally: `GITHUB_REF_TYPE=tag GITHUB_REF_NAME=v1.2.3 baun Pack`. To also accept a value on the command line, use the property as a parameter's initial value:
 
 ```csharp
 [Parameter("Tag to release")]
-string? Tag = GitHub.Tag;
+string? Tag = GitHubActions.Tag;
 ```
 
 ## GitHub Releases
 
-A `GitHubRelease` is a release you change in code, then save to GitHub with `GitHub.CreateOrUpdateReleaseAsync`. Changing it doesn't call GitHub: the changes, also the added and removed assets, are sent when you save it.
+A `GitHubRelease` is a release you change in code, then save to GitHub with `GitHubReleases.CreateOrUpdateAsync`. Changing it doesn't call GitHub: the changes, also the added and removed assets, are sent when you save it.
 
 Create a new release with its tag and save it:
 
@@ -37,12 +37,12 @@ Step Release() => _ => _
     {
         var release = new GitHubRelease
         {
-            Tag = GitHub.Tag!,
+            Tag = GitHubActions.Tag!,
             Notes = "- Fixed a bug",
             Prerelease = true,
         };
 
-        await GitHub.CreateOrUpdateReleaseAsync(release);
+        await GitHubReleases.CreateOrUpdateAsync(release);
         Log.Information("Released {Url}", release.Url);
     });
 ```
@@ -58,25 +58,25 @@ A release has:
 | `Notes` | No notes. Markdown, such as the notes from the [changelog](#changelog). If they're null, an existing release keeps its notes |
 | `Draft` | `false`. A draft is only visible to people with write access to the repository. Setting it to `false` publishes a draft |
 | `Prerelease` | `false` |
-| `Repository` | `GitHub.Repository`. To release to another repository, set `new GitHubRepository("octocat", "Hello-World")` or `GitHubRepository.Parse("octocat/Hello-World")` |
+| `Repository` | `GitHubActions.Repository`. To release to another repository, set `new GitHubRepository("octocat", "Hello-World")` or `GitHubRepository.Parse("octocat/Hello-World")` |
 
 ### Changing an Existing Release
 
-`GitHub.GetReleaseAsync(tag)` gets an existing release, or null if there's none. It also finds drafts unless you pass `includeDrafts: false`, and takes a `repository`. Change the release, then save it:
+`GitHubReleases.GetAsync(tag)` gets an existing release, or null if there's none. It also finds drafts unless you pass `includeDrafts: false`, and takes a `repository`. Change the release, then save it:
 
 ```csharp
-GitHubRelease? release = await GitHub.GetReleaseAsync("v1.2.3");
+GitHubRelease? release = await GitHubReleases.GetAsync("v1.2.3");
 
 if (release is not null)
 {
     release.Name = "Version 1.2.3";
     release.Draft = false;
 
-    await GitHub.CreateOrUpdateReleaseAsync(release);
+    await GitHubReleases.CreateOrUpdateAsync(release);
 }
 ```
 
-A release you got or saved is updated by its ID, so you can also change its `Tag`. `GitHub.DeleteReleaseAsync(release)` deletes it and keeps the tag.
+A release you got or saved is updated by its ID, so you can also change its `Tag`. `GitHubReleases.DeleteAsync(release)` deletes it and keeps the tag.
 
 ### Release Assets
 
@@ -88,10 +88,10 @@ Step Release() => _ => _
     {
         AbsolutePath artifacts = RootDirectory / "artifacts";
 
-        var release = new GitHubRelease { Tag = GitHub.Tag! }
+        var release = new GitHubRelease { Tag = GitHubActions.Tag! }
             .AddAssets(artifacts.GlobFiles("*.nupkg", "*.zip"));
 
-        await GitHub.CreateOrUpdateReleaseAsync(release);
+        await GitHubReleases.CreateOrUpdateAsync(release);
     });
 ```
 
@@ -99,7 +99,7 @@ Step Release() => _ => _
 
 ### Token
 
-The methods take a `token`, which defaults to `GitHub.Token`. The API URL is `GitHub.ApiUrl`. Without a token or a repository, they throw an `InvalidOperationException` that says which one is missing.
+The methods of `GitHubReleases` take a `token`, which defaults to `GitHubActions.Token`. The API URL is `GitHubActions.ApiUrl`. Without a token or a repository, they throw an `InvalidOperationException` that says which one is missing.
 
 The token needs permission to write releases. GitHub Actions doesn't set `GITHUB_TOKEN` as an environment variable by itself, so pass the token of the run to the step that runs the build:
 
@@ -132,10 +132,10 @@ Each release has its version, date and whether it's yanked, its link from the en
 Step Release() => _ => _
     .Executes(async () =>
     {
-        string tag = GitHub.Tag!;
+        string tag = GitHubActions.Tag!;
         string notes = Changelog.Read().GetReleaseNotes(tag.TrimStart('v'));
 
-        await GitHub.CreateOrUpdateReleaseAsync(new GitHubRelease { Tag = tag, Notes = notes });
+        await GitHubReleases.CreateOrUpdateAsync(new GitHubRelease { Tag = tag, Notes = notes });
     });
 ```
 

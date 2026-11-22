@@ -5,11 +5,11 @@ namespace Baun.Tests;
 /// <summary>
 /// Sets environment variables, which are shared by the whole process, so it doesn't run in parallel with other tests.
 /// </summary>
-[CollectionDefinition(nameof(GitHubTests), DisableParallelization = true)]
-public sealed class GitHubTestsCollection;
+[CollectionDefinition(nameof(GitHubActionsTests), DisableParallelization = true)]
+public sealed class GitHubActionsTestsCollection;
 
-[Collection(nameof(GitHubTests))]
-public sealed class GitHubTests : IDisposable
+[Collection(nameof(GitHubActionsTests))]
+public sealed class GitHubActionsTests : IDisposable
 {
     private static readonly string[] Variables =
     [
@@ -19,7 +19,7 @@ public sealed class GitHubTests : IDisposable
 
     private readonly Dictionary<string, string?> original = Variables.ToDictionary(name => name, System.Environment.GetEnvironmentVariable);
 
-    public GitHubTests()
+    public GitHubActionsTests()
     {
         foreach (string name in Variables)
         {
@@ -38,17 +38,17 @@ public sealed class GitHubTests : IDisposable
     [Fact]
     public void Is_empty_outside_GitHub_Actions()
     {
-        Assert.False(GitHub.IsActions);
-        Assert.Null(GitHub.Ref);
-        Assert.Null(GitHub.RefName);
-        Assert.Null(GitHub.RefType);
-        Assert.False(GitHub.IsTag);
-        Assert.False(GitHub.IsBranch);
-        Assert.Null(GitHub.Tag);
-        Assert.Null(GitHub.RunId);
-        Assert.False(GitHub.IsRefProtected);
-        Assert.False(GitHub.IsDebug);
-        Assert.Null(GitHub.Token);
+        Assert.False(GitHubActions.IsRunning);
+        Assert.Null(GitHubActions.Ref);
+        Assert.Null(GitHubActions.RefName);
+        Assert.Null(GitHubActions.RefType);
+        Assert.False(GitHubActions.IsTag);
+        Assert.False(GitHubActions.IsBranch);
+        Assert.Null(GitHubActions.Tag);
+        Assert.Null(GitHubActions.RunId);
+        Assert.False(GitHubActions.IsRefProtected);
+        Assert.False(GitHubActions.IsDebug);
+        Assert.Null(GitHubActions.Token);
     }
 
     [Fact]
@@ -57,8 +57,8 @@ public sealed class GitHubTests : IDisposable
         System.Environment.SetEnvironmentVariable("GITHUB_REF_PROTECTED", "true");
         System.Environment.SetEnvironmentVariable("RUNNER_DEBUG", "1");
 
-        Assert.True(GitHub.IsRefProtected);
-        Assert.True(GitHub.IsDebug);
+        Assert.True(GitHubActions.IsRefProtected);
+        Assert.True(GitHubActions.IsDebug);
     }
 
     [Fact]
@@ -69,12 +69,12 @@ public sealed class GitHubTests : IDisposable
         System.Environment.SetEnvironmentVariable("GITHUB_REF_NAME", "v1.2.3");
         System.Environment.SetEnvironmentVariable("GITHUB_REF_TYPE", "tag");
 
-        Assert.True(GitHub.IsActions);
-        Assert.Equal("refs/tags/v1.2.3", GitHub.Ref);
-        Assert.Equal(GitHubRefType.Tag, GitHub.RefType);
-        Assert.True(GitHub.IsTag);
-        Assert.False(GitHub.IsBranch);
-        Assert.Equal("v1.2.3", GitHub.Tag);
+        Assert.True(GitHubActions.IsRunning);
+        Assert.Equal("refs/tags/v1.2.3", GitHubActions.Ref);
+        Assert.Equal(GitHubRefType.Tag, GitHubActions.RefType);
+        Assert.True(GitHubActions.IsTag);
+        Assert.False(GitHubActions.IsBranch);
+        Assert.Equal("v1.2.3", GitHubActions.Tag);
     }
 
     [Fact]
@@ -83,10 +83,10 @@ public sealed class GitHubTests : IDisposable
         System.Environment.SetEnvironmentVariable("GITHUB_REF_NAME", "main");
         System.Environment.SetEnvironmentVariable("GITHUB_REF_TYPE", "branch");
 
-        Assert.Equal(GitHubRefType.Branch, GitHub.RefType);
-        Assert.True(GitHub.IsBranch);
-        Assert.Equal("main", GitHub.RefName);
-        Assert.Null(GitHub.Tag);
+        Assert.Equal(GitHubRefType.Branch, GitHubActions.RefType);
+        Assert.True(GitHubActions.IsBranch);
+        Assert.Equal("main", GitHubActions.RefName);
+        Assert.Null(GitHubActions.Tag);
     }
 
     [Theory]
@@ -97,7 +97,7 @@ public sealed class GitHubTests : IDisposable
     {
         System.Environment.SetEnvironmentVariable("GITHUB_REF_TYPE", value);
 
-        Assert.Null(GitHub.RefType);
+        Assert.Null(GitHubActions.RefType);
     }
 
     [Fact]
@@ -105,7 +105,7 @@ public sealed class GitHubTests : IDisposable
     {
         System.Environment.SetEnvironmentVariable("GITHUB_REPOSITORY", "");
 
-        Assert.Null(GitHub.Repository);
+        Assert.Null(GitHubActions.Repository);
     }
 
     [Fact]
@@ -113,7 +113,7 @@ public sealed class GitHubTests : IDisposable
     {
         System.Environment.SetEnvironmentVariable("GITHUB_REPOSITORY", "octocat/Hello-World");
 
-        Assert.Equal(new GitHubRepository("octocat", "Hello-World"), GitHub.Repository);
+        Assert.Equal(new GitHubRepository("octocat", "Hello-World"), GitHubActions.Repository);
     }
 
     [Fact]
@@ -121,7 +121,7 @@ public sealed class GitHubTests : IDisposable
     {
         System.Environment.SetEnvironmentVariable("GITHUB_REPOSITORY", "noslash");
 
-        Assert.Null(GitHub.Repository);
+        Assert.Null(GitHubActions.Repository);
     }
 
     [Theory]
@@ -132,7 +132,7 @@ public sealed class GitHubTests : IDisposable
     {
         System.Environment.SetEnvironmentVariable("GITHUB_RUN_ID", value);
 
-        Assert.Equal(expected, GitHub.RunId);
+        Assert.Equal(expected, GitHubActions.RunId);
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public sealed class GitHubTests : IDisposable
     {
         var release = new GitHubRelease { Tag = "v1.2.3" };
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => GitHub.CreateOrUpdateReleaseAsync(release, token: "token", TestContext.Current.CancellationToken));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => GitHubReleases.CreateOrUpdateAsync(release, token: "token", TestContext.Current.CancellationToken));
 
         Assert.Contains("GITHUB_REPOSITORY", exception.Message);
     }
@@ -151,7 +151,7 @@ public sealed class GitHubTests : IDisposable
         System.Environment.SetEnvironmentVariable("GITHUB_REPOSITORY", "noslash");
         System.Environment.SetEnvironmentVariable("GITHUB_TOKEN", "token");
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => GitHub.GetReleaseAsync("v1.2.3", cancellationToken: TestContext.Current.CancellationToken));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => GitHubReleases.GetAsync("v1.2.3", cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Contains("GITHUB_REPOSITORY", exception.Message);
     }
@@ -161,7 +161,7 @@ public sealed class GitHubTests : IDisposable
     {
         System.Environment.SetEnvironmentVariable("GITHUB_REPOSITORY", "octocat/Hello-World");
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => GitHub.GetReleaseAsync("v1.2.3", cancellationToken: TestContext.Current.CancellationToken));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => GitHubReleases.GetAsync("v1.2.3", cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Contains("GITHUB_TOKEN", exception.Message);
     }
@@ -171,7 +171,7 @@ public sealed class GitHubTests : IDisposable
     [InlineData("", "token")]
     public async Task Getting_a_release_throws_for_an_empty_tag_or_token(string tag, string token)
     {
-        await Assert.ThrowsAsync<ArgumentException>(() => GitHub.GetReleaseAsync(
+        await Assert.ThrowsAsync<ArgumentException>(() => GitHubReleases.GetAsync(
             tag, repository: new GitHubRepository("octocat", "Hello-World"), token: token, cancellationToken: TestContext.Current.CancellationToken));
     }
 
@@ -180,7 +180,7 @@ public sealed class GitHubTests : IDisposable
     {
         var release = new GitHubRelease { Tag = "v1.2.3", Repository = new GitHubRepository("octocat", "Hello-World") };
 
-        await Assert.ThrowsAsync<ArgumentException>(() => GitHub.CreateOrUpdateReleaseAsync(release, token: "", TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ArgumentException>(() => GitHubReleases.CreateOrUpdateAsync(release, token: "", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -188,6 +188,6 @@ public sealed class GitHubTests : IDisposable
     {
         var release = new GitHubRelease { Tag = "v1.2.3" };
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => GitHub.DeleteReleaseAsync(release, token: "token", TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => GitHubReleases.DeleteAsync(release, token: "token", TestContext.Current.CancellationToken));
     }
 }
