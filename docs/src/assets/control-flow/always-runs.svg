@@ -1,0 +1,39 @@
+<svg id="cf-always-runs" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 502 212" width="502" height="212" role="img" aria-label="Test fails, so Pack is skipped, but UploadLogs runs anyway">
+<title>Test fails, so Pack is skipped, but UploadLogs runs anyway</title>
+<style>#cf-always-runs{font-family:var(--__sl-font);font-size:14px;overflow:visible}#cf-always-runs .cf-command{font-family:var(--__sl-font-mono);font-size:13px;fill:var(--sl-color-gray-2)}#cf-always-runs .cf-prompt{fill:var(--sl-color-accent)}#cf-always-runs .cf-tag{font-family:var(--__sl-font-mono);font-size:12px;fill:var(--sl-color-accent)}#cf-always-runs .cf-note{font-size:12px;fill:var(--sl-color-gray-3)}#cf-always-runs .cf-box{fill:var(--sl-color-gray-6);stroke:var(--sl-color-gray-5);stroke-width:1}#cf-always-runs .cf-box.cf-out{fill:none;stroke:var(--sl-color-gray-4);stroke-dasharray:4 4}#cf-always-runs .cf-box.cf-running{fill:var(--sl-color-accent-low);stroke:var(--sl-color-accent);stroke-width:2}#cf-always-runs .cf-box.cf-success{stroke:var(--sl-color-accent);stroke-width:1.5}#cf-always-runs .cf-box.cf-fail{fill:var(--sl-color-red-low);stroke:var(--sl-color-red);stroke-width:1.5}#cf-always-runs .cf-box.cf-skip{fill:var(--sl-color-bg);stroke:var(--sl-color-gray-4);stroke-dasharray:4 4}#cf-always-runs .cf-label{fill:var(--sl-color-white)}#cf-always-runs .cf-faint{fill:var(--sl-color-gray-3)}#cf-always-runs .cf-icon{font-size:15px}#cf-always-runs .cf-icon.cf-success{fill:var(--sl-color-accent)}#cf-always-runs .cf-icon.cf-fail{fill:var(--sl-color-red)}#cf-always-runs .cf-icon.cf-skip{fill:var(--sl-color-gray-3)}#cf-always-runs .cf-spinner{fill:none;stroke:var(--sl-color-accent);stroke-width:2;stroke-linecap:round;stroke-dasharray:.6 .4;transform-box:fill-box;transform-origin:center}#cf-always-runs .cf-edge{fill:none;stroke:var(--sl-color-gray-4);stroke-width:1.5}#cf-always-runs .cf-edge.cf-order{stroke-dasharray:6 4}#cf-always-runs .cf-edge.cf-trigger{stroke-dasharray:1 5;stroke-linecap:round;stroke-width:2}#cf-always-runs .cf-edge.cf-active{stroke:var(--sl-color-accent);stroke-width:2}#cf-always-runs .cf-edge.cf-draw{stroke-dasharray:1 1}#cf-always-runs .cf-arrow{fill:var(--sl-color-gray-4)}#cf-always-runs .cf-arrow-active{fill:var(--sl-color-accent)}#cf-always-runs .cf-run{opacity:0}#cf-always-runs :is(.cf-run,.cf-done,.cf-active,.cf-label){animation-duration:6.7s;animation-iteration-count:infinite;animation-timing-function:ease-in-out}@keyframes cf-spin{to{transform:rotate(1turn)}}@keyframes cf-always-runs-e0{0%,20.15%{opacity:0;stroke-dashoffset:1}25.37%,92%{opacity:1;stroke-dashoffset:0}97%,100%{opacity:0;stroke-dashoffset:0}}@keyframes cf-always-runs-e1{0%,36.57%{opacity:0;stroke-dashoffset:1}41.79%,92%{opacity:1;stroke-dashoffset:0}97%,100%{opacity:0;stroke-dashoffset:0}}@keyframes cf-always-runs-r0{0%,8.96%{opacity:0}10.45%,19.4%{opacity:1}20.9%,100%{opacity:0}}@keyframes cf-always-runs-d0{0%,19.4%{opacity:0}20.9%,92%{opacity:1}97%,100%{opacity:0}}@keyframes cf-always-runs-l0{0%,19.4%{opacity:1}20.9%,92%{opacity:1}97%,100%{opacity:1}}@keyframes cf-always-runs-r1{0%,25.37%{opacity:0}26.87%,35.82%{opacity:1}37.31%,100%{opacity:0}}@keyframes cf-always-runs-d1{0%,35.82%{opacity:0}37.31%,92%{opacity:1}97%,100%{opacity:0}}@keyframes cf-always-runs-l1{0%,35.82%{opacity:1}37.31%,92%{opacity:0.45}97%,100%{opacity:1}}@keyframes cf-always-runs-r2{0%,41.79%{opacity:0}43.28%,52.24%{opacity:1}53.73%,100%{opacity:0}}@keyframes cf-always-runs-d2{0%,52.24%{opacity:0}53.73%,92%{opacity:1}97%,100%{opacity:0}}@keyframes cf-always-runs-l2{0%,52.24%{opacity:1}53.73%,92%{opacity:1}97%,100%{opacity:1}}@media (prefers-reduced-motion:reduce){#cf-always-runs *{animation:none!important}#cf-always-runs .cf-label-skip{opacity:.45}}</style>
+<defs>
+<marker id="cf-always-runs-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="cf-arrow" d="M0,0 L10,5 L0,10 z"/></marker>
+<marker id="cf-always-runs-arrow-active" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="cf-arrow-active" d="M0,0 L10,5 L0,10 z"/></marker>
+</defs>
+<text class="cf-command" x="8" y="18"><tspan class="cf-prompt">$</tspan> baun Pack UploadLogs</text>
+<path class="cf-edge cf-dependency" d="M104,72 L181,72" marker-end="url(#cf-always-runs-arrow)"/>
+<path class="cf-edge cf-dependency cf-active cf-draw" d="M104,72 L181,72" pathLength="1" marker-end="url(#cf-always-runs-arrow-active)" style="animation-name:cf-always-runs-e0"/>
+<path class="cf-edge cf-order" d="M56,92 L56,160 Q56,174 70,174 L357,174" marker-end="url(#cf-always-runs-arrow)"/>
+<path class="cf-edge cf-order cf-active" d="M56,92 L56,160 Q56,174 70,174 L357,174" marker-end="url(#cf-always-runs-arrow-active)" style="animation-name:cf-always-runs-e1"/>
+<g class="cf-step">
+<rect class="cf-box" x="8" y="52" width="96" height="40" rx="8"/>
+<rect class="cf-box cf-fail cf-done" x="8" y="52" width="96" height="40" rx="8" style="animation-name:cf-always-runs-d0"/>
+<rect class="cf-box cf-running cf-run" x="8" y="52" width="96" height="40" rx="8" style="animation-name:cf-always-runs-r0"/>
+<text class="cf-label cf-label-fail" x="22" y="77" style="animation-name:cf-always-runs-l0">Test</text>
+<text class="cf-icon cf-fail cf-done" x="90" y="77" text-anchor="end" style="animation-name:cf-always-runs-d0">✗</text>
+<circle class="cf-spinner cf-run" cx="85" cy="72" r="5" pathLength="1" style="animation:6.7s ease-in-out infinite cf-always-runs-r0, .8s linear infinite cf-spin"/>
+</g>
+<g class="cf-step">
+<rect class="cf-box" x="184" y="52" width="96" height="40" rx="8"/>
+<rect class="cf-box cf-skip cf-done" x="184" y="52" width="96" height="40" rx="8" style="animation-name:cf-always-runs-d1"/>
+<rect class="cf-box cf-running cf-run" x="184" y="52" width="96" height="40" rx="8" style="animation-name:cf-always-runs-r1"/>
+<text class="cf-label cf-label-skip" x="198" y="77" style="animation-name:cf-always-runs-l1">Pack</text>
+<text class="cf-icon cf-skip cf-done" x="266" y="77" text-anchor="end" style="animation-name:cf-always-runs-d1">–</text>
+<circle class="cf-spinner cf-run" cx="261" cy="72" r="5" pathLength="1" style="animation:6.7s ease-in-out infinite cf-always-runs-r1, .8s linear infinite cf-spin"/>
+<text class="cf-note cf-done" x="186" y="110" style="animation-name:cf-always-runs-d1">a step failed</text>
+</g>
+<g class="cf-step">
+<text class="cf-tag" x="362" y="146">.AlwaysRuns()</text>
+<rect class="cf-box" x="360" y="154" width="134" height="40" rx="8"/>
+<rect class="cf-box cf-success cf-done" x="360" y="154" width="134" height="40" rx="8" style="animation-name:cf-always-runs-d2"/>
+<rect class="cf-box cf-running cf-run" x="360" y="154" width="134" height="40" rx="8" style="animation-name:cf-always-runs-r2"/>
+<text class="cf-label cf-label-success" x="374" y="179" style="animation-name:cf-always-runs-l2">UploadLogs</text>
+<text class="cf-icon cf-success cf-done" x="480" y="179" text-anchor="end" style="animation-name:cf-always-runs-d2">✓</text>
+<circle class="cf-spinner cf-run" cx="475" cy="174" r="5" pathLength="1" style="animation:6.7s ease-in-out infinite cf-always-runs-r2, .8s linear infinite cf-spin"/>
+</g>
+</svg>

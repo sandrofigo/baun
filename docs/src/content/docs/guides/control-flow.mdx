@@ -3,6 +3,13 @@ title: Control Flow
 description: Run steps only under conditions, order them, trigger them, go on after failures and skip steps.
 ---
 
+import Conditions from "../../../assets/control-flow/conditions.svg";
+import Ordering from "../../../assets/control-flow/ordering.svg";
+import Triggers from "../../../assets/control-flow/triggers.svg";
+import ProceedAfterFailure from "../../../assets/control-flow/proceed-after-failure.svg";
+import AlwaysRuns from "../../../assets/control-flow/always-runs.svg";
+import Skip from "../../../assets/control-flow/skip.svg";
+
 `DependsOn` makes a step run after the steps it needs. These builder calls control further when and in which order steps run:
 
 | Call | Effect |
@@ -29,6 +36,8 @@ Step Publish() => _ => _
     });
 ```
 
+<Conditions class="flow-diagram" />
+
 baun checks the condition right before the step starts, after its dependencies ran, so it can use values that earlier steps computed. When the condition is false, baun writes why it skips the step, such as `Skipping Publish because GitHubActions.IsRunning is false`, and the summary shows the step as skipped. Steps that depend on a skipped step still run.
 
 Chain `OnlyWhen` to add several conditions, which must all be true. If a condition throws, the step fails. `baun --help` lists the conditions of each step.
@@ -48,6 +57,8 @@ Step Restore() => _ => _
     .Executes(async () => await DotNet.Restore().RunAsync());
 ```
 
+<Ordering class="flow-diagram" />
+
 `baun Restore` only runs Restore, and `baun Restore Clean` runs Clean first. `Before` is the reverse: Clean with `.Before(Restore)` orders the steps the same way. A step whose order goes around in a circle, such as `A` after `B` while `B` depends on `A`, fails the build before any step runs.
 
 ## Triggers
@@ -64,6 +75,8 @@ Step Notify() => _ => _
     .Executes(() => { });
 ```
 
+<Triggers class="flow-diagram" />
+
 `baun Publish` runs Pack, Publish and then Notify, while `baun Notify` only runs Notify. `TriggeredBy` is the reverse: Notify with `.TriggeredBy(Publish)` does the same. `baun --help` lists what each step triggers, and the [plan](../../reference/cli/#viewing-the-plan) shows triggers as dotted edges.
 
 ## Failures
@@ -78,6 +91,8 @@ Step Lint() => _ => _
     .Executes(async () => await DotNet.RunAsync("format", "--verify-no-changes"));
 ```
 
+<ProceedAfterFailure class="flow-diagram" />
+
 A step with `AlwaysRuns` runs even after an earlier step failed, for example to clean up or to upload logs. It runs in its normal place in the order. Its dependencies that didn't run because of the failure aren't run for it, and its conditions still apply:
 
 ```csharp
@@ -86,6 +101,8 @@ Step UploadLogs() => _ => _
     .AlwaysRuns()
     .Executes(() => { });
 ```
+
+<AlwaysRuns class="flow-diagram" />
 
 Use [hooks](../../guides/hooks/) to react to a failure without a step, such as `IOnBuildFailed`.
 
@@ -96,5 +113,7 @@ Use [hooks](../../guides/hooks/) to react to a failure without a step, such as `
 ```shell
 baun Pack --skip Test --skip Clean
 ```
+
+<Skip class="flow-diagram" />
 
 Without a step, such as at the end of the command, `--skip` skips every step except the named ones, so `baun Pack --skip` only runs Pack. Skipped steps show as skipped in the summary, their requirements aren't checked, and the steps that depend on them still run. An unknown step fails the build before any step runs. Like every built-in option, `--skip` also works as `--baun-skip`.

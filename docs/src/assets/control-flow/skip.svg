@@ -1,0 +1,38 @@
+<svg id="cf-skip" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 464 110" width="464" height="110" role="img" aria-label="baun Pack --skip Test skips Test, and Pack still runs">
+<title>baun Pack --skip Test skips Test, and Pack still runs</title>
+<style>#cf-skip{font-family:var(--__sl-font);font-size:14px;overflow:visible}#cf-skip .cf-command{font-family:var(--__sl-font-mono);font-size:13px;fill:var(--sl-color-gray-2)}#cf-skip .cf-prompt{fill:var(--sl-color-accent)}#cf-skip .cf-tag{font-family:var(--__sl-font-mono);font-size:12px;fill:var(--sl-color-accent)}#cf-skip .cf-note{font-size:12px;fill:var(--sl-color-gray-3)}#cf-skip .cf-box{fill:var(--sl-color-gray-6);stroke:var(--sl-color-gray-5);stroke-width:1}#cf-skip .cf-box.cf-out{fill:none;stroke:var(--sl-color-gray-4);stroke-dasharray:4 4}#cf-skip .cf-box.cf-running{fill:var(--sl-color-accent-low);stroke:var(--sl-color-accent);stroke-width:2}#cf-skip .cf-box.cf-success{stroke:var(--sl-color-accent);stroke-width:1.5}#cf-skip .cf-box.cf-fail{fill:var(--sl-color-red-low);stroke:var(--sl-color-red);stroke-width:1.5}#cf-skip .cf-box.cf-skip{fill:var(--sl-color-bg);stroke:var(--sl-color-gray-4);stroke-dasharray:4 4}#cf-skip .cf-label{fill:var(--sl-color-white)}#cf-skip .cf-faint{fill:var(--sl-color-gray-3)}#cf-skip .cf-icon{font-size:15px}#cf-skip .cf-icon.cf-success{fill:var(--sl-color-accent)}#cf-skip .cf-icon.cf-fail{fill:var(--sl-color-red)}#cf-skip .cf-icon.cf-skip{fill:var(--sl-color-gray-3)}#cf-skip .cf-spinner{fill:none;stroke:var(--sl-color-accent);stroke-width:2;stroke-linecap:round;stroke-dasharray:.6 .4;transform-box:fill-box;transform-origin:center}#cf-skip .cf-edge{fill:none;stroke:var(--sl-color-gray-4);stroke-width:1.5}#cf-skip .cf-edge.cf-order{stroke-dasharray:6 4}#cf-skip .cf-edge.cf-trigger{stroke-dasharray:1 5;stroke-linecap:round;stroke-width:2}#cf-skip .cf-edge.cf-active{stroke:var(--sl-color-accent);stroke-width:2}#cf-skip .cf-edge.cf-draw{stroke-dasharray:1 1}#cf-skip .cf-arrow{fill:var(--sl-color-gray-4)}#cf-skip .cf-arrow-active{fill:var(--sl-color-accent)}#cf-skip .cf-run{opacity:0}#cf-skip :is(.cf-run,.cf-done,.cf-active,.cf-label){animation-duration:6.7s;animation-iteration-count:infinite;animation-timing-function:ease-in-out}@keyframes cf-spin{to{transform:rotate(1turn)}}@keyframes cf-skip-e0{0%,20.15%{opacity:0;stroke-dashoffset:1}25.37%,92%{opacity:1;stroke-dashoffset:0}97%,100%{opacity:0;stroke-dashoffset:0}}@keyframes cf-skip-e1{0%,36.57%{opacity:0;stroke-dashoffset:1}41.79%,92%{opacity:1;stroke-dashoffset:0}97%,100%{opacity:0;stroke-dashoffset:0}}@keyframes cf-skip-r0{0%,8.96%{opacity:0}10.45%,19.4%{opacity:1}20.9%,100%{opacity:0}}@keyframes cf-skip-d0{0%,19.4%{opacity:0}20.9%,92%{opacity:1}97%,100%{opacity:0}}@keyframes cf-skip-l0{0%,19.4%{opacity:1}20.9%,92%{opacity:1}97%,100%{opacity:1}}@keyframes cf-skip-r1{0%,25.37%{opacity:0}26.87%,35.82%{opacity:1}37.31%,100%{opacity:0}}@keyframes cf-skip-d1{0%,35.82%{opacity:0}37.31%,92%{opacity:1}97%,100%{opacity:0}}@keyframes cf-skip-l1{0%,35.82%{opacity:1}37.31%,92%{opacity:0.45}97%,100%{opacity:1}}@keyframes cf-skip-r2{0%,41.79%{opacity:0}43.28%,52.24%{opacity:1}53.73%,100%{opacity:0}}@keyframes cf-skip-d2{0%,52.24%{opacity:0}53.73%,92%{opacity:1}97%,100%{opacity:0}}@keyframes cf-skip-l2{0%,52.24%{opacity:1}53.73%,92%{opacity:1}97%,100%{opacity:1}}@media (prefers-reduced-motion:reduce){#cf-skip *{animation:none!important}#cf-skip .cf-label-skip{opacity:.45}}</style>
+<defs>
+<marker id="cf-skip-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="cf-arrow" d="M0,0 L10,5 L0,10 z"/></marker>
+<marker id="cf-skip-arrow-active" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="cf-arrow-active" d="M0,0 L10,5 L0,10 z"/></marker>
+</defs>
+<text class="cf-command" x="8" y="18"><tspan class="cf-prompt">$</tspan> baun Pack --skip Test</text>
+<path class="cf-edge cf-dependency" d="M118,72 L181,72" marker-end="url(#cf-skip-arrow)"/>
+<path class="cf-edge cf-dependency cf-active cf-draw" d="M118,72 L181,72" pathLength="1" marker-end="url(#cf-skip-arrow-active)" style="animation-name:cf-skip-e0"/>
+<path class="cf-edge cf-dependency" d="M280,72 L357,72" marker-end="url(#cf-skip-arrow)"/>
+<path class="cf-edge cf-dependency cf-active cf-draw" d="M280,72 L357,72" pathLength="1" marker-end="url(#cf-skip-arrow-active)" style="animation-name:cf-skip-e1"/>
+<g class="cf-step">
+<rect class="cf-box" x="8" y="52" width="110" height="40" rx="8"/>
+<rect class="cf-box cf-success cf-done" x="8" y="52" width="110" height="40" rx="8" style="animation-name:cf-skip-d0"/>
+<rect class="cf-box cf-running cf-run" x="8" y="52" width="110" height="40" rx="8" style="animation-name:cf-skip-r0"/>
+<text class="cf-label cf-label-success" x="22" y="77" style="animation-name:cf-skip-l0">Compile</text>
+<text class="cf-icon cf-success cf-done" x="104" y="77" text-anchor="end" style="animation-name:cf-skip-d0">✓</text>
+<circle class="cf-spinner cf-run" cx="99" cy="72" r="5" pathLength="1" style="animation:6.7s ease-in-out infinite cf-skip-r0, .8s linear infinite cf-spin"/>
+</g>
+<g class="cf-step">
+<rect class="cf-box" x="184" y="52" width="96" height="40" rx="8"/>
+<rect class="cf-box cf-skip cf-done" x="184" y="52" width="96" height="40" rx="8" style="animation-name:cf-skip-d1"/>
+<rect class="cf-box cf-running cf-run" x="184" y="52" width="96" height="40" rx="8" style="animation-name:cf-skip-r1"/>
+<text class="cf-label cf-label-skip" x="198" y="77" style="animation-name:cf-skip-l1">Test</text>
+<text class="cf-icon cf-skip cf-done" x="266" y="77" text-anchor="end" style="animation-name:cf-skip-d1">–</text>
+<circle class="cf-spinner cf-run" cx="261" cy="72" r="5" pathLength="1" style="animation:6.7s ease-in-out infinite cf-skip-r1, .8s linear infinite cf-spin"/>
+<text class="cf-note cf-done" x="186" y="110" style="animation-name:cf-skip-d1">skipped with --skip</text>
+</g>
+<g class="cf-step">
+<rect class="cf-box" x="360" y="52" width="96" height="40" rx="8"/>
+<rect class="cf-box cf-success cf-done" x="360" y="52" width="96" height="40" rx="8" style="animation-name:cf-skip-d2"/>
+<rect class="cf-box cf-running cf-run" x="360" y="52" width="96" height="40" rx="8" style="animation-name:cf-skip-r2"/>
+<text class="cf-label cf-label-success" x="374" y="77" style="animation-name:cf-skip-l2">Pack</text>
+<text class="cf-icon cf-success cf-done" x="442" y="77" text-anchor="end" style="animation-name:cf-skip-d2">✓</text>
+<circle class="cf-spinner cf-run" cx="437" cy="72" r="5" pathLength="1" style="animation:6.7s ease-in-out infinite cf-skip-r2, .8s linear infinite cf-spin"/>
+</g>
+</svg>
