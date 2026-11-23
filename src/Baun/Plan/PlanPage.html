@@ -221,53 +221,185 @@
   }
   for (const node of byName.values()) columnOf(node);
 
-  const columns = [];
+  // A step that nothing comes before moves right, next to the first step that comes after it, so its lines stay short.
   for (const node of byName.values()) {
-    (columns[node.column] ??= []).push(node);
-    node.width = Math.ceil(node.element.offsetWidth / grid) * grid;
-    node.element.style.width = node.width + "px";
+    if (node.incoming.length === 0 && node.outgoing.length > 0) {
+      node.column = Math.min(...node.outgoing.map(({ to }) => to.column)) - 1;
+    }
   }
 
-  const columnWidths = columns.map(nodes => Math.max(...nodes.map(node => node.width)));
-  const tallest = Math.max(0, ...columns.map(nodes => nodes.length * stepHeight + (nodes.length - 1) * rowGap));
-  let x = 0;
-  columns.forEach((nodes, column) => {
-    const height = nodes.length * stepHeight + (nodes.length - 1) * rowGap;
-    nodes.forEach((node, row) => {
-      node.x = x;
-      node.y = Math.round((tallest - height) / 2 / grid) * grid + row * (stepHeight + rowGap);
-      node.element.style.left = node.x + "px";
-      node.element.style.top = node.y + "px";
+  for (const node of byName.values()) {
+    node.width = Math.ceil(node.element.offsetWidth / grid) * grid;
+    node.element.style.width = node.width + "px";
+    node.height = stepHeight;
+  }
+
+  // The columns hold the steps and a waypoint for every line that passes through them, so a long line gets a row of its
+  // own in each column it passes instead of crossing the steps there. A line that points back, which only a cycle has,
+  // has no waypoints and isn't part of the ordering.
+  const columns = [];
+  const add = item => (columns[item.column] ??= []).push(item);
+  for (const node of byName.values()) add(node);
+  for (const edge of edges) {
+    edge.chain = [edge.from];
+    if (edge.to.column > edge.from.column) {
+      for (let column = edge.from.column + 1; column < edge.to.column; column++) {
+        const waypoint = { column, width: 0, height: 0 };
+        add(waypoint);
+        edge.chain.push(waypoint);
+      }
+    }
+    edge.chain.push(edge.to);
+  }
+  for (let column = 0; column < columns.length; column++) columns[column] ??= [];
+  for (const items of columns) for (const item of items) { item.before = []; item.after = []; }
+  for (const edge of edges) {
+    if (edge.to.column <= edge.from.column) continue;
+    for (let i = 1; i < edge.chain.length; i++) {
+      edge.chain[i - 1].after.push(edge.chain[i]);
+      edge.chain[i].before.push(edge.chain[i - 1]);
+    }
+  }
+
+  const reindex = items => items.forEach((item, index) => item.index = index);
+  columns.forEach(reindex);
+
+  // The lines between two neighboring columns that cross.
+  function crossingsAfter(items) {
+    const segments = items.flatMap(item => item.after.map(next => [item.index, next.index]));
+    let count = 0;
+    for (let i = 0; i < segments.length; i++) {
+      for (let j = i + 1; j < segments.length; j++) {
+        if ((segments[i][0] - segments[j][0]) * (segments[i][1] - segments[j][1]) < 0) count++;
+      }
+    }
+    return count;
+  }
+  const crossings = () => columns.reduce((sum, items) => sum + crossingsAfter(items), 0);
+
+  // The lines of u and v that cross while u is above v.
+  function crossingsOf(u, v) {
+    let count = 0;
+    for (const side of ["before", "after"]) {
+      for (const a of u[side]) for (const b of v[side]) if (a.index > b.index) count++;
+    }
+    return count;
+  }
+
+  // Orders the steps of each column to cross as few lines as possible. Each sweep sorts a column by the average row of
+  // the items it connects to in the column before (or after, sweeping back), and then swaps neighbors while that crosses
+  // fewer lines. The order with the fewest crossings wins.
+  let best = columns.map(items => [...items]), fewest = crossings();
+  for (let round = 0; round < 24 && fewest > 0; round++) {
+    const forward = round % 2 === 0;
+    const order = forward ? columns.keys() : [...columns.keys()].reverse();
+    for (const column of order) {
+      const items = columns[column];
+      for (const item of items) {
+        const neighbors = forward ? item.before : item.after;
+        item.rank = neighbors.length
+          ? neighbors.reduce((sum, neighbor) => sum + neighbor.index, 0) / neighbors.length
+          : item.index;
+      }
+      items.sort((a, b) => a.rank - b.rank || a.index - b.index);
+      reindex(items);
+    }
+    for (let swapped = true, pass = 0; swapped && pass < 8; pass++) {
+      swapped = false;
+      for (const items of columns) {
+        for (let i = 0; i + 1 < items.length; i++) {
+          if (crossingsOf(items[i + 1], items[i]) < crossingsOf(items[i], items[i + 1])) {
+            [items[i], items[i + 1]] = [items[i + 1], items[i]];
+            reindex(items);
+            swapped = true;
+          }
+        }
+      }
+    }
+    const count = crossings();
+    if (count < fewest) {
+      fewest = count;
+      best = columns.map(items => [...items]);
+    }
+  }
+  best.forEach((items, column) => { columns[column] = items; reindex(items); });
+
+  // Places the items of each column as close to the middle of the items they connect to as their order allows, so lines
+  // run as straight as possible. The middles are on the grid, so the steps line up with the dots. Each pass finds the
+  // closest placement that keeps the order and spacing exactly: it shifts the targets by the spacing before each item,
+  // makes them rise with pool adjacent violators and shifts them back.
+  const gapBetween = (a, b) => a.height / 2 + rowGap + b.height / 2;
+  for (const items of columns) {
+    items.forEach((item, index) => item.y = index === 0 ? 0 : items[index - 1].y + gapBetween(items[index - 1], item));
+  }
+  for (const items of columns) {
+    const height = items.length ? items.at(-1).y : 0;
+    for (const item of items) item.y -= Math.round(height / 2 / grid) * grid;
+  }
+
+  function place(items, sides) {
+    const spacing = [];
+    items.forEach((item, index) => spacing[index] = index === 0 ? 0 : spacing[index - 1] + gapBetween(items[index - 1], item));
+    const targets = items.map((item, index) => {
+      const neighbors = sides.flatMap(side => item[side]);
+      const middle = neighbors.length ? neighbors.reduce((sum, neighbor) => sum + neighbor.y, 0) / neighbors.length : item.y;
+      return middle - spacing[index];
     });
+    const blocks = [];
+    for (const target of targets) {
+      blocks.push({ sum: target, count: 1 });
+      while (blocks.length > 1 && blocks.at(-2).sum / blocks.at(-2).count > blocks.at(-1).sum / blocks.at(-1).count) {
+        const last = blocks.pop();
+        blocks.at(-1).sum += last.sum;
+        blocks.at(-1).count += last.count;
+      }
+    }
+    let index = 0;
+    for (const { sum, count } of blocks) {
+      for (let i = 0; i < count; i++, index++) {
+        const y = Math.round((sum / count + spacing[index]) / grid) * grid;
+        items[index].y = index === 0 ? y : Math.max(y, items[index - 1].y + gapBetween(items[index - 1], items[index]));
+      }
+    }
+  }
+  for (let round = 0; round < 8; round++) {
+    const forward = round % 2 === 0;
+    const order = forward ? [...columns.keys()] : [...columns.keys()].reverse();
+    for (const column of order) place(columns[column], [forward ? "before" : "after"]);
+  }
+  for (const items of columns) place(items, ["before", "after"]);
+
+  const columnWidths = columns.map(items => Math.max(0, ...items.map(item => item.width)));
+  let x = 0;
+  columns.forEach((items, column) => {
+    for (const item of items) {
+      item.x = x;
+      item.right = x + item.width;
+      if (item.element) {
+        item.element.style.left = item.x + "px";
+        item.element.style.top = item.y - stepHeight / 2 + "px";
+      }
+    }
+    // A waypoint spans the whole column, so a line passes the steps there straight.
+    for (const item of items) if (!item.element) item.right = x + columnWidths[column];
     x += columnWidths[column] + columnGap;
   });
 
-  // Edges that skip columns run in lanes above or below the steps they pass, so they don't cross them.
-  let top = 0, bottom = Math.max(stepHeight, tallest);
-  const lanes = { above: 0, below: 0 };
+  const all = columns.flat();
+  let top = all.length ? Math.min(...all.map(item => item.y - item.height / 2)) : 0;
+  let bottom = all.length ? Math.max(...all.map(item => item.y + item.height / 2)) : stepHeight;
 
+  // A line runs from the right side of a step through its waypoints to the left side of the next step, with curves
+  // between the columns.
   for (const edge of edges) {
-    const { from, to: node, kind } = edge;
-    const x1 = from.x + from.width, y1 = from.y + stepHeight / 2;
-    const x2 = node.x - 2, y2 = node.y + stepHeight / 2;
-    let d;
-
-    if (node.column - from.column > 1) {
-      const passed = columns.slice(from.column + 1, node.column).flat();
-      const minY = Math.min(...passed.map(step => step.y));
-      const maxY = Math.max(...passed.map(step => step.y + stepHeight));
-      const above = (y1 + y2) / 2 - minY <= maxY - (y1 + y2) / 2;
-      const lane = above
-        ? minY - rowGap / 2 - lanes.above++ * 10
-        : maxY + rowGap / 2 + lanes.below++ * 10;
-      top = Math.min(top, lane);
-      bottom = Math.max(bottom, lane);
-      const r = columnGap / 2;
-      d = `M${x1},${y1} C${x1 + r},${y1} ${x1 + r},${lane} ${x1 + 2 * r},${lane} ` +
-          `L${x2 - 2 * r},${lane} C${x2 - r},${lane} ${x2 - r},${y2} ${x2},${y2}`;
-    } else {
+    const { from, to: node, kind, chain } = edge;
+    let d = `M${from.right},${from.y}`;
+    for (let i = 1; i < chain.length; i++) {
+      const previous = chain[i - 1], item = chain[i];
+      const x1 = previous.right, x2 = item === node ? item.x - 2 : item.x;
       const bend = Math.max(40, (x2 - x1) / 2);
-      d = `M${x1},${y1} C${x1 + bend},${y1} ${x2 - bend},${y2} ${x2},${y2}`;
+      d += ` C${x1 + bend},${previous.y} ${x2 - bend},${item.y} ${x2},${item.y}`;
+      if (item !== node) d += ` L${item.right},${item.y}`;
     }
 
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
