@@ -110,6 +110,7 @@ Every build has these built-in options, next to its own [parameters](../../guide
 | `--version`, `-v` | Shows the version of baun the build uses |
 | `--plan` | Opens the steps that would run in the browser without running them, see [Viewing the Plan](#viewing-the-plan) |
 | `--step <name>` | Runs a step, also one whose name is a command of the tool, see [Steps Named Like Commands](#steps-named-like-commands) |
+| `--skip [<step>]` | Skips a step that would run, and can be repeated. Without a step, skips all steps but the named ones, see [Skipping Steps](../../guides/control-flow/#skipping-steps) |
 | `--verbosity <level>` | Sets the lowest level of messages the build writes, see [Verbosity](../../guides/logging/#verbosity) |
 
 Each option also works with the prefix `--baun-`, such as `--baun-plan`, which no parameter can take over (see [Built-in Options](../../guides/parameters/#built-in-options)). An unknown option fails the build before any step runs.

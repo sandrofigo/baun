@@ -152,3 +152,5 @@ baun checks the requirements of every step it is going to run, including depende
 A value is missing if it's null, false, an empty string or an empty array, so a condition such as `.Requires(() => Feeds.Length > 0)` works too.
 
 Because baun checks requirements before the first step, an earlier step of the same run can't set a required value. Check values that steps compute in the step that uses them.
+
+Steps skipped with [`--skip`](../../guides/control-flow/#skipping-steps) aren't checked. A step with a [condition](../../guides/control-flow/#conditions) is checked when it's about to run, after its conditions are true, so a step that only runs in CI doesn't need its values in a local run.

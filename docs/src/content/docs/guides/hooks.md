@@ -32,10 +32,10 @@ partial class Build : IOnStepFailed, IOnBuildFailed
 | `IOnStepFailed` | `OnStepFailedAsync(step, exception)` | After the step that fails, with its exception |
 | `IOnStepCompleted` | `OnStepCompletedAsync(step)` | After each step, whether it succeeds or fails |
 | `IOnBuildSucceeded` | `OnBuildSucceededAsync()` | After the last step when every step succeeded |
-| `IOnBuildFailed` | `OnBuildFailedAsync()` | After a step fails |
+| `IOnBuildFailed` | `OnBuildFailedAsync()` | After the last step when a step failed |
 | `IOnBuildCompleted` | `OnBuildCompletedAsync()` | After `IOnBuildSucceeded` or `IOnBuildFailed` |
 
-The step argument is the name of the step, such as Compile.
+The step argument is the name of the step, such as Compile. The step hooks don't run for a skipped step, such as one whose [condition](../../guides/control-flow/#conditions) is false. When a step that [proceeds after a failure](../../guides/control-flow/#failures) fails, `IOnBuildFailed` runs after the remaining steps.
 
 `IOnBuildInitialized` and the build hooks after it only run for a build that starts its steps, not for `--help`, `--plan` or an error such as a missing parameter. The build hooks run before the summary, so what they write appears above it.
 

@@ -39,6 +39,7 @@ export default defineConfig({
 					label: 'Guides',
 					items: [
 						'guides/concept',
+						'guides/control-flow',
 						'guides/paths',
 						'guides/hooks',
 						'guides/parameters',

@@ -40,6 +40,7 @@ A step is a delegate. Each step returns a lambda, and baun calls that lambda wit
 - `DependsOn` names the steps that run first. baun checks for circular dependencies before it runs any step.
 - `Executes` sets the work of the step, as a synchronous or an async lambda.
 - `Requires` names values the step needs, such as an API key (see [Step Requirements](../../guides/parameters/#step-requirements)).
+- `OnlyWhen`, `After`, `Before`, `Triggers`, `TriggeredBy`, `ProceedAfterFailure` and `AlwaysRuns` control when and in which order steps run (see [Control Flow](../../guides/control-flow/)).
 
 Because steps are members of a class, the build class is also the natural place for anything they share, such as settings or version numbers. Use regular fields and properties for these.
 

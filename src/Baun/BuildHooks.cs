@@ -94,7 +94,7 @@ public interface IOnBuildSucceeded
 public interface IOnBuildFailed
 {
     /// <summary>
-    /// Runs after a step fails, or after <see cref="IOnBuildInitialized"/> throws, before the summary.
+    /// Runs after the last step when a step failed, or after <see cref="IOnBuildInitialized"/> throws, before the summary.
     /// </summary>
     Task OnBuildFailedAsync();
 }
