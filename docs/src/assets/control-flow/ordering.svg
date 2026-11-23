@@ -1,0 +1,44 @@
+<svg id="cf-ordering" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 302 238" width="302" height="238" role="img" aria-label="baun Restore runs only Restore, while baun Restore Clean runs Clean first">
+<title>baun Restore runs only Restore, while baun Restore Clean runs Clean first</title>
+<style>#cf-ordering{font-family:var(--__sl-font);font-size:14px;overflow:visible}#cf-ordering .cf-command{font-family:var(--__sl-font-mono);font-size:13px;fill:var(--sl-color-gray-2)}#cf-ordering .cf-prompt{fill:var(--sl-color-accent)}#cf-ordering .cf-tag{font-family:var(--__sl-font-mono);font-size:12px;fill:var(--sl-color-accent)}#cf-ordering .cf-note{font-size:12px;fill:var(--sl-color-gray-3)}#cf-ordering .cf-box{fill:var(--sl-color-gray-6);stroke:var(--sl-color-gray-5);stroke-width:1}#cf-ordering .cf-box.cf-out{fill:none;stroke:var(--sl-color-gray-4);stroke-dasharray:4 4}#cf-ordering .cf-box.cf-running{fill:var(--sl-color-accent-low);stroke:var(--sl-color-accent);stroke-width:2}#cf-ordering .cf-box.cf-success{stroke:var(--sl-color-accent);stroke-width:1.5}#cf-ordering .cf-box.cf-fail{fill:var(--sl-color-red-low);stroke:var(--sl-color-red);stroke-width:1.5}#cf-ordering .cf-box.cf-skip{fill:var(--sl-color-bg);stroke:var(--sl-color-gray-4);stroke-dasharray:4 4}#cf-ordering .cf-label{fill:var(--sl-color-white)}#cf-ordering .cf-faint{fill:var(--sl-color-gray-3)}#cf-ordering .cf-icon{font-size:15px}#cf-ordering .cf-icon.cf-success{fill:var(--sl-color-accent)}#cf-ordering .cf-icon.cf-fail{fill:var(--sl-color-red)}#cf-ordering .cf-icon.cf-skip{fill:var(--sl-color-gray-3)}#cf-ordering .cf-spinner{fill:none;stroke:var(--sl-color-accent);stroke-width:2;stroke-linecap:round;stroke-dasharray:.6 .4;transform-box:fill-box;transform-origin:center}#cf-ordering .cf-edge{fill:none;stroke:var(--sl-color-gray-4);stroke-width:1.5}#cf-ordering .cf-edge.cf-order{stroke-dasharray:6 4}#cf-ordering .cf-edge.cf-trigger{stroke-dasharray:1 5;stroke-linecap:round;stroke-width:2}#cf-ordering .cf-edge.cf-active{stroke:var(--sl-color-accent);stroke-width:2}#cf-ordering .cf-edge.cf-draw{stroke-dasharray:1 1}#cf-ordering .cf-arrow{fill:var(--sl-color-gray-4)}#cf-ordering .cf-arrow-active{fill:var(--sl-color-accent)}#cf-ordering .cf-run{opacity:0}#cf-ordering :is(.cf-run,.cf-done,.cf-active,.cf-label){animation-duration:5.6s;animation-iteration-count:infinite;animation-timing-function:ease-in-out}@keyframes cf-spin{to{transform:rotate(1turn)}}@keyframes cf-ordering-e1{0%,24.11%{opacity:0;stroke-dashoffset:1}30.36%,92%{opacity:1;stroke-dashoffset:0}97%,100%{opacity:0;stroke-dashoffset:0}}@keyframes cf-ordering-r1{0%,10.71%{opacity:0}12.5%,23.21%{opacity:1}25%,100%{opacity:0}}@keyframes cf-ordering-d1{0%,23.21%{opacity:0}25%,92%{opacity:1}97%,100%{opacity:0}}@keyframes cf-ordering-l1{0%,23.21%{opacity:1}25%,92%{opacity:1}97%,100%{opacity:1}}@keyframes cf-ordering-r2{0%,10.71%{opacity:0}12.5%,23.21%{opacity:1}25%,100%{opacity:0}}@keyframes cf-ordering-d2{0%,23.21%{opacity:0}25%,92%{opacity:1}97%,100%{opacity:0}}@keyframes cf-ordering-l2{0%,23.21%{opacity:1}25%,92%{opacity:1}97%,100%{opacity:1}}@keyframes cf-ordering-r3{0%,30.36%{opacity:0}32.14%,42.86%{opacity:1}44.64%,100%{opacity:0}}@keyframes cf-ordering-d3{0%,42.86%{opacity:0}44.64%,92%{opacity:1}97%,100%{opacity:0}}@keyframes cf-ordering-l3{0%,42.86%{opacity:1}44.64%,92%{opacity:1}97%,100%{opacity:1}}@media (prefers-reduced-motion:reduce){#cf-ordering *{animation:none!important}#cf-ordering .cf-label-skip{opacity:.45}}</style>
+<defs>
+<marker id="cf-ordering-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="cf-arrow" d="M0,0 L10,5 L0,10 z"/></marker>
+<marker id="cf-ordering-arrow-active" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="cf-arrow-active" d="M0,0 L10,5 L0,10 z"/></marker>
+</defs>
+<text class="cf-command" x="8" y="18"><tspan class="cf-prompt">$</tspan> baun Restore</text>
+<text class="cf-command" x="8" y="146"><tspan class="cf-prompt">$</tspan> baun Restore Clean</text>
+<path class="cf-edge cf-order" d="M104,72 L181,72" marker-end="url(#cf-ordering-arrow)"/>
+<path class="cf-edge cf-order" d="M104,200 L181,200" marker-end="url(#cf-ordering-arrow)"/>
+<path class="cf-edge cf-order cf-active" d="M104,200 L181,200" marker-end="url(#cf-ordering-arrow-active)" style="animation-name:cf-ordering-e1"/>
+<g class="cf-step">
+<rect class="cf-box cf-out" x="8" y="52" width="96" height="40" rx="8"/>
+<text class="cf-label cf-faint" x="22" y="77">Clean</text>
+<text class="cf-note" x="10" y="110">not part of the run</text>
+</g>
+<g class="cf-step">
+<text class="cf-tag" x="186" y="44">.After(Clean)</text>
+<rect class="cf-box" x="184" y="52" width="110" height="40" rx="8"/>
+<rect class="cf-box cf-success cf-done" x="184" y="52" width="110" height="40" rx="8" style="animation-name:cf-ordering-d1"/>
+<rect class="cf-box cf-running cf-run" x="184" y="52" width="110" height="40" rx="8" style="animation-name:cf-ordering-r1"/>
+<text class="cf-label cf-label-success" x="198" y="77" style="animation-name:cf-ordering-l1">Restore</text>
+<text class="cf-icon cf-success cf-done" x="280" y="77" text-anchor="end" style="animation-name:cf-ordering-d1">✓</text>
+<circle class="cf-spinner cf-run" cx="275" cy="72" r="5" pathLength="1" style="animation:5.6s ease-in-out infinite cf-ordering-r1, .8s linear infinite cf-spin"/>
+</g>
+<g class="cf-step">
+<rect class="cf-box" x="8" y="180" width="96" height="40" rx="8"/>
+<rect class="cf-box cf-success cf-done" x="8" y="180" width="96" height="40" rx="8" style="animation-name:cf-ordering-d2"/>
+<rect class="cf-box cf-running cf-run" x="8" y="180" width="96" height="40" rx="8" style="animation-name:cf-ordering-r2"/>
+<text class="cf-label cf-label-success" x="22" y="205" style="animation-name:cf-ordering-l2">Clean</text>
+<text class="cf-icon cf-success cf-done" x="90" y="205" text-anchor="end" style="animation-name:cf-ordering-d2">✓</text>
+<circle class="cf-spinner cf-run" cx="85" cy="200" r="5" pathLength="1" style="animation:5.6s ease-in-out infinite cf-ordering-r2, .8s linear infinite cf-spin"/>
+</g>
+<g class="cf-step">
+<text class="cf-tag" x="186" y="172">.After(Clean)</text>
+<rect class="cf-box" x="184" y="180" width="110" height="40" rx="8"/>
+<rect class="cf-box cf-success cf-done" x="184" y="180" width="110" height="40" rx="8" style="animation-name:cf-ordering-d3"/>
+<rect class="cf-box cf-running cf-run" x="184" y="180" width="110" height="40" rx="8" style="animation-name:cf-ordering-r3"/>
+<text class="cf-label cf-label-success" x="198" y="205" style="animation-name:cf-ordering-l3">Restore</text>
+<text class="cf-icon cf-success cf-done" x="280" y="205" text-anchor="end" style="animation-name:cf-ordering-d3">✓</text>
+<circle class="cf-spinner cf-run" cx="275" cy="200" r="5" pathLength="1" style="animation:5.6s ease-in-out infinite cf-ordering-r3, .8s linear infinite cf-spin"/>
+</g>
+</svg>

@@ -1,0 +1,49 @@
+<svg id="cf-proceed-after-failure" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 470 212" width="470" height="212" role="img" aria-label="Lint fails and the build goes on: Compile and Test run, Report, which depends on Lint, is skipped">
+<title>Lint fails and the build goes on: Compile and Test run, Report, which depends on Lint, is skipped</title>
+<style>#cf-proceed-after-failure{font-family:var(--__sl-font);font-size:14px;overflow:visible}#cf-proceed-after-failure .cf-command{font-family:var(--__sl-font-mono);font-size:13px;fill:var(--sl-color-gray-2)}#cf-proceed-after-failure .cf-prompt{fill:var(--sl-color-accent)}#cf-proceed-after-failure .cf-tag{font-family:var(--__sl-font-mono);font-size:12px;fill:var(--sl-color-accent)}#cf-proceed-after-failure .cf-note{font-size:12px;fill:var(--sl-color-gray-3)}#cf-proceed-after-failure .cf-box{fill:var(--sl-color-gray-6);stroke:var(--sl-color-gray-5);stroke-width:1}#cf-proceed-after-failure .cf-box.cf-out{fill:none;stroke:var(--sl-color-gray-4);stroke-dasharray:4 4}#cf-proceed-after-failure .cf-box.cf-running{fill:var(--sl-color-accent-low);stroke:var(--sl-color-accent);stroke-width:2}#cf-proceed-after-failure .cf-box.cf-success{stroke:var(--sl-color-accent);stroke-width:1.5}#cf-proceed-after-failure .cf-box.cf-fail{fill:var(--sl-color-red-low);stroke:var(--sl-color-red);stroke-width:1.5}#cf-proceed-after-failure .cf-box.cf-skip{fill:var(--sl-color-bg);stroke:var(--sl-color-gray-4);stroke-dasharray:4 4}#cf-proceed-after-failure .cf-label{fill:var(--sl-color-white)}#cf-proceed-after-failure .cf-faint{fill:var(--sl-color-gray-3)}#cf-proceed-after-failure .cf-icon{font-size:15px}#cf-proceed-after-failure .cf-icon.cf-success{fill:var(--sl-color-accent)}#cf-proceed-after-failure .cf-icon.cf-fail{fill:var(--sl-color-red)}#cf-proceed-after-failure .cf-icon.cf-skip{fill:var(--sl-color-gray-3)}#cf-proceed-after-failure .cf-spinner{fill:none;stroke:var(--sl-color-accent);stroke-width:2;stroke-linecap:round;stroke-dasharray:.6 .4;transform-box:fill-box;transform-origin:center}#cf-proceed-after-failure .cf-edge{fill:none;stroke:var(--sl-color-gray-4);stroke-width:1.5}#cf-proceed-after-failure .cf-edge.cf-order{stroke-dasharray:6 4}#cf-proceed-after-failure .cf-edge.cf-trigger{stroke-dasharray:1 5;stroke-linecap:round;stroke-width:2}#cf-proceed-after-failure .cf-edge.cf-active{stroke:var(--sl-color-accent);stroke-width:2}#cf-proceed-after-failure .cf-edge.cf-draw{stroke-dasharray:1 1}#cf-proceed-after-failure .cf-arrow{fill:var(--sl-color-gray-4)}#cf-proceed-after-failure .cf-arrow-active{fill:var(--sl-color-accent)}#cf-proceed-after-failure .cf-run{opacity:0}#cf-proceed-after-failure :is(.cf-run,.cf-done,.cf-active,.cf-label){animation-duration:7.8s;animation-iteration-count:infinite;animation-timing-function:ease-in-out}@keyframes cf-spin{to{transform:rotate(1turn)}}@keyframes cf-proceed-after-failure-e0{0%,45.51%{opacity:0;stroke-dashoffset:1}50%,92%{opacity:1;stroke-dashoffset:0}97%,100%{opacity:0;stroke-dashoffset:0}}@keyframes cf-proceed-after-failure-e1{0%,31.41%{opacity:0;stroke-dashoffset:1}35.9%,92%{opacity:1;stroke-dashoffset:0}97%,100%{opacity:0;stroke-dashoffset:0}}@keyframes cf-proceed-after-failure-e2{0%,45.51%{opacity:0;stroke-dashoffset:1}50%,92%{opacity:1;stroke-dashoffset:0}97%,100%{opacity:0;stroke-dashoffset:0}}@keyframes cf-proceed-after-failure-r0{0%,7.69%{opacity:0}8.97%,16.67%{opacity:1}17.95%,100%{opacity:0}}@keyframes cf-proceed-after-failure-d0{0%,16.67%{opacity:0}17.95%,92%{opacity:1}97%,100%{opacity:0}}@keyframes cf-proceed-after-failure-l0{0%,16.67%{opacity:1}17.95%,92%{opacity:1}97%,100%{opacity:1}}@keyframes cf-proceed-after-failure-r1{0%,21.79%{opacity:0}23.08%,30.77%{opacity:1}32.05%,100%{opacity:0}}@keyframes cf-proceed-after-failure-d1{0%,30.77%{opacity:0}32.05%,92%{opacity:1}97%,100%{opacity:0}}@keyframes cf-proceed-after-failure-l1{0%,30.77%{opacity:1}32.05%,92%{opacity:1}97%,100%{opacity:1}}@keyframes cf-proceed-after-failure-r2{0%,35.9%{opacity:0}37.18%,44.87%{opacity:1}46.15%,100%{opacity:0}}@keyframes cf-proceed-after-failure-d2{0%,44.87%{opacity:0}46.15%,92%{opacity:1}97%,100%{opacity:0}}@keyframes cf-proceed-after-failure-l2{0%,44.87%{opacity:1}46.15%,92%{opacity:1}97%,100%{opacity:1}}@keyframes cf-proceed-after-failure-r3{0%,50%{opacity:0}51.28%,58.97%{opacity:1}60.26%,100%{opacity:0}}@keyframes cf-proceed-after-failure-d3{0%,58.97%{opacity:0}60.26%,92%{opacity:1}97%,100%{opacity:0}}@keyframes cf-proceed-after-failure-l3{0%,58.97%{opacity:1}60.26%,92%{opacity:0.45}97%,100%{opacity:1}}@media (prefers-reduced-motion:reduce){#cf-proceed-after-failure *{animation:none!important}#cf-proceed-after-failure .cf-label-skip{opacity:.45}}</style>
+<defs>
+<marker id="cf-proceed-after-failure-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="cf-arrow" d="M0,0 L10,5 L0,10 z"/></marker>
+<marker id="cf-proceed-after-failure-arrow-active" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="cf-arrow-active" d="M0,0 L10,5 L0,10 z"/></marker>
+</defs>
+<text class="cf-command" x="8" y="18"><tspan class="cf-prompt">$</tspan> baun Report</text>
+<path class="cf-edge cf-dependency" d="M104,72 L357,72" marker-end="url(#cf-proceed-after-failure-arrow)"/>
+<path class="cf-edge cf-dependency cf-active cf-draw" d="M104,72 L357,72" pathLength="1" marker-end="url(#cf-proceed-after-failure-arrow-active)" style="animation-name:cf-proceed-after-failure-e0"/>
+<path class="cf-edge cf-dependency" d="M118,174 L181,174" marker-end="url(#cf-proceed-after-failure-arrow)"/>
+<path class="cf-edge cf-dependency cf-active cf-draw" d="M118,174 L181,174" pathLength="1" marker-end="url(#cf-proceed-after-failure-arrow-active)" style="animation-name:cf-proceed-after-failure-e1"/>
+<path class="cf-edge cf-dependency" d="M280,174 C318.5,174 318.5,72 357,72" marker-end="url(#cf-proceed-after-failure-arrow)"/>
+<path class="cf-edge cf-dependency cf-active cf-draw" d="M280,174 C318.5,174 318.5,72 357,72" pathLength="1" marker-end="url(#cf-proceed-after-failure-arrow-active)" style="animation-name:cf-proceed-after-failure-e2"/>
+<g class="cf-step">
+<text class="cf-tag" x="10" y="44">.ProceedAfterFailure()</text>
+<rect class="cf-box" x="8" y="52" width="96" height="40" rx="8"/>
+<rect class="cf-box cf-fail cf-done" x="8" y="52" width="96" height="40" rx="8" style="animation-name:cf-proceed-after-failure-d0"/>
+<rect class="cf-box cf-running cf-run" x="8" y="52" width="96" height="40" rx="8" style="animation-name:cf-proceed-after-failure-r0"/>
+<text class="cf-label cf-label-fail" x="22" y="77" style="animation-name:cf-proceed-after-failure-l0">Lint</text>
+<text class="cf-icon cf-fail cf-done" x="90" y="77" text-anchor="end" style="animation-name:cf-proceed-after-failure-d0">✗</text>
+<circle class="cf-spinner cf-run" cx="85" cy="72" r="5" pathLength="1" style="animation:7.8s ease-in-out infinite cf-proceed-after-failure-r0, .8s linear infinite cf-spin"/>
+</g>
+<g class="cf-step">
+<rect class="cf-box" x="8" y="154" width="110" height="40" rx="8"/>
+<rect class="cf-box cf-success cf-done" x="8" y="154" width="110" height="40" rx="8" style="animation-name:cf-proceed-after-failure-d1"/>
+<rect class="cf-box cf-running cf-run" x="8" y="154" width="110" height="40" rx="8" style="animation-name:cf-proceed-after-failure-r1"/>
+<text class="cf-label cf-label-success" x="22" y="179" style="animation-name:cf-proceed-after-failure-l1">Compile</text>
+<text class="cf-icon cf-success cf-done" x="104" y="179" text-anchor="end" style="animation-name:cf-proceed-after-failure-d1">✓</text>
+<circle class="cf-spinner cf-run" cx="99" cy="174" r="5" pathLength="1" style="animation:7.8s ease-in-out infinite cf-proceed-after-failure-r1, .8s linear infinite cf-spin"/>
+</g>
+<g class="cf-step">
+<rect class="cf-box" x="184" y="154" width="96" height="40" rx="8"/>
+<rect class="cf-box cf-success cf-done" x="184" y="154" width="96" height="40" rx="8" style="animation-name:cf-proceed-after-failure-d2"/>
+<rect class="cf-box cf-running cf-run" x="184" y="154" width="96" height="40" rx="8" style="animation-name:cf-proceed-after-failure-r2"/>
+<text class="cf-label cf-label-success" x="198" y="179" style="animation-name:cf-proceed-after-failure-l2">Test</text>
+<text class="cf-icon cf-success cf-done" x="266" y="179" text-anchor="end" style="animation-name:cf-proceed-after-failure-d2">✓</text>
+<circle class="cf-spinner cf-run" cx="261" cy="174" r="5" pathLength="1" style="animation:7.8s ease-in-out infinite cf-proceed-after-failure-r2, .8s linear infinite cf-spin"/>
+</g>
+<g class="cf-step">
+<rect class="cf-box" x="360" y="52" width="102" height="40" rx="8"/>
+<rect class="cf-box cf-skip cf-done" x="360" y="52" width="102" height="40" rx="8" style="animation-name:cf-proceed-after-failure-d3"/>
+<rect class="cf-box cf-running cf-run" x="360" y="52" width="102" height="40" rx="8" style="animation-name:cf-proceed-after-failure-r3"/>
+<text class="cf-label cf-label-skip" x="374" y="77" style="animation-name:cf-proceed-after-failure-l3">Report</text>
+<text class="cf-icon cf-skip cf-done" x="448" y="77" text-anchor="end" style="animation-name:cf-proceed-after-failure-d3">–</text>
+<circle class="cf-spinner cf-run" cx="443" cy="72" r="5" pathLength="1" style="animation:7.8s ease-in-out infinite cf-proceed-after-failure-r3, .8s linear infinite cf-spin"/>
+<text class="cf-note cf-done" x="362" y="110" style="animation-name:cf-proceed-after-failure-d3">a dependency failed</text>
+</g>
+</svg>

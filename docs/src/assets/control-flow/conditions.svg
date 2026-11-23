@@ -1,0 +1,39 @@
+<svg id="cf-conditions" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 470 110" width="470" height="110" role="img" aria-label="Publish is skipped because its condition is false, and Report, which depends on it, still runs">
+<title>Publish is skipped because its condition is false, and Report, which depends on it, still runs</title>
+<style>#cf-conditions{font-family:var(--__sl-font);font-size:14px;overflow:visible}#cf-conditions .cf-command{font-family:var(--__sl-font-mono);font-size:13px;fill:var(--sl-color-gray-2)}#cf-conditions .cf-prompt{fill:var(--sl-color-accent)}#cf-conditions .cf-tag{font-family:var(--__sl-font-mono);font-size:12px;fill:var(--sl-color-accent)}#cf-conditions .cf-note{font-size:12px;fill:var(--sl-color-gray-3)}#cf-conditions .cf-box{fill:var(--sl-color-gray-6);stroke:var(--sl-color-gray-5);stroke-width:1}#cf-conditions .cf-box.cf-out{fill:none;stroke:var(--sl-color-gray-4);stroke-dasharray:4 4}#cf-conditions .cf-box.cf-running{fill:var(--sl-color-accent-low);stroke:var(--sl-color-accent);stroke-width:2}#cf-conditions .cf-box.cf-success{stroke:var(--sl-color-accent);stroke-width:1.5}#cf-conditions .cf-box.cf-fail{fill:var(--sl-color-red-low);stroke:var(--sl-color-red);stroke-width:1.5}#cf-conditions .cf-box.cf-skip{fill:var(--sl-color-bg);stroke:var(--sl-color-gray-4);stroke-dasharray:4 4}#cf-conditions .cf-label{fill:var(--sl-color-white)}#cf-conditions .cf-faint{fill:var(--sl-color-gray-3)}#cf-conditions .cf-icon{font-size:15px}#cf-conditions .cf-icon.cf-success{fill:var(--sl-color-accent)}#cf-conditions .cf-icon.cf-fail{fill:var(--sl-color-red)}#cf-conditions .cf-icon.cf-skip{fill:var(--sl-color-gray-3)}#cf-conditions .cf-spinner{fill:none;stroke:var(--sl-color-accent);stroke-width:2;stroke-linecap:round;stroke-dasharray:.6 .4;transform-box:fill-box;transform-origin:center}#cf-conditions .cf-edge{fill:none;stroke:var(--sl-color-gray-4);stroke-width:1.5}#cf-conditions .cf-edge.cf-order{stroke-dasharray:6 4}#cf-conditions .cf-edge.cf-trigger{stroke-dasharray:1 5;stroke-linecap:round;stroke-width:2}#cf-conditions .cf-edge.cf-active{stroke:var(--sl-color-accent);stroke-width:2}#cf-conditions .cf-edge.cf-draw{stroke-dasharray:1 1}#cf-conditions .cf-arrow{fill:var(--sl-color-gray-4)}#cf-conditions .cf-arrow-active{fill:var(--sl-color-accent)}#cf-conditions .cf-run{opacity:0}#cf-conditions :is(.cf-run,.cf-done,.cf-active,.cf-label){animation-duration:6.7s;animation-iteration-count:infinite;animation-timing-function:ease-in-out}@keyframes cf-spin{to{transform:rotate(1turn)}}@keyframes cf-conditions-e0{0%,20.15%{opacity:0;stroke-dashoffset:1}25.37%,92%{opacity:1;stroke-dashoffset:0}97%,100%{opacity:0;stroke-dashoffset:0}}@keyframes cf-conditions-e1{0%,36.57%{opacity:0;stroke-dashoffset:1}41.79%,92%{opacity:1;stroke-dashoffset:0}97%,100%{opacity:0;stroke-dashoffset:0}}@keyframes cf-conditions-r0{0%,8.96%{opacity:0}10.45%,19.4%{opacity:1}20.9%,100%{opacity:0}}@keyframes cf-conditions-d0{0%,19.4%{opacity:0}20.9%,92%{opacity:1}97%,100%{opacity:0}}@keyframes cf-conditions-l0{0%,19.4%{opacity:1}20.9%,92%{opacity:1}97%,100%{opacity:1}}@keyframes cf-conditions-r1{0%,25.37%{opacity:0}26.87%,35.82%{opacity:1}37.31%,100%{opacity:0}}@keyframes cf-conditions-d1{0%,35.82%{opacity:0}37.31%,92%{opacity:1}97%,100%{opacity:0}}@keyframes cf-conditions-l1{0%,35.82%{opacity:1}37.31%,92%{opacity:0.45}97%,100%{opacity:1}}@keyframes cf-conditions-r2{0%,41.79%{opacity:0}43.28%,52.24%{opacity:1}53.73%,100%{opacity:0}}@keyframes cf-conditions-d2{0%,52.24%{opacity:0}53.73%,92%{opacity:1}97%,100%{opacity:0}}@keyframes cf-conditions-l2{0%,52.24%{opacity:1}53.73%,92%{opacity:1}97%,100%{opacity:1}}@media (prefers-reduced-motion:reduce){#cf-conditions *{animation:none!important}#cf-conditions .cf-label-skip{opacity:.45}}</style>
+<defs>
+<marker id="cf-conditions-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="cf-arrow" d="M0,0 L10,5 L0,10 z"/></marker>
+<marker id="cf-conditions-arrow-active" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="cf-arrow-active" d="M0,0 L10,5 L0,10 z"/></marker>
+</defs>
+<text class="cf-command" x="8" y="18"><tspan class="cf-prompt">$</tspan> baun Report</text>
+<path class="cf-edge cf-dependency" d="M104,72 L181,72" marker-end="url(#cf-conditions-arrow)"/>
+<path class="cf-edge cf-dependency cf-active cf-draw" d="M104,72 L181,72" pathLength="1" marker-end="url(#cf-conditions-arrow-active)" style="animation-name:cf-conditions-e0"/>
+<path class="cf-edge cf-dependency" d="M294,72 L357,72" marker-end="url(#cf-conditions-arrow)"/>
+<path class="cf-edge cf-dependency cf-active cf-draw" d="M294,72 L357,72" pathLength="1" marker-end="url(#cf-conditions-arrow-active)" style="animation-name:cf-conditions-e1"/>
+<g class="cf-step">
+<rect class="cf-box" x="8" y="52" width="96" height="40" rx="8"/>
+<rect class="cf-box cf-success cf-done" x="8" y="52" width="96" height="40" rx="8" style="animation-name:cf-conditions-d0"/>
+<rect class="cf-box cf-running cf-run" x="8" y="52" width="96" height="40" rx="8" style="animation-name:cf-conditions-r0"/>
+<text class="cf-label cf-label-success" x="22" y="77" style="animation-name:cf-conditions-l0">Pack</text>
+<text class="cf-icon cf-success cf-done" x="90" y="77" text-anchor="end" style="animation-name:cf-conditions-d0">✓</text>
+<circle class="cf-spinner cf-run" cx="85" cy="72" r="5" pathLength="1" style="animation:6.7s ease-in-out infinite cf-conditions-r0, .8s linear infinite cf-spin"/>
+</g>
+<g class="cf-step">
+<text class="cf-tag" x="186" y="44">.OnlyWhen(IsRunning)</text>
+<rect class="cf-box" x="184" y="52" width="110" height="40" rx="8"/>
+<rect class="cf-box cf-skip cf-done" x="184" y="52" width="110" height="40" rx="8" style="animation-name:cf-conditions-d1"/>
+<rect class="cf-box cf-running cf-run" x="184" y="52" width="110" height="40" rx="8" style="animation-name:cf-conditions-r1"/>
+<text class="cf-label cf-label-skip" x="198" y="77" style="animation-name:cf-conditions-l1">Publish</text>
+<text class="cf-icon cf-skip cf-done" x="280" y="77" text-anchor="end" style="animation-name:cf-conditions-d1">–</text>
+<circle class="cf-spinner cf-run" cx="275" cy="72" r="5" pathLength="1" style="animation:6.7s ease-in-out infinite cf-conditions-r1, .8s linear infinite cf-spin"/>
+<text class="cf-note cf-done" x="186" y="110" style="animation-name:cf-conditions-d1">condition is false</text>
+</g>
+<g class="cf-step">
+<rect class="cf-box" x="360" y="52" width="102" height="40" rx="8"/>
+<rect class="cf-box cf-success cf-done" x="360" y="52" width="102" height="40" rx="8" style="animation-name:cf-conditions-d2"/>
+<rect class="cf-box cf-running cf-run" x="360" y="52" width="102" height="40" rx="8" style="animation-name:cf-conditions-r2"/>
+<text class="cf-label cf-label-success" x="374" y="77" style="animation-name:cf-conditions-l2">Report</text>
+<text class="cf-icon cf-success cf-done" x="448" y="77" text-anchor="end" style="animation-name:cf-conditions-d2">✓</text>
+<circle class="cf-spinner cf-run" cx="443" cy="72" r="5" pathLength="1" style="animation:6.7s ease-in-out infinite cf-conditions-r2, .8s linear infinite cf-spin"/>
+</g>
+</svg>
