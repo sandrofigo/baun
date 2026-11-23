@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>baun · plan</title>
+<title>baun --plan</title>
 <style>
   :root {
     --accent: #6b81ff;
@@ -135,7 +135,7 @@
   </div>
 </div>
 <header>
-  <h1><span class="logo">baun</span> · plan</h1>
+  <h1><span class="logo">baun</span> <span id="command">--plan</span></h1>
   <button id="fit" class="tool" type="button" title="Fit to screen" aria-label="Fit to screen">
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg>
   </button>
@@ -153,6 +153,12 @@
 (() => {
   const plan = /*PLAN*/null;
   const steps = plan ? plan.steps : [];
+
+  // The title shows the command that opened the page, with the steps named on it.
+  const command = ["--plan", ...(plan?.requested ?? [])].join(" ");
+  document.getElementById("command").textContent = command;
+  document.title = "baun " + command;
+
   // Sizes and positions of the steps are multiples of the grid spacing, so the steps line up with the dots.
   const grid = 20;
   const columnGap = 4 * grid;

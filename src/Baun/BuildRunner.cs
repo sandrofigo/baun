@@ -127,7 +127,7 @@ internal sealed class BuildRunner(
 
             if (showPlan)
             {
-                return ShowPlan(steps, plan, skipped);
+                return ShowPlan(steps, plan, skipped, [.. parsed.StepNames.Select(name => FindStep(steps, name).Name)]);
             }
         }
         catch (BuildConfigurationException exception)
@@ -384,7 +384,11 @@ internal sealed class BuildRunner(
     /// numbered in the order they run. When the browser can't open, writes where the page is instead.
     /// </summary>
     /// <returns>The process exit code: 0 on success, 1 when the page can't be written.</returns>
-    private int ShowPlan(List<ResolvedStep> steps, List<ResolvedStep> plan, HashSet<ResolvedStep> skipped)
+    /// <param name="steps">All steps of the build.</param>
+    /// <param name="plan">The steps that run, in order.</param>
+    /// <param name="skipped">The steps skipped with <c>--skip</c>.</param>
+    /// <param name="requested">The names of the steps named on the command line, shown in the title of the page.</param>
+    private int ShowPlan(List<ResolvedStep> steps, List<ResolvedStep> plan, HashSet<ResolvedStep> skipped, List<string> requested)
     {
         AbsolutePath folder = planFolder ?? BaunBuild.FindTempDirectory(AbsolutePath.CurrentDirectory);
         AbsolutePath path;
@@ -405,7 +409,7 @@ internal sealed class BuildRunner(
                         : null
                 })
                 .ToList();
-            path = PlanPage.Write(pageSteps, folder);
+            path = PlanPage.Write(pageSteps, requested, folder);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
