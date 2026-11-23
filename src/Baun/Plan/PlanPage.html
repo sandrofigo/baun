@@ -66,6 +66,8 @@
   #edges path.skipped { stroke-dasharray: 4 4; opacity: 0.6; }
   #edges path.skipped.highlight { opacity: 1; }
   .step.skipped.highlight { color: var(--text); }
+  .step .tag { color: var(--faint); font-size: 0.85em; border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; }
+  #edges path.trigger { stroke-dasharray: 1 4; stroke-linecap: round; }
   header {
     position: fixed;
     left: 16px;
@@ -137,10 +139,11 @@
   const svg = document.getElementById("edges");
 
   // All steps of the build are shown. The steps that run are numbered in the order they run, the others are dimmed.
+  // A step skipped with --skip keeps its number but is dimmed too, and a step with a condition is tagged "if".
   const byName = new Map();
   for (const step of steps) {
     const element = document.createElement("div");
-    element.className = step.order ? "step" : "step skipped";
+    element.className = step.order && !step.skipped ? "step" : "step skipped";
     if (step.order) {
       const order = document.createElement("span");
       order.className = "order";
@@ -150,17 +153,38 @@
     const name = document.createElement("span");
     name.textContent = step.name;
     element.append(name);
+    if (step.condition) element.append(tag("if", "Only when " + step.condition));
+    if (step.skipped) element.append(tag("skipped", "Skipped with --skip"));
     world.appendChild(element);
-    byName.set(step.name, { step, element, edges: [] });
+    byName.set(step.name, { step, element, edges: [], triggeredBy: [] });
   }
 
-  // A step's column is one after its deepest dependency. A step in a cycle stops the search, so a cycle can't hang it.
+  function tag(text, title) {
+    const element = document.createElement("span");
+    element.className = "tag";
+    element.textContent = text;
+    element.title = title;
+    return element;
+  }
+
+  for (const node of byName.values()) {
+    for (const name of node.step.triggers ?? []) byName.get(name)?.triggeredBy.push(node.step.name);
+  }
+
+  // The steps a step comes after: its dependencies and the steps that trigger it.
+  const incoming = node => [
+    ...node.step.dependencies.map(name => ({ name, trigger: false })),
+    ...node.triggeredBy.map(name => ({ name, trigger: true })),
+  ];
+
+  // A step's column is one after its deepest dependency or trigger. A step in a cycle stops the search, so a cycle can't
+  // hang it.
   function columnOf(node, visiting = new Set()) {
     if (node.column !== undefined) return node.column;
     if (visiting.has(node)) return 0;
     visiting.add(node);
-    const column = node.step.dependencies.reduce(
-      (max, name) => byName.has(name) ? Math.max(max, columnOf(byName.get(name), visiting) + 1) : max, 0);
+    const column = incoming(node).reduce(
+      (max, { name }) => byName.has(name) ? Math.max(max, columnOf(byName.get(name), visiting) + 1) : max, 0);
     visiting.delete(node);
     return node.column = column;
   }
@@ -192,7 +216,7 @@
   const lanes = { above: 0, below: 0 };
 
   for (const node of byName.values()) {
-    for (const name of node.step.dependencies) {
+    for (const { name, trigger } of incoming(node)) {
       const from = byName.get(name);
       if (!from) continue;
       const x1 = from.x + from.width, y1 = from.y + stepHeight / 2;
@@ -220,9 +244,11 @@
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
       path.setAttribute("d", d);
       if (!node.step.order) path.classList.add("skipped");
+      if (trigger) path.classList.add("trigger");
       path.setAttribute("marker-end", "url(#arrow)");
       svg.appendChild(path);
-      node.edges.push({ from, path });
+      // A trigger doesn't run for the step it triggers, so hovering doesn't follow it.
+      if (!trigger) node.edges.push({ from, path });
     }
   }
 
