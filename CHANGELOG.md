@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `ProceedAfterFailure` to steps, which lets the build go on when the step fails and skips only the steps that depend on it.
 - Added `AlwaysRuns` to steps, which runs a step even after an earlier step failed, such as to clean up.
 - Added `--skip`, which skips steps of a run, such as `baun Pack --skip Test`. Without a step, it skips all steps but the named ones.
-- The help lists the conditions and triggers of each step, and the plan page shows triggers, orders, conditions and skipped steps. Its lines show a dependency as solid, an order as dashed and a trigger as dotted, and hovering a step highlights its whole flow, including the steps it triggers.
+- The help lists the conditions and triggers of each step, and the plan page shows triggers, orders, conditions and skipped steps. Its lines show a dependency as solid, an order as dashed and a trigger as dotted, and hovering a step highlights its whole flow, including the steps it triggers. The page places the steps so that their lines cross as little as possible.
 
 - Added `GitHubReleases`, which gets, saves and deletes GitHub releases. `GitHubReleases.GetAsync(tag)` gets an existing release, also a draft unless `includeDrafts` is `false`.
 - Added `GitHubReleases.CreateOrUpdateAsync(release)`, which saves a `GitHubRelease`: it creates the release, or updates it by its ID or, for a new release, by its tag.
