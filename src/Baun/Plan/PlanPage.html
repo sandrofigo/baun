@@ -45,17 +45,17 @@
   #edges { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
   /* The style of a line says what it means, the same as in the docs: solid for a dependency, dashed for an order and
      dotted for a trigger. */
-  #edges path, #legend path { fill: none; stroke: var(--edge); stroke-width: 1.5; }
+  #edges > path, #legend path { fill: none; stroke: var(--edge); stroke-width: 1.5; }
   path.order { stroke-dasharray: 6 4; }
   path.trigger { stroke-dasharray: 1 5; stroke-linecap: round; stroke-width: 2; }
-  #edges path.idle { opacity: 0.45; }
-  #edges path.highlight { stroke: var(--accent); stroke-width: 2; opacity: 1; }
+  #edges > path.idle { opacity: 0.45; }
+  #edges > path.highlight { stroke: var(--accent); stroke-width: 2; opacity: 1; }
   #arrow path { fill: var(--edge); stroke: none; }
   #arrow-highlight path { fill: var(--accent); stroke: none; }
   /* While a step is hovered, the steps and lines outside its flow fade. */
-  #world .step, #edges path { transition: opacity 0.15s; }
+  #world .step, #edges > path { transition: opacity 0.15s; }
   #world.focus .step:not(.highlight) { opacity: 0.35; }
-  #world.focus #edges path:not(.highlight) { opacity: 0.15; }
+  #world.focus #edges > path:not(.highlight) { opacity: 0.15; }
   #legend {
     position: fixed;
     left: 16px;
