@@ -102,6 +102,8 @@
     pointer-events: none;
   }
   header h1 { margin: 0; font-size: 14px; font-weight: normal; color: var(--accent); }
+  /* The gradient of the logotype, the same as on baun.dev */
+  header h1 .logo { background: linear-gradient(90deg, #6b81ff, #f789fe); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .tool {
     pointer-events: auto;
     font: inherit;
@@ -133,7 +135,7 @@
   </div>
 </div>
 <header>
-  <h1>baun · plan</h1>
+  <h1><span class="logo">baun</span> · plan</h1>
   <button id="fit" class="tool" type="button" title="Fit to screen" aria-label="Fit to screen">
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg>
   </button>
