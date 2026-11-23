@@ -12,6 +12,11 @@ namespace Baun.Plan;
 internal sealed record PlanStep(string Name, IReadOnlyList<string> Dependencies, int? Order)
 {
     /// <summary>
+    /// Gets the names of the steps it runs after when they run too, from <c>After</c> and <c>Before</c>.
+    /// </summary>
+    public IReadOnlyList<string> After { get; init; } = [];
+
+    /// <summary>
     /// Gets the names of the steps it triggers.
     /// </summary>
     public IReadOnlyList<string> Triggers { get; init; } = [];
@@ -63,6 +68,7 @@ internal static class PlanPage
                 step.Name,
                 step.Dependencies,
                 step.Order,
+                step.After.Count > 0 ? step.After : null,
                 step.Triggers.Count > 0 ? step.Triggers : null,
                 step.Skipped ? true : null,
                 step.Condition)),
@@ -86,6 +92,7 @@ internal static class PlanPage
         [property: JsonPropertyName("name")] string Name,
         [property: JsonPropertyName("dependencies")] IReadOnlyList<string> Dependencies,
         [property: JsonPropertyName("order")] int? Order,
+        [property: JsonPropertyName("after"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<string>? After,
         [property: JsonPropertyName("triggers"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<string>? Triggers,
         [property: JsonPropertyName("skipped"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? Skipped,
         [property: JsonPropertyName("condition"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Condition);

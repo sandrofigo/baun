@@ -397,6 +397,7 @@ internal sealed class BuildRunner(
                     [.. step.Dependencies.Select(dependency => dependency.Name)],
                     plan.IndexOf(step) is var index and >= 0 ? index + 1 : null)
                 {
+                    After = [.. step.OrderedAfter.Select(earlier => earlier.Name)],
                     Triggers = [.. step.Triggered.Select(triggered => triggered.Name)],
                     Skipped = skipped.Contains(step),
                     Condition = step.Builder.Conditions.Count > 0

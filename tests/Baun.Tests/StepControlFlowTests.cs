@@ -270,6 +270,16 @@ public class StepControlFlowTests
         Assert.Equal("""{"name":"Publish","dependencies":["Compute"],"order":2,"condition":"PublishEnabled \u0026\u0026 computed"}""", publish);
     }
 
+    [Fact]
+    public async Task Shows_the_order_of_steps_in_the_plan()
+    {
+        string page = await PlanAsync(new OrderBuild(), "--plan", "Compile");
+
+        Assert.Contains("""{"name":"Clean","dependencies":[],"order":null}""", page);
+        Assert.Contains("""{"name":"Restore","dependencies":[],"order":1,"after":["Clean"]}""", page);
+        Assert.Contains("""{"name":"Compile","dependencies":["Restore"],"order":2,"after":["Lint"]}""", page);
+    }
+
     private static async Task<RunResult> RunAsync(IBaunBuild build, params string[] arguments)
     {
         var console = new TestConsole().Width(250);
