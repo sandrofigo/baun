@@ -53,6 +53,7 @@ Running `baun` without arguments starts the entry step, so `Compile` runs first 
 ## Documentation
 
 - [Concept](https://baun.dev/guides/concept/): steps, dependencies and the entry step
+- [Control Flow](https://baun.dev/guides/control-flow/): conditions, ordering, triggers, failure handling and skipping steps
 - [Parameters](https://baun.dev/guides/parameters/): set values from the command line, environment variables or `parameters.json`
 - [Running Tools](https://baun.dev/guides/tools/): run command-line tools from steps
 - [dotnet](https://baun.dev/tools/dotnet/) and [git](https://baun.dev/tools/git/): typed commands for the .NET CLI and git
