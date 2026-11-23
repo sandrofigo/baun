@@ -90,6 +90,8 @@ internal sealed class BuildRunner(
         }
 
         List<ResolvedStep> plan;
+        HashSet<ResolvedStep> skipped;
+        IReadOnlyList<BaunParameter> parameters;
 
         try
         {
@@ -105,26 +107,27 @@ internal sealed class BuildRunner(
                 return 0;
             }
 
-            var parameters = build.GetParameters();
+            parameters = build.GetParameters();
 
             IReadOnlyList<string> withoutPlan = [.. arguments.Where(argument => !IsOption(argument, PlanOption))];
             bool showPlan = withoutPlan.Count != arguments.Count;
 
-            var (names, parameterValues) = ParseArguments(withoutPlan, parameters);
+            var parsed = ParseArguments(withoutPlan, parameters);
 
             // Parameters are set before the steps are resolved, so step definitions can already use them.
-            ParameterResolver.Apply(parameters, parameterValues, sources);
+            ParameterResolver.Apply(parameters, parsed.ParameterValues, sources);
 
             var steps = ResolveSteps();
-            var requested = SelectRequestedSteps(steps, names);
+            var requested = SelectRequestedSteps(steps, parsed.StepNames);
             plan = CreateExecutionPlan(requested);
+            skipped = SelectSkippedSteps(steps, plan, requested, parsed.SkipNames, parsed.SkipAll);
 
             // Checked for the whole plan before the first step starts, so a missing value can't stop the build halfway.
-            CheckRequirements(plan, parameters);
+            CheckRequirements(plan, skipped, parameters);
 
             if (showPlan)
             {
-                return ShowPlan(steps, plan);
+                return ShowPlan(steps, plan, skipped);
             }
         }
         catch (BuildConfigurationException exception)
@@ -142,7 +145,7 @@ internal sealed class BuildRunner(
         var total = Stopwatch.StartNew();
 
         bool succeeded = await TryRunHookAsync<IOnBuildInitialized>(hook => hook.OnBuildInitializedAsync())
-                         && await RunStepsAsync(plan, results);
+                         && await RunStepsAsync(plan, skipped, parameters, results);
 
         if (succeeded)
         {
@@ -170,65 +173,173 @@ internal sealed class BuildRunner(
     }
 
     /// <summary>
-    /// Runs the steps of <paramref name="plan"/> in order until one fails, and adds the result of each to
-    /// <paramref name="results"/>.
+    /// Runs the steps of <paramref name="plan"/> in order and adds the result of each to <paramref name="results"/>.
     /// </summary>
+    /// <remarks>
+    /// After a step fails, the remaining steps are skipped, except those that always run. A step that proceeds after a
+    /// failure only skips the steps that depend on it.
+    /// </remarks>
     /// <returns>Whether every step and its hooks succeeded.</returns>
-    private async Task<bool> RunStepsAsync(List<ResolvedStep> plan, List<StepResult> results)
+    private async Task<bool> RunStepsAsync(
+        List<ResolvedStep> plan,
+        HashSet<ResolvedStep> skipped,
+        IReadOnlyList<BaunParameter> parameters,
+        List<StepResult> results)
     {
+        bool failed = false;
+        bool stopped = false;
+
+        // The steps that failed or didn't run because of a failure, whose dependents don't run either.
+        var notRun = new HashSet<ResolvedStep>();
+
         foreach (ResolvedStep step in plan)
         {
+            if (skipped.Contains(step))
+            {
+                results.Add(new StepResult(step.Name, StepStatus.Skipped, null));
+                continue;
+            }
+
+            if (!step.Builder.RunsAlways && (stopped || step.Dependencies.Any(notRun.Contains)))
+            {
+                notRun.Add(step);
+                results.Add(new StepResult(step.Name, StepStatus.Skipped, null));
+                continue;
+            }
+
             var stopwatch = Stopwatch.StartNew();
-
-            // Outside CI, the step name gets an empty line before and after it. In CI, the log groups separate the steps.
-            IDisposable group = LogGroups.Begin(
-                console,
-                provider,
-                step.Name,
-                $" {Markup.Escape(step.Name)}\n{Theme.Faint(console.Underline($" {step.Name}"))}",
-                padFallback: true);
-
             Exception? failure = null;
+            bool run = true;
 
             try
             {
-                // The start and success hooks belong to the step, so an exception in them fails it.
-                await RunHookAsync<IOnStepStarted>(hook => hook.OnStepStartedAsync(step.Name));
-
-                foreach (var action in step.Builder.Actions)
-                {
-                    await action();
-                }
-
-                await RunHookAsync<IOnStepSucceeded>(hook => hook.OnStepSucceededAsync(step.Name));
+                run = ShouldRun(step, parameters);
             }
             catch (Exception exception)
             {
                 failure = exception;
             }
 
-            // End the group first, so an error isn't hidden in a collapsed group.
-            group.Dispose();
+            if (!run)
+            {
+                results.Add(new StepResult(step.Name, StepStatus.Skipped, null));
+                continue;
+            }
+
+            failure ??= await RunStepAsync(step);
 
             if (failure is not null)
             {
                 results.Add(new StepResult(step.Name, StepStatus.Failed, stopwatch.Elapsed));
-                Log.Error(failure, "Step {Step} failed", step.Name);
+                LogFailure(step, failure);
 
                 await TryRunHookAsync<IOnStepFailed>(hook => hook.OnStepFailedAsync(step.Name, failure));
                 await TryRunHookAsync<IOnStepCompleted>(hook => hook.OnStepCompletedAsync(step.Name));
-                return false;
+
+                failed = true;
+                notRun.Add(step);
+                stopped |= !step.Builder.ProceedsAfterFailure;
+                continue;
             }
 
             results.Add(new StepResult(step.Name, StepStatus.Succeeded, stopwatch.Elapsed));
 
             if (!await TryRunHookAsync<IOnStepCompleted>(hook => hook.OnStepCompletedAsync(step.Name)))
             {
+                failed = true;
+                stopped = true;
+            }
+        }
+
+        return !failed;
+    }
+
+    /// <summary>
+    /// Returns whether the conditions of <paramref name="step"/> are true, and logs why it's skipped when one isn't. When
+    /// they are, checks the requirements of a step with conditions, which aren't checked before the build starts.
+    /// </summary>
+    /// <exception cref="BuildConfigurationException">A requirement of the step isn't met.</exception>
+    private static bool ShouldRun(ResolvedStep step, IReadOnlyList<BaunParameter> parameters)
+    {
+        foreach (StepCondition condition in step.Builder.Conditions)
+        {
+            if (!condition.Value())
+            {
+                Log.Information("Skipping {Step} because {Condition} is false", step.Name, condition.Body);
                 return false;
             }
         }
 
+        if (step.Builder.Conditions.Count > 0)
+        {
+            var missing = new List<string>();
+            AddMissingRequirements(step, parameters, missing);
+
+            if (missing.Count > 0)
+            {
+                throw new BuildConfigurationException(string.Join(Environment.NewLine, missing));
+            }
+        }
+
         return true;
+    }
+
+    /// <summary>
+    /// Runs the hooks and the work of <paramref name="step"/> in its log group.
+    /// </summary>
+    /// <returns>The exception that failed the step, or <see langword="null"/> when it succeeded.</returns>
+    private async Task<Exception?> RunStepAsync(ResolvedStep step)
+    {
+        // Outside CI, the step name gets an empty line before and after it. In CI, the log groups separate the steps.
+        IDisposable group = LogGroups.Begin(
+            console,
+            provider,
+            step.Name,
+            $" {Markup.Escape(step.Name)}\n{Theme.Faint(console.Underline($" {step.Name}"))}",
+            padFallback: true);
+
+        try
+        {
+            // The start and success hooks belong to the step, so an exception in them fails it.
+            await RunHookAsync<IOnStepStarted>(hook => hook.OnStepStartedAsync(step.Name));
+
+            foreach (var action in step.Builder.Actions)
+            {
+                await action();
+            }
+
+            await RunHookAsync<IOnStepSucceeded>(hook => hook.OnStepSucceededAsync(step.Name));
+            return null;
+        }
+        catch (Exception exception)
+        {
+            return exception;
+        }
+        finally
+        {
+            // End the group first, so an error isn't hidden in a collapsed group.
+            group.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Logs that <paramref name="step"/> failed with <paramref name="failure"/>. A missing requirement is logged as its
+    /// message only, like before the build starts.
+    /// </summary>
+    private static void LogFailure(ResolvedStep step, Exception failure)
+    {
+        if (failure is BuildConfigurationException)
+        {
+            foreach (string line in failure.Message.ReplaceLineEndings("\n").Split('\n'))
+            {
+                Log.WriteText(LogLevel.Error, line);
+            }
+
+            Log.Error("Step {Step} failed", step.Name);
+            return;
+        }
+
+        Log.Error(failure, "Step {Step} failed", step.Name);
     }
 
     /// <summary>
@@ -273,7 +384,7 @@ internal sealed class BuildRunner(
     /// numbered in the order they run. When the browser can't open, writes where the page is instead.
     /// </summary>
     /// <returns>The process exit code: 0 on success, 1 when the page can't be written.</returns>
-    private int ShowPlan(List<ResolvedStep> steps, List<ResolvedStep> plan)
+    private int ShowPlan(List<ResolvedStep> steps, List<ResolvedStep> plan, HashSet<ResolvedStep> skipped)
     {
         AbsolutePath folder = planFolder ?? BaunBuild.FindTempDirectory(AbsolutePath.CurrentDirectory);
         AbsolutePath path;
@@ -284,7 +395,14 @@ internal sealed class BuildRunner(
                 .Select(step => new PlanStep(
                     step.Name,
                     [.. step.Dependencies.Select(dependency => dependency.Name)],
-                    plan.IndexOf(step) is var index and >= 0 ? index + 1 : null))
+                    plan.IndexOf(step) is var index and >= 0 ? index + 1 : null)
+                {
+                    Triggers = [.. step.Triggered.Select(triggered => triggered.Name)],
+                    Skipped = skipped.Contains(step),
+                    Condition = step.Builder.Conditions.Count > 0
+                        ? string.Join(" && ", step.Builder.Conditions.Select(condition => condition.Body))
+                        : null
+                })
                 .ToList();
             path = PlanPage.Write(pageSteps, folder);
         }
@@ -391,6 +509,11 @@ internal sealed class BuildRunner(
     /// </summary>
     private const string StepOption = "step";
 
+    /// <summary>
+    /// The option that skips a step of the plan, or every step but the named ones when it has no value.
+    /// </summary>
+    private const string SkipOption = "skip";
+
     private bool HasOption(IReadOnlyList<string> arguments, string name, string shortName) =>
         arguments.Any(argument => IsOption(argument, name) || string.Equals(argument, shortName, StringComparison.Ordinal));
 
@@ -447,6 +570,16 @@ internal sealed class BuildRunner(
                 notes.Add("Runs when no step is named");
             }
 
+            if (step.Builder.Conditions.Count > 0)
+            {
+                notes.Add($"Only when {string.Join(" and ", step.Builder.Conditions.Select(condition => condition.Body))}");
+            }
+
+            if (step.Triggered.Count > 0)
+            {
+                notes.Add($"Triggers {string.Join(", ", step.Triggered.Select(triggered => triggered.Name))}");
+            }
+
             if (step.Builder.Requirements.Count > 0)
             {
                 var required = step.Builder.Requirements.Select(requirement =>
@@ -482,6 +615,9 @@ internal sealed class BuildRunner(
             .AddRow("-v, --version", "Prints version information")
             .AddRow($"    {ToHelpOption(PlanOption)}", "Opens the steps that would run, in order, in the browser without running them")
             .AddRow($"    {ToHelpOption(StepOption)} <name>", "Runs a step whose name is also a command of the baun tool, such as init")
+            .AddRow(
+                $"    {ToHelpOption(SkipOption)} [[<step>]]",
+                "Skips a step that would run, and can be repeated. Without a step, skips all steps but the named ones")
             .AddRow(
                 $"    {ToHelpOption(VerbosityOption)} <level>",
                 $"Sets the minimum log level: Verbose, Debug (default), Information, Warning, Error or Fatal. Also read from {VerbosityVariable}");
@@ -525,60 +661,109 @@ internal sealed class BuildRunner(
 
         foreach (ResolvedStep step in steps)
         {
-            foreach (var dependency in step.Builder.Dependencies)
+            foreach (ResolvedStep dependency in Resolve(step, step.Builder.Dependencies, "depends on"))
             {
-                if (!byMethod.TryGetValue(dependency.Method, out ResolvedStep? resolved))
-                {
-                    throw new BuildConfigurationException(
-                        $"Step {step.Name} depends on {dependency.Method.Name}, which is not a step of {build.GetType().Name}.");
-                }
+                AddOnce(step.Dependencies, dependency);
+            }
 
-                if (!step.Dependencies.Contains(resolved))
-                {
-                    step.Dependencies.Add(resolved);
-                }
+            foreach (ResolvedStep earlier in Resolve(step, step.Builder.AfterSteps, "runs after"))
+            {
+                AddOnce(step.OrderedAfter, earlier);
+            }
+
+            foreach (ResolvedStep later in Resolve(step, step.Builder.BeforeSteps, "runs before"))
+            {
+                AddOnce(later.OrderedAfter, step);
+            }
+
+            foreach (ResolvedStep triggered in Resolve(step, step.Builder.TriggeredSteps, "triggers"))
+            {
+                AddOnce(step.Triggered, triggered);
+            }
+
+            foreach (ResolvedStep trigger in Resolve(step, step.Builder.TriggeringSteps, "is triggered by"))
+            {
+                AddOnce(trigger.Triggered, step);
+            }
+        }
+
+        foreach (ResolvedStep step in steps)
+        {
+            foreach (ResolvedStep triggered in step.Triggered)
+            {
+                triggered.TriggeredBy.Add(step);
             }
         }
 
         return steps;
+
+        IEnumerable<ResolvedStep> Resolve(ResolvedStep step, IReadOnlyList<Func<Step>> references, string relation) =>
+            references.Select(reference => byMethod.TryGetValue(reference.Method, out ResolvedStep? resolved)
+                ? resolved
+                : throw new BuildConfigurationException(
+                    $"Step {step.Name} {relation} {reference.Method.Name}, which is not a step of {build.GetType().Name}."));
+
+        static void AddOnce(List<ResolvedStep> list, ResolvedStep step)
+        {
+            if (!list.Contains(step))
+            {
+                list.Add(step);
+            }
+        }
     }
 
     /// <summary>
     /// Throws if a step of <paramref name="plan"/> requires a value that isn't set, naming every missing value.
     /// </summary>
-    private static void CheckRequirements(List<ResolvedStep> plan, IReadOnlyList<BaunParameter> parameters)
+    /// <remarks>
+    /// Skipped steps aren't checked. Steps with conditions are checked right before they run, when their conditions are
+    /// true, so a step that only runs in CI doesn't need its values locally.
+    /// </remarks>
+    private static void CheckRequirements(List<ResolvedStep> plan, HashSet<ResolvedStep> skipped, IReadOnlyList<BaunParameter> parameters)
     {
         var missing = new List<string>();
 
         foreach (ResolvedStep step in plan)
         {
-            foreach (StepRequirement requirement in step.Builder.Requirements)
+            if (!skipped.Contains(step) && step.Builder.Conditions.Count == 0)
             {
-                object? value;
-
-                try
-                {
-                    value = requirement.Value();
-                }
-                catch (Exception exception)
-                {
-                    throw new BuildConfigurationException($"Step {step.Name} requires {requirement.Body}, which failed: {exception.Message}");
-                }
-
-                if (value is not false && !ParameterResolver.IsMissing(value))
-                {
-                    continue;
-                }
-
-                missing.Add(FindParameter(requirement, parameters) is { } parameter
-                    ? $"Step {step.Name} requires parameter {parameter.Name}. {ParameterResolver.DescribeSources(parameter)}"
-                    : $"Step {step.Name} requires {requirement.Body}, which {(value is false ? "is false" : "isn't set")}.");
+                AddMissingRequirements(step, parameters, missing);
             }
         }
 
         if (missing.Count > 0)
         {
             throw new BuildConfigurationException(string.Join(Environment.NewLine, missing));
+        }
+    }
+
+    /// <summary>
+    /// Adds a message to <paramref name="missing"/> for each value <paramref name="step"/> requires that isn't set.
+    /// </summary>
+    /// <exception cref="BuildConfigurationException">A requirement throws.</exception>
+    private static void AddMissingRequirements(ResolvedStep step, IReadOnlyList<BaunParameter> parameters, List<string> missing)
+    {
+        foreach (StepRequirement requirement in step.Builder.Requirements)
+        {
+            object? value;
+
+            try
+            {
+                value = requirement.Value();
+            }
+            catch (Exception exception)
+            {
+                throw new BuildConfigurationException($"Step {step.Name} requires {requirement.Body}, which failed: {exception.Message}");
+            }
+
+            if (value is not false && !ParameterResolver.IsMissing(value))
+            {
+                continue;
+            }
+
+            missing.Add(FindParameter(requirement, parameters) is { } parameter
+                ? $"Step {step.Name} requires parameter {parameter.Name}. {ParameterResolver.DescribeSources(parameter)}"
+                : $"Step {step.Name} requires {requirement.Body}, which {(value is false ? "is false" : "isn't set")}.");
         }
     }
 
@@ -591,13 +776,26 @@ internal sealed class BuildRunner(
             : null;
 
     /// <summary>
-    /// Splits the command-line arguments into step names and parameter values.
+    /// The command-line arguments, split into step names, steps to skip and parameter values.
     /// </summary>
-    private (List<string> StepNames, Dictionary<BaunParameter, List<string>> ParameterValues) ParseArguments(
-        IReadOnlyList<string> arguments,
-        IReadOnlyList<BaunParameter> parameters)
+    /// <param name="StepNames">The names of the steps to run.</param>
+    /// <param name="SkipNames">The names of the steps given to <c>--skip</c>.</param>
+    /// <param name="SkipAll">Whether <c>--skip</c> was given without a step, which skips all steps but the named ones.</param>
+    /// <param name="ParameterValues">The values of the parameters.</param>
+    private sealed record ParsedArguments(
+        List<string> StepNames,
+        List<string> SkipNames,
+        bool SkipAll,
+        Dictionary<BaunParameter, List<string>> ParameterValues);
+
+    /// <summary>
+    /// Splits the command-line arguments into step names, steps to skip and parameter values.
+    /// </summary>
+    private ParsedArguments ParseArguments(IReadOnlyList<string> arguments, IReadOnlyList<BaunParameter> parameters)
     {
         var names = new List<string>();
+        var skipNames = new List<string>();
+        bool skipAll = false;
         var values = new Dictionary<BaunParameter, List<string>>();
         var byName = parameters.ToDictionary(parameter => ParameterResolver.Normalize(parameter.Name));
 
@@ -614,6 +812,18 @@ internal sealed class BuildRunner(
                 }
 
                 names.Add(arguments[++i]);
+            }
+            else if (IsOption(argument, SkipOption))
+            {
+                // --skip Test skips Test. Without a step, such as at the end, it skips all steps but the named ones.
+                if (HasValueAfter(arguments, i))
+                {
+                    skipNames.Add(arguments[++i]);
+                }
+                else
+                {
+                    skipAll = true;
+                }
             }
             else if (argument.StartsWith("--", StringComparison.Ordinal) && argument.Length > 2)
             {
@@ -667,7 +877,7 @@ internal sealed class BuildRunner(
             }
         }
 
-        return (names, values);
+        return new ParsedArguments(names, skipNames, skipAll, values);
     }
 
     private List<ResolvedStep> SelectRequestedSteps(List<ResolvedStep> steps, List<string> names)
@@ -676,65 +886,120 @@ internal sealed class BuildRunner(
         {
             ResolvedStep step = steps.FirstOrDefault(step => step.IsEntry)
                                 ?? throw new BuildConfigurationException(
-                                    $"No step was named and {build.GetType().Name} has no entry step. Name a step, or add [Entry(nameof(...))] to the build class. {AvailableSteps()}");
+                                    $"No step was named and {build.GetType().Name} has no entry step. Name a step, or add [Entry(nameof(...))] to the build class. {AvailableSteps(steps)}");
 
             return [step];
         }
 
-        var requested = new List<ResolvedStep>();
-
-        foreach (string name in names)
-        {
-            ResolvedStep step = steps.FirstOrDefault(step => string.Equals(step.Name, name, StringComparison.OrdinalIgnoreCase))
-                                ?? throw new BuildConfigurationException(
-                                    $"Unknown step {name}. {AvailableSteps()}");
-
-            requested.Add(step);
-        }
-
-        return requested;
-
-        string AvailableSteps() => $"Available steps: {string.Join(", ", steps.Select(step => step.Name))}.";
+        return [.. names.Select(name => FindStep(steps, name))];
     }
 
+    /// <summary>
+    /// Returns the steps of <paramref name="plan"/> that <c>--skip</c> skips: the named ones, or, when
+    /// <paramref name="skipAll"/> is set, all but the <paramref name="requested"/> ones.
+    /// </summary>
+    private static HashSet<ResolvedStep> SelectSkippedSteps(
+        List<ResolvedStep> steps,
+        List<ResolvedStep> plan,
+        List<ResolvedStep> requested,
+        List<string> names,
+        bool skipAll)
+    {
+        HashSet<ResolvedStep> skipped = [.. names.Select(name => FindStep(steps, name))];
+
+        if (skipAll)
+        {
+            skipped.UnionWith(plan.Except(requested));
+        }
+
+        return skipped;
+    }
+
+    /// <summary>
+    /// Returns the step named <paramref name="name"/>, ignoring case, or throws listing the available steps.
+    /// </summary>
+    private static ResolvedStep FindStep(List<ResolvedStep> steps, string name) =>
+        steps.FirstOrDefault(step => string.Equals(step.Name, name, StringComparison.OrdinalIgnoreCase))
+        ?? throw new BuildConfigurationException($"Unknown step {name}. {AvailableSteps(steps)}");
+
+    private static string AvailableSteps(List<ResolvedStep> steps) =>
+        $"Available steps: {string.Join(", ", steps.Select(step => step.Name))}.";
+
+    /// <summary>
+    /// Returns the steps to run for <paramref name="requested"/>, in the order they run.
+    /// </summary>
+    /// <remarks>
+    /// The plan holds the requested steps, their dependencies and the steps they trigger, and again the dependencies and
+    /// triggered steps of those. A step runs after its dependencies, and after the steps it runs after or is triggered by
+    /// when they're in the plan. A triggered step runs as soon as it can after the step that triggers it.
+    /// </remarks>
     private static List<ResolvedStep> CreateExecutionPlan(List<ResolvedStep> requested)
     {
+        var included = new HashSet<ResolvedStep>();
+        var pending = new Queue<ResolvedStep>(requested);
+
+        while (pending.TryDequeue(out ResolvedStep? step))
+        {
+            if (included.Add(step))
+            {
+                foreach (ResolvedStep next in step.Dependencies.Concat(step.Triggered))
+                {
+                    pending.Enqueue(next);
+                }
+            }
+        }
+
         var plan = new List<ResolvedStep>();
         var visited = new HashSet<ResolvedStep>();
-        var path = new List<ResolvedStep>();
+
+        // The steps being visited, each with whether it was reached through a dependency rather than an order.
+        var path = new List<(ResolvedStep Step, bool IsDependency)>();
 
         foreach (ResolvedStep step in requested)
         {
-            Visit(step);
+            Visit(step, isDependency: true);
         }
 
         return plan;
 
-        void Visit(ResolvedStep step)
+        void Visit(ResolvedStep step, bool isDependency)
         {
             if (visited.Contains(step))
             {
                 return;
             }
 
-            int index = path.IndexOf(step);
+            int index = path.FindIndex(item => item.Step == step);
 
             if (index >= 0)
             {
-                var cycle = path.Skip(index).Append(step).Select(item => item.Name);
-                throw new BuildConfigurationException($"Circular dependency: {string.Join(" -> ", cycle)}.");
+                var cycle = path.Skip(index).Select(item => item.Step.Name).Append(step.Name);
+                bool onlyDependencies = isDependency && path.Skip(index + 1).All(item => item.IsDependency);
+
+                throw new BuildConfigurationException(
+                    $"{(onlyDependencies ? "Circular dependency" : "Circular order")}: {string.Join(" -> ", cycle)}.");
             }
 
-            path.Add(step);
+            path.Add((step, isDependency));
 
             foreach (ResolvedStep dependency in step.Dependencies)
             {
-                Visit(dependency);
+                Visit(dependency, isDependency: true);
+            }
+
+            foreach (ResolvedStep earlier in step.OrderedAfter.Concat(step.TriggeredBy).Where(included.Contains))
+            {
+                Visit(earlier, isDependency: false);
             }
 
             path.RemoveAt(path.Count - 1);
             visited.Add(step);
             plan.Add(step);
+
+            foreach (ResolvedStep triggered in step.Triggered)
+            {
+                Visit(triggered, isDependency: false);
+            }
         }
     }
 
@@ -757,6 +1022,23 @@ internal sealed class BuildRunner(
         public StepBuilder Builder { get; } = builder;
 
         public List<ResolvedStep> Dependencies { get; } = [];
+
+        /// <summary>
+        /// Gets the steps this step runs after when they run too, from its <see cref="StepBuilder.After"/> and the
+        /// <see cref="StepBuilder.Before"/> of other steps.
+        /// </summary>
+        public List<ResolvedStep> OrderedAfter { get; } = [];
+
+        /// <summary>
+        /// Gets the steps this step triggers, from its <see cref="StepBuilder.Triggers"/> and the
+        /// <see cref="StepBuilder.TriggeredBy"/> of other steps.
+        /// </summary>
+        public List<ResolvedStep> Triggered { get; } = [];
+
+        /// <summary>
+        /// Gets the steps that trigger this step.
+        /// </summary>
+        public List<ResolvedStep> TriggeredBy { get; } = [];
     }
 
     private enum StepStatus
