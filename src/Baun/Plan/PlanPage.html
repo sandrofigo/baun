@@ -43,10 +43,35 @@
   #canvas.panning { cursor: grabbing; }
   #world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
   #edges { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
-  #edges path { fill: none; stroke: var(--edge); stroke-width: 1.5; }
-  #edges path.highlight { stroke: var(--accent); stroke-width: 2; }
+  /* The style of a line says what it means, the same as in the docs: solid for a dependency, dashed for an order and
+     dotted for a trigger. */
+  #edges path, #legend path { fill: none; stroke: var(--edge); stroke-width: 1.5; }
+  path.order { stroke-dasharray: 6 4; }
+  path.trigger { stroke-dasharray: 1 5; stroke-linecap: round; stroke-width: 2; }
+  #edges path.idle { opacity: 0.45; }
+  #edges path.highlight { stroke: var(--accent); stroke-width: 2; opacity: 1; }
   #arrow path { fill: var(--edge); stroke: none; }
   #arrow-highlight path { fill: var(--accent); stroke: none; }
+  /* While a step is hovered, the steps and lines outside its flow fade. */
+  #world .step, #edges path { transition: opacity 0.15s; }
+  #world.focus .step:not(.highlight) { opacity: 0.35; }
+  #world.focus #edges path:not(.highlight) { opacity: 0.15; }
+  #legend {
+    position: fixed;
+    left: 16px;
+    bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 12px;
+    color: var(--faint);
+    font-size: 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  #legend:empty { display: none; }
+  #legend div { display: flex; align-items: center; gap: 8px; }
   .step {
     position: absolute;
     display: flex;
@@ -63,11 +88,8 @@
   .step.highlight { border-color: var(--accent); }
   .step .order { color: var(--faint); font-variant-numeric: tabular-nums; }
   .step.skipped { color: var(--faint); background: transparent; border-style: dashed; }
-  #edges path.skipped { stroke-dasharray: 4 4; opacity: 0.6; }
-  #edges path.skipped.highlight { opacity: 1; }
   .step.skipped.highlight { color: var(--text); }
   .step .tag { color: var(--faint); font-size: 0.85em; border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; }
-  #edges path.trigger { stroke-dasharray: 1 4; stroke-linecap: round; }
   header {
     position: fixed;
     left: 16px;
@@ -115,6 +137,7 @@
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg>
   </button>
 </header>
+<div id="legend"></div>
 <div id="zoom">
   <button id="zoom-in" class="tool" type="button" title="Zoom in" aria-label="Zoom in">
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>
@@ -156,7 +179,7 @@
     if (step.condition) element.append(tag("if", "Only when " + step.condition));
     if (step.skipped) element.append(tag("skipped", "Skipped with --skip"));
     world.appendChild(element);
-    byName.set(step.name, { step, element, edges: [], triggeredBy: [] });
+    byName.set(step.name, { step, element, incoming: [], outgoing: [] });
   }
 
   function tag(text, title) {
@@ -167,24 +190,32 @@
     return element;
   }
 
-  for (const node of byName.values()) {
-    for (const name of node.step.triggers ?? []) byName.get(name)?.triggeredBy.push(node.step.name);
+  // The edges between steps, each pointing from the step that comes first: "dependency" from a dependency, "trigger"
+  // from the step that triggers it, and "order" from a step it runs after (After and Before). Two steps get one edge, the
+  // first of these kinds that applies.
+  const edges = [];
+  const connected = new Set();
+  function connect(fromName, toName, kind) {
+    const from = byName.get(fromName), to = byName.get(toName);
+    const key = fromName + "\n" + toName;
+    if (!from || !to || connected.has(key)) return;
+    connected.add(key);
+    const edge = { from, to, kind };
+    edges.push(edge);
+    to.incoming.push(edge);
+    from.outgoing.push(edge);
   }
+  for (const { step } of byName.values()) for (const name of step.dependencies) connect(name, step.name, "dependency");
+  for (const { step } of byName.values()) for (const name of step.triggers ?? []) connect(step.name, name, "trigger");
+  for (const { step } of byName.values()) for (const name of step.after ?? []) connect(name, step.name, "order");
 
-  // The steps a step comes after: its dependencies and the steps that trigger it.
-  const incoming = node => [
-    ...node.step.dependencies.map(name => ({ name, trigger: false })),
-    ...node.triggeredBy.map(name => ({ name, trigger: true })),
-  ];
-
-  // A step's column is one after its deepest dependency or trigger. A step in a cycle stops the search, so a cycle can't
-  // hang it.
+  // A step's column is one after the deepest step that comes before it. A step in a cycle stops the search, so a cycle
+  // can't hang it.
   function columnOf(node, visiting = new Set()) {
     if (node.column !== undefined) return node.column;
     if (visiting.has(node)) return 0;
     visiting.add(node);
-    const column = incoming(node).reduce(
-      (max, { name }) => byName.has(name) ? Math.max(max, columnOf(byName.get(name), visiting) + 1) : max, 0);
+    const column = node.incoming.reduce((max, { from }) => Math.max(max, columnOf(from, visiting) + 1), 0);
     visiting.delete(node);
     return node.column = column;
   }
@@ -215,57 +246,72 @@
   let top = 0, bottom = Math.max(stepHeight, tallest);
   const lanes = { above: 0, below: 0 };
 
-  for (const node of byName.values()) {
-    for (const { name, trigger } of incoming(node)) {
-      const from = byName.get(name);
-      if (!from) continue;
-      const x1 = from.x + from.width, y1 = from.y + stepHeight / 2;
-      const x2 = node.x - 2, y2 = node.y + stepHeight / 2;
-      let d;
+  for (const edge of edges) {
+    const { from, to: node, kind } = edge;
+    const x1 = from.x + from.width, y1 = from.y + stepHeight / 2;
+    const x2 = node.x - 2, y2 = node.y + stepHeight / 2;
+    let d;
 
-      if (node.column - from.column > 1) {
-        const passed = columns.slice(from.column + 1, node.column).flat();
-        const minY = Math.min(...passed.map(step => step.y));
-        const maxY = Math.max(...passed.map(step => step.y + stepHeight));
-        const above = (y1 + y2) / 2 - minY <= maxY - (y1 + y2) / 2;
-        const lane = above
-          ? minY - rowGap / 2 - lanes.above++ * 10
-          : maxY + rowGap / 2 + lanes.below++ * 10;
-        top = Math.min(top, lane);
-        bottom = Math.max(bottom, lane);
-        const r = columnGap / 2;
-        d = `M${x1},${y1} C${x1 + r},${y1} ${x1 + r},${lane} ${x1 + 2 * r},${lane} ` +
-            `L${x2 - 2 * r},${lane} C${x2 - r},${lane} ${x2 - r},${y2} ${x2},${y2}`;
-      } else {
-        const bend = Math.max(40, (x2 - x1) / 2);
-        d = `M${x1},${y1} C${x1 + bend},${y1} ${x2 - bend},${y2} ${x2},${y2}`;
-      }
-
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.setAttribute("d", d);
-      if (!node.step.order) path.classList.add("skipped");
-      if (trigger) path.classList.add("trigger");
-      path.setAttribute("marker-end", "url(#arrow)");
-      svg.appendChild(path);
-      // A trigger doesn't run for the step it triggers, so hovering doesn't follow it.
-      if (!trigger) node.edges.push({ from, path });
+    if (node.column - from.column > 1) {
+      const passed = columns.slice(from.column + 1, node.column).flat();
+      const minY = Math.min(...passed.map(step => step.y));
+      const maxY = Math.max(...passed.map(step => step.y + stepHeight));
+      const above = (y1 + y2) / 2 - minY <= maxY - (y1 + y2) / 2;
+      const lane = above
+        ? minY - rowGap / 2 - lanes.above++ * 10
+        : maxY + rowGap / 2 + lanes.below++ * 10;
+      top = Math.min(top, lane);
+      bottom = Math.max(bottom, lane);
+      const r = columnGap / 2;
+      d = `M${x1},${y1} C${x1 + r},${y1} ${x1 + r},${lane} ${x1 + 2 * r},${lane} ` +
+          `L${x2 - 2 * r},${lane} C${x2 - r},${lane} ${x2 - r},${y2} ${x2},${y2}`;
+    } else {
+      const bend = Math.max(40, (x2 - x1) / 2);
+      d = `M${x1},${y1} C${x1 + bend},${y1} ${x2 - bend},${y2} ${x2},${y2}`;
     }
+
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", d);
+    if (kind !== "dependency") path.classList.add(kind);
+    // A line to or from a step that doesn't run is faint.
+    if (!from.step.order || !node.step.order) path.classList.add("idle");
+    path.setAttribute("marker-end", "url(#arrow)");
+    svg.appendChild(path);
+    edge.path = path;
   }
 
-  // Hovering a step highlights the steps that would run for it: the step and all its dependencies, with their edges.
+  // The legend explains the kinds of lines the graph has.
+  const legend = document.getElementById("legend");
+  for (const [kind, text] of [["dependency", "dependency"], ["order", "order, when both run"], ["trigger", "trigger"]]) {
+    if (!edges.some(edge => edge.kind === kind)) continue;
+    const row = document.createElement("div");
+    row.innerHTML = `<svg width="32" height="8" aria-hidden="true"><path d="M2,4 H30" class="${kind}"/></svg>`;
+    row.append(text);
+    legend.append(row);
+  }
+
+  // Hovering a step highlights its flow: the steps that run when it's run on its own, with the lines between them. That's
+  // the step, its dependencies and the steps it triggers, and theirs in turn. Lines of order between them are highlighted
+  // too, while everything else fades.
   for (const node of byName.values()) {
     node.element.addEventListener("pointerenter", () => setHighlight(node, true));
     node.element.addEventListener("pointerleave", () => setHighlight(node, false));
   }
 
-  function setHighlight(node, on, seen = new Set()) {
-    if (seen.has(node)) return;
-    seen.add(node);
-    node.element.classList.toggle("highlight", on);
-    for (const { from, path } of node.edges) {
+  function setHighlight(start, on) {
+    const flow = new Set([start]);
+    const lines = new Set();
+    for (const node of flow) {
+      for (const edge of node.incoming) if (edge.kind === "dependency") { flow.add(edge.from); lines.add(edge); }
+      for (const edge of node.outgoing) if (edge.kind === "trigger") { flow.add(edge.to); lines.add(edge); }
+    }
+    for (const edge of edges) if (edge.kind === "order" && flow.has(edge.from) && flow.has(edge.to)) lines.add(edge);
+
+    world.classList.toggle("focus", on);
+    for (const node of flow) node.element.classList.toggle("highlight", on);
+    for (const { path } of lines) {
       path.classList.toggle("highlight", on);
       path.setAttribute("marker-end", on ? "url(#arrow-highlight)" : "url(#arrow)");
-      setHighlight(from, on, seen);
     }
   }
 
