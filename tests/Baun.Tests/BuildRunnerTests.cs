@@ -214,7 +214,7 @@ public class BuildRunnerTests
     [Fact]
     public void Escapes_step_names_in_the_plan_page()
     {
-        string page = PlanPage.Render([new PlanStep("</script><b>", [], 1)]);
+        string page = PlanPage.Render([new PlanStep("</script><b>", [], 1)], ["</script><b>"]);
 
         Assert.DoesNotContain("</script><b>", page);
         Assert.Contains("u003C/script", page);

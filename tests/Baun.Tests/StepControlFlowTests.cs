@@ -280,6 +280,16 @@ public class StepControlFlowTests
         Assert.Contains("""{"name":"Compile","dependencies":["Restore"],"order":2,"after":["Lint"]}""", page);
     }
 
+    [Fact]
+    public async Task Shows_the_named_steps_in_the_plan_title()
+    {
+        string named = await PlanAsync(new OrderBuild(), "--plan", "lint", "Compile");
+        string entry = await PlanAsync(new ConditionBuild(), "--plan");
+
+        Assert.Contains(""","requested":["Lint","Compile"]}""", named);
+        Assert.Contains(""","requested":[]}""", entry);
+    }
+
     private static async Task<RunResult> RunAsync(IBaunBuild build, params string[] arguments)
     {
         var console = new TestConsole().Width(250);

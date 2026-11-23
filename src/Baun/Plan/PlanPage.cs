@@ -47,19 +47,24 @@ internal static class PlanPage
     /// <summary>
     /// Writes the page for <paramref name="steps"/> to <c>plan.html</c> in <paramref name="folder"/>, overwriting it.
     /// </summary>
+    /// <param name="steps">All steps of the build.</param>
+    /// <param name="requested">The names of the steps named on the command line, shown in the title of the page.</param>
+    /// <param name="folder">The folder to write the page to.</param>
     /// <returns>The path of the page.</returns>
-    public static AbsolutePath Write(IReadOnlyList<PlanStep> steps, AbsolutePath folder)
+    public static AbsolutePath Write(IReadOnlyList<PlanStep> steps, IReadOnlyList<string> requested, AbsolutePath folder)
     {
         AbsolutePath path = folder / FileName;
         Directory.CreateDirectory(folder);
-        File.WriteAllText(path, Render(steps));
+        File.WriteAllText(path, Render(steps, requested));
         return path;
     }
 
     /// <summary>
     /// Returns the HTML of the page.
     /// </summary>
-    public static string Render(IReadOnlyList<PlanStep> steps)
+    /// <param name="steps">All steps of the build.</param>
+    /// <param name="requested">The names of the steps named on the command line, shown in the title of the page.</param>
+    public static string Render(IReadOnlyList<PlanStep> steps, IReadOnlyList<string> requested)
     {
         // The default encoder escapes < and >, so a step name can't end the script element.
         string json = JsonSerializer.Serialize(new
@@ -72,6 +77,7 @@ internal static class PlanPage
                 step.Triggers.Count > 0 ? step.Triggers : null,
                 step.Skipped ? true : null,
                 step.Condition)),
+            requested,
         });
 
         return Template.Value.Replace(Placeholder, json, StringComparison.Ordinal);
