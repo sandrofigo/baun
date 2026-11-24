@@ -3,6 +3,10 @@ namespace Baun.Tools.DotNet;
 /// <summary>
 /// The base of <c>dotnet</c> commands that run MSBuild, such as <c>dotnet build</c>, with the options they share.
 /// </summary>
+/// <remarks>
+/// It only has options that every <c>dotnet</c> command running MSBuild accepts, including <c>dotnet restore</c> and <c>dotnet clean</c>.
+/// Options that only some commands have, such as <c>--configuration</c>, belong on those commands.
+/// </remarks>
 /// <typeparam name="TSelf">The derived command, which the methods return.</typeparam>
 public abstract class DotNetMSBuildCommand<TSelf> : ToolCommand<TSelf>
     where TSelf : DotNetMSBuildCommand<TSelf>
@@ -17,18 +21,6 @@ public abstract class DotNetMSBuildCommand<TSelf> : ToolCommand<TSelf>
     }
 
     /// <summary>
-    /// Adds <c>--configuration</c>, such as <c>Release</c>.
-    /// </summary>
-    /// <param name="configuration">The build configuration.</param>
-    public TSelf Configuration(string configuration) => Arguments("--configuration", configuration);
-
-    /// <summary>
-    /// Adds <c>--framework</c>, such as <c>net10.0</c>.
-    /// </summary>
-    /// <param name="framework">The target framework.</param>
-    public TSelf Framework(string framework) => Arguments("--framework", framework);
-
-    /// <summary>
     /// Adds <c>--runtime</c>, such as <c>linux-x64</c>.
     /// </summary>
     /// <param name="runtime">The runtime identifier.</param>
@@ -37,7 +29,7 @@ public abstract class DotNetMSBuildCommand<TSelf> : ToolCommand<TSelf>
     /// <summary>
     /// Sets the MSBuild property <paramref name="name"/> with <c>-p:name=value</c>.
     /// </summary>
-    /// <param name="name">The name of the property, such as <c>ContinuousIntegrationBuild</c>.</param>
+    /// <param name="name">The name of the property, such as <c>DebugType</c>.</param>
     /// <param name="value">The value of the property.</param>
     public TSelf Property(string name, string value)
     {
@@ -48,9 +40,17 @@ public abstract class DotNetMSBuildCommand<TSelf> : ToolCommand<TSelf>
     }
 
     /// <summary>
-    /// Adds <c>--no-restore</c>, so the command doesn't restore packages first.
+    /// Sets the version of the assemblies and packages with <c>-p:Version=...</c>, such as <c>1.2.3</c>.
     /// </summary>
-    public TSelf NoRestore() => Arguments("--no-restore");
+    /// <param name="version">The version.</param>
+    public TSelf Version(string version) => Property("Version", version);
+
+    /// <summary>
+    /// Sets the MSBuild property <c>ContinuousIntegrationBuild</c>, which makes the build deterministic, such as for a release.
+    /// </summary>
+    /// <param name="continuousIntegrationBuild">Whether the build runs in continuous integration.</param>
+    public TSelf ContinuousIntegrationBuild(bool continuousIntegrationBuild = true) =>
+        Property("ContinuousIntegrationBuild", continuousIntegrationBuild ? "true" : "false");
 
     /// <summary>
     /// Adds <c>--verbosity</c>, which sets how much MSBuild writes.

@@ -63,7 +63,8 @@ partial class Build
         });
 
     Step Clean() => _ => _
-        .Executes(() =>
+        .Before(Restore)
+        .Executes(async () =>
         {
             if (ArtifactsDirectory.Exists)
             {
@@ -71,25 +72,45 @@ partial class Build
                 Log.Information("Deleted {ArtifactsDirectory}", ArtifactsDirectory);
             }
 
-            Log.Information("Clean step successful");
+            await DotNet.Clean(Solution).Configuration(Configuration.ToString()).RunAsync();
         });
 
-    Step Test() => _ => _
-        .DependsOn(Clean)
+    Step Restore() => _ => _
         .Executes(async () =>
         {
-            await DotNet.Test().Solution(Solution).Configuration(Configuration.ToString()).RunAsync();
+            await DotNet.Restore(Solution).RunAsync();
         });
 
-    Step Pack() => _ => _
-        .DependsOn(Clean, ValidateChangelog, Test)
+    Step Compile() => _ => _
+        .DependsOn(Restore)
         .Executes(async () =>
         {
-            DotNetPackCommand pack = DotNet.Pack(Solution).Configuration(Configuration.ToString()).Output(ArtifactsDirectory);
+            DotNetBuildCommand build = DotNet.Build(Solution).Configuration(Configuration.ToString()).NoRestore();
 
             if (await Git.GetCurrentTagAsync() is not null)
             {
-                pack = pack.Version(await GetVersionAsync()).Property("ContinuousIntegrationBuild", "true");
+                build = build.Version(await GetVersionAsync()).ContinuousIntegrationBuild();
+            }
+
+            await build.RunAsync();
+        });
+
+    Step Test() => _ => _
+        .DependsOn(Compile)
+        .Executes(async () =>
+        {
+            await DotNet.Test().Solution(Solution).Configuration(Configuration.ToString()).NoBuild().RunAsync();
+        });
+
+    Step Pack() => _ => _
+        .DependsOn(ValidateChangelog, Clean, Compile, Test)
+        .Executes(async () =>
+        {
+            DotNetPackCommand pack = DotNet.Pack(Solution).Configuration(Configuration.ToString()).Output(ArtifactsDirectory).NoBuild();
+
+            if (await Git.GetCurrentTagAsync() is not null)
+            {
+                pack = pack.Version(await GetVersionAsync()).ContinuousIntegrationBuild();
             }
 
             await pack.RunAsync();

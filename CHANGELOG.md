@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added `ContinuousIntegrationBuild` to the `DotNet` commands that run MSBuild, which sets `-p:ContinuousIntegrationBuild=true` for deterministic builds, such as for a release.
+- Added `Output` to the `DotNet` command `Clean`, the directory with the built files to clean.
+
+### Changed
+
+- `Version` is available on all `DotNet` commands that run MSBuild, not only `Pack`, so a build can compile the assemblies with the version that `Pack --no-build` then packages.
+
+### Removed
+
+- Removed the options that `dotnet` rejects from the `DotNet` commands, which now only have the options that their `dotnet` command accepts: `Configuration`, `Framework` and `NoRestore` from `Restore`, `NoRestore` from `Clean` and `Framework` from `Pack`.
+
 ## [0.9.1] - 2026-11-24
 
 ### Fixed

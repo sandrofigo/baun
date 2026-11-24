@@ -11,10 +11,27 @@ public sealed class DotNetBuildCommand : DotNetMSBuildCommand<DotNetBuildCommand
     }
 
     /// <summary>
+    /// Adds <c>--configuration</c>, such as <c>Release</c>.
+    /// </summary>
+    /// <param name="configuration">The build configuration.</param>
+    public DotNetBuildCommand Configuration(string configuration) => Arguments("--configuration", configuration);
+
+    /// <summary>
+    /// Adds <c>--framework</c>, such as <c>net10.0</c>.
+    /// </summary>
+    /// <param name="framework">The target framework.</param>
+    public DotNetBuildCommand Framework(string framework) => Arguments("--framework", framework);
+
+    /// <summary>
     /// Adds <c>--output</c>, the directory to put the built files in.
     /// </summary>
     /// <param name="directory">The output directory.</param>
     public DotNetBuildCommand Output(string directory) => Arguments("--output", directory);
+
+    /// <summary>
+    /// Adds <c>--no-restore</c>, so the command doesn't restore packages first.
+    /// </summary>
+    public DotNetBuildCommand NoRestore() => Arguments("--no-restore");
 
     /// <inheritdoc/>
     protected override DotNetBuildCommand With(ToolCommand command) => new(command);
@@ -43,6 +60,23 @@ public sealed class DotNetTestCommand : DotNetMSBuildCommand<DotNetTestCommand>
     public DotNetTestCommand Project(string project) => Arguments("--project", project);
 
     /// <summary>
+    /// Adds <c>--configuration</c>, such as <c>Release</c>.
+    /// </summary>
+    /// <param name="configuration">The build configuration.</param>
+    public DotNetTestCommand Configuration(string configuration) => Arguments("--configuration", configuration);
+
+    /// <summary>
+    /// Adds <c>--framework</c>, such as <c>net10.0</c>.
+    /// </summary>
+    /// <param name="framework">The target framework.</param>
+    public DotNetTestCommand Framework(string framework) => Arguments("--framework", framework);
+
+    /// <summary>
+    /// Adds <c>--no-restore</c>, so the command doesn't restore packages first.
+    /// </summary>
+    public DotNetTestCommand NoRestore() => Arguments("--no-restore");
+
+    /// <summary>
     /// Adds <c>--no-build</c>, so the tests run without building first.
     /// </summary>
     public DotNetTestCommand NoBuild() => Arguments("--no-build");
@@ -62,21 +96,26 @@ public sealed class DotNetPackCommand : DotNetMSBuildCommand<DotNetPackCommand>
     }
 
     /// <summary>
+    /// Adds <c>--configuration</c>, such as <c>Release</c>.
+    /// </summary>
+    /// <param name="configuration">The build configuration.</param>
+    public DotNetPackCommand Configuration(string configuration) => Arguments("--configuration", configuration);
+
+    /// <summary>
     /// Adds <c>--output</c>, the directory to put the packages in.
     /// </summary>
     /// <param name="directory">The output directory.</param>
     public DotNetPackCommand Output(string directory) => Arguments("--output", directory);
 
     /// <summary>
+    /// Adds <c>--no-restore</c>, so the command doesn't restore packages first.
+    /// </summary>
+    public DotNetPackCommand NoRestore() => Arguments("--no-restore");
+
+    /// <summary>
     /// Adds <c>--no-build</c>, so the packages are created without building first.
     /// </summary>
     public DotNetPackCommand NoBuild() => Arguments("--no-build");
-
-    /// <summary>
-    /// Sets the version of the packages with <c>-p:Version=...</c>, such as <c>1.2.3</c>.
-    /// </summary>
-    /// <param name="version">The version.</param>
-    public DotNetPackCommand Version(string version) => Property("Version", version);
 
     /// <inheritdoc/>
     protected override DotNetPackCommand With(ToolCommand command) => new(command);
@@ -93,10 +132,27 @@ public sealed class DotNetPublishCommand : DotNetMSBuildCommand<DotNetPublishCom
     }
 
     /// <summary>
+    /// Adds <c>--configuration</c>, such as <c>Release</c>.
+    /// </summary>
+    /// <param name="configuration">The build configuration.</param>
+    public DotNetPublishCommand Configuration(string configuration) => Arguments("--configuration", configuration);
+
+    /// <summary>
+    /// Adds <c>--framework</c>, such as <c>net10.0</c>.
+    /// </summary>
+    /// <param name="framework">The target framework.</param>
+    public DotNetPublishCommand Framework(string framework) => Arguments("--framework", framework);
+
+    /// <summary>
     /// Adds <c>--output</c>, the directory to publish to.
     /// </summary>
     /// <param name="directory">The output directory.</param>
     public DotNetPublishCommand Output(string directory) => Arguments("--output", directory);
+
+    /// <summary>
+    /// Adds <c>--no-restore</c>, so the command doesn't restore packages first.
+    /// </summary>
+    public DotNetPublishCommand NoRestore() => Arguments("--no-restore");
 
     /// <summary>
     /// Adds <c>--no-build</c>, so the files are published without building first.
@@ -137,6 +193,24 @@ public sealed class DotNetCleanCommand : DotNetMSBuildCommand<DotNetCleanCommand
         : base(command)
     {
     }
+
+    /// <summary>
+    /// Adds <c>--configuration</c>, such as <c>Release</c>.
+    /// </summary>
+    /// <param name="configuration">The configuration to clean.</param>
+    public DotNetCleanCommand Configuration(string configuration) => Arguments("--configuration", configuration);
+
+    /// <summary>
+    /// Adds <c>--framework</c>, such as <c>net10.0</c>.
+    /// </summary>
+    /// <param name="framework">The target framework to clean.</param>
+    public DotNetCleanCommand Framework(string framework) => Arguments("--framework", framework);
+
+    /// <summary>
+    /// Adds <c>--output</c>, the directory with the built files to clean.
+    /// </summary>
+    /// <param name="directory">The output directory.</param>
+    public DotNetCleanCommand Output(string directory) => Arguments("--output", directory);
 
     /// <inheritdoc/>
     protected override DotNetCleanCommand With(ToolCommand command) => new(command);

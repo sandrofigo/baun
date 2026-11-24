@@ -17,8 +17,10 @@ public class DotNetTests
                 .Configuration("Release")
                 .Output("C:/My Artifacts")
                 .Version("1.2.3")
-                .Property("ContinuousIntegrationBuild", "true")
+                .ContinuousIntegrationBuild()
                 .ToString());
+
+        Assert.Equal("dotnet build -p:Version=1.2.3 -p:ContinuousIntegrationBuild=false -p:DebugType=embedded", DotNet.Build().Version("1.2.3").ContinuousIntegrationBuild(false).Property("DebugType", "embedded").ToString());
 
         Assert.Equal(
             "dotnet test --solution App.slnx --configuration Debug --no-build --verbosity minimal",
@@ -28,6 +30,10 @@ public class DotNetTests
         Assert.Equal("dotnet publish App.csproj --no-self-contained", DotNet.Publish("App.csproj").SelfContained(false).ToString());
         Assert.Equal("dotnet restore", DotNet.Restore().ToString());
         Assert.Equal("dotnet clean App.slnx", DotNet.Clean("App.slnx").ToString());
+        Assert.Equal(
+            "dotnet clean --configuration Release --framework net10.0 --output out --runtime linux-x64",
+            DotNet.Clean().Configuration("Release").Framework("net10.0").Output("out").Runtime("linux-x64").ToString());
+        Assert.Equal("dotnet restore --runtime linux-x64 --verbosity quiet", DotNet.Restore().Runtime("linux-x64").Verbosity(DotNetVerbosity.Quiet).ToString());
     }
 
     [Fact]
