@@ -122,13 +122,14 @@ internal sealed class BuildRunner(
             plan = CreateExecutionPlan(requested);
             skipped = SelectSkippedSteps(steps, plan, requested, parsed.SkipNames, parsed.SkipAll);
 
-            // Checked for the whole plan before the first step starts, so a missing value can't stop the build halfway.
-            CheckRequirements(plan, skipped, parameters);
-
+            // The plan only shows the steps, so it doesn't need the values they require.
             if (showPlan)
             {
                 return ShowPlan(steps, plan, skipped, [.. parsed.StepNames.Select(name => FindStep(steps, name).Name)]);
             }
+
+            // Checked for the whole plan before the first step starts, so a missing value can't stop the build halfway.
+            CheckRequirements(plan, skipped, parameters);
         }
         catch (BuildConfigurationException exception)
         {

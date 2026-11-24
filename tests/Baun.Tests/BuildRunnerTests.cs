@@ -221,6 +221,16 @@ public class BuildRunnerTests
     }
 
     [Fact]
+    public async Task Opens_the_plan_when_a_requirement_is_missing()
+    {
+        var result = await PlanAsync(new TwoRequirementsBuild(), browserOpens: true, "--plan", "Deploy");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.DoesNotContain("requires", result.Output);
+        Assert.Contains("""{"name":"Deploy","dependencies":[],"order":1}""", result.Page);
+    }
+
+    [Fact]
     public async Task Fails_the_plan_for_an_unknown_step()
     {
         var result = await PlanAsync(new SampleBuild(), browserOpens: true, "--plan", "Deploy");
