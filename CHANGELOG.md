@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-11-24
+
 ### Fixed
 
 - Fixed `--plan` failing when a requirement of a step isn't met, such as a missing required parameter. The plan no longer checks the requirements.
@@ -202,7 +204,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Single-file (`Build.cs`) and project (`build/Build.csproj`) builds, with Spectre.Console output.
 - `baun` tool (`Baun.Cli`) that runs builds and creates or updates them with `baun init`, including bootstrap scripts that install the .NET SDK locally when it's missing.
 
-[Unreleased]: https://github.com/sandrofigo/baun/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/sandrofigo/baun/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/sandrofigo/baun/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/sandrofigo/baun/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/sandrofigo/baun/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/sandrofigo/baun/compare/v0.6.0...v0.7.0
