@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added `ContinuousIntegrationBuild` to the `DotNet` commands that run MSBuild, which sets `-p:ContinuousIntegrationBuild=true` for deterministic builds, such as for a release.
 - Added `Output` to the `DotNet` command `Clean`, the directory with the built files to clean.
+- Added `ReadAllText`, `ReadAllLines`, `WriteAllText`, `WriteAllLines`, `AppendAllText` and `AppendAllLines` to `AbsolutePath`, which create the parent directories when writing.
+- Added `WriteJson` and `ReadJson` to `AbsolutePath`, with indented or minimized output, C# property names and case-insensitive reading by default, and optional `JsonSerializerOptions`.
+- Added `ZipTo` and `UnzipTo` to `AbsolutePath`, which zip a file or directory and extract an archive.
 
 ### Changed
 
