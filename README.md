@@ -50,6 +50,10 @@ partial class Build
 
 Running `baun` without arguments starts the entry step, so `Compile` runs first and then `Test`.
 
+## Why This Exists
+
+NUKE showed how well it works to treat a build as a regular C# program. However, it is no longer maintained, and some of its API choices can get in the way. baun builds on the same idea with a fresh API designed around how builds are written day to day. It doesn't cover everything NUKE did, but it covers the essentials of everyday builds.
+
 ## Documentation
 
 - [Concept](https://baun.dev/guides/concept/): steps, dependencies and the entry step
