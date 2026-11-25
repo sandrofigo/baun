@@ -66,6 +66,8 @@ NUKE showed how well it works to treat a build as a regular C# program. However,
 
 ## Contributing
 
+If you'd like to help more people discover baun, consider giving it a ⭐. Pull requests for bug fixes or practical additions are welcome too.
+
 See [Development](https://baun.dev/contributing/development/) for how to build and test baun, and [`CHANGELOG.md`](https://github.com/sandrofigo/baun/blob/main/CHANGELOG.md) for the changes in each version.
 
 ## License
