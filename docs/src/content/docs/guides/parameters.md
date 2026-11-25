@@ -74,6 +74,16 @@ baun doesn't add a prefix to environment variables, so pick names that don't cla
 
 Two parameters whose names match this way are a compiler error (`BAUN011`).
 
+## Environment Variables
+
+To read an environment variable that isn't a parameter, use `EnvironmentVariables`. Like parameters, it treats an empty variable as not set:
+
+```csharp
+string? branch = EnvironmentVariables.Get("BRANCH_NAME");           // null if not set or empty
+bool deploy = EnvironmentVariables.IsTrue("DEPLOY");                // true for true or 1, ignoring case
+long? buildNumber = EnvironmentVariables.GetNumber("BUILD_NUMBER"); // null if not set or not a number
+```
+
 ## Types
 
 Parameters can be `string`, `bool`, `char`, any number type, an enum, `Guid`, `Uri`, `TimeSpan`, `AbsolutePath`, [`Solution`, `Project`](../../guides/solutions-and-projects/), a nullable of these, or an array of them. Enum values are case-insensitive.

@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `ZipTo` and `UnzipTo` to `AbsolutePath`, which zip a file or directory and extract an archive.
 - Added `CIProvider.Current`, the CI provider the build runs on as a `CIProviderType`, and `CIProvider.IsRunning`, whether the build runs on any CI provider.
 - Added `AzurePipelines.IsRunning`, `GitLabCI.IsRunning` and `TeamCityBuild.IsRunning`, like `GitHubActions.IsRunning`.
+- Added `EnvironmentVariables`, which reads environment variables as text, booleans or numbers and treats an empty variable as not set.
 
 ### Changed
 

@@ -68,4 +68,29 @@ public sealed class EnvironmentVariablesTests : IDisposable
     {
         Assert.Null(EnvironmentVariables.GetNumber(name));
     }
+
+    [Fact]
+    public void Reads_a_variable_as_an_absolute_path()
+    {
+        string path = Path.GetTempPath();
+        System.Environment.SetEnvironmentVariable(name, path);
+
+        Assert.Equal((AbsolutePath)path, EnvironmentVariables.GetPath(name));
+    }
+
+    [Theory]
+    [InlineData("relative/path")]
+    [InlineData("./relative")]
+    public void A_relative_path_is_no_absolute_path(string value)
+    {
+        System.Environment.SetEnvironmentVariable(name, value);
+
+        Assert.Null(EnvironmentVariables.GetPath(name));
+    }
+
+    [Fact]
+    public void A_variable_that_is_not_set_is_no_path()
+    {
+        Assert.Null(EnvironmentVariables.GetPath(name));
+    }
 }

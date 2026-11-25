@@ -6,7 +6,7 @@ namespace Baun;
 /// Reads environment variables. An empty variable counts as not set, because CI servers often pass undefined values as
 /// empty ones.
 /// </summary>
-internal static class EnvironmentVariables
+public static class EnvironmentVariables
 {
     /// <summary>
     /// Returns the value of the variable <paramref name="name"/>, or <see langword="null"/> if it's not set or empty.
@@ -28,5 +28,5 @@ internal static class EnvironmentVariables
     /// Returns the variable <paramref name="name"/> as an absolute path, or <see langword="null"/> if it's not set or not an
     /// absolute path.
     /// </summary>
-    public static AbsolutePath? GetPath(string name) => Get(name) is { } value && Path.IsPathFullyQualified(value) ? (AbsolutePath)value : null;
+    internal static AbsolutePath? GetPath(string name) => Get(name) is { } value && Path.IsPathFullyQualified(value) ? (AbsolutePath)value : null;
 }
