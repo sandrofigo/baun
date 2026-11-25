@@ -4,7 +4,7 @@ using Spectre.Console;
 namespace Baun.CI;
 
 /// <summary>
-/// Writes the log groups of CI servers. Groups don't nest: a group opened inside another one is written as a plain line.
+/// Writes the log groups of CI providers. Groups don't nest: a group opened inside another one is written as a plain line.
 /// </summary>
 internal static class LogGroups
 {
@@ -20,7 +20,7 @@ internal static class LogGroups
     /// Opens a log group named <paramref name="name"/>.
     /// </summary>
     /// <param name="console">The console to write to.</param>
-    /// <param name="provider">The CI server to write the group for.</param>
+    /// <param name="provider">The CI provider to write the group for.</param>
     /// <param name="name">The name of the group.</param>
     /// <param name="fallbackMarkup">
     /// The line, as markup, to write instead of a group outside CI or inside another group.
@@ -29,7 +29,7 @@ internal static class LogGroups
     /// <returns>A scope that ends the group when it's disposed.</returns>
     public static IDisposable Begin(
         IAnsiConsole console,
-        CIProvider provider,
+        CIProviderType provider,
         string name,
         string fallbackMarkup,
         bool padFallback = false)
@@ -40,10 +40,10 @@ internal static class LogGroups
         int level = depth.Value + 1;
         depth.Value = level;
 
-        if (level == 1 && provider != CIProvider.None)
+        if (level == 1 && provider != CIProviderType.None)
         {
             string singleLine = name.ReplaceLineEndings(" ");
-            string? gitLabId = provider == CIProvider.GitLab ? GitLabSectionId(singleLine) : null;
+            string? gitLabId = provider == CIProviderType.GitLab ? GitLabSectionId(singleLine) : null;
 
             WriteRaw(console, StartMarker(provider, singleLine, gitLabId));
             return new Scope(level, () => WriteRaw(console, EndMarker(provider, singleLine, gitLabId)));
@@ -64,21 +64,21 @@ internal static class LogGroups
         return new Scope(level, null);
     }
 
-    private static string StartMarker(CIProvider provider, string name, string? gitLabId) => provider switch
+    private static string StartMarker(CIProviderType provider, string name, string? gitLabId) => provider switch
     {
-        CIProvider.GitHubActions => $"::group::{name}",
-        CIProvider.AzurePipelines => $"##[group]{name}",
-        CIProvider.GitLab => $"\e[0Ksection_start:{UnixTime()}:{gitLabId}[collapsed=true]\r\e[0K{name}",
-        CIProvider.TeamCity => $"##teamcity[blockOpened name='{EscapeTeamCity(name)}']",
+        CIProviderType.GitHubActions => $"::group::{name}",
+        CIProviderType.AzurePipelines => $"##[group]{name}",
+        CIProviderType.GitLab => $"\e[0Ksection_start:{UnixTime()}:{gitLabId}[collapsed=true]\r\e[0K{name}",
+        CIProviderType.TeamCity => $"##teamcity[blockOpened name='{EscapeTeamCity(name)}']",
         _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null),
     };
 
-    private static string EndMarker(CIProvider provider, string name, string? gitLabId) => provider switch
+    private static string EndMarker(CIProviderType provider, string name, string? gitLabId) => provider switch
     {
-        CIProvider.GitHubActions => "::endgroup::",
-        CIProvider.AzurePipelines => "##[endgroup]",
-        CIProvider.GitLab => $"\e[0Ksection_end:{UnixTime()}:{gitLabId}\r\e[0K",
-        CIProvider.TeamCity => $"##teamcity[blockClosed name='{EscapeTeamCity(name)}']",
+        CIProviderType.GitHubActions => "::endgroup::",
+        CIProviderType.AzurePipelines => "##[endgroup]",
+        CIProviderType.GitLab => $"\e[0Ksection_end:{UnixTime()}:{gitLabId}\r\e[0K",
+        CIProviderType.TeamCity => $"##teamcity[blockClosed name='{EscapeTeamCity(name)}']",
         _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null),
     };
 

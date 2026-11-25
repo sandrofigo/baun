@@ -1,69 +1,55 @@
+using Baun.CI.AzureDevOps;
 using Baun.CI.GitHub;
+using Baun.CI.GitLab;
+using Baun.CI.TeamCity;
 using static Baun.EnvironmentVariables;
 
 namespace Baun.CI;
 
 /// <summary>
-/// A CI server whose log baun can structure, for example with log groups.
+/// Information about the CI provider the build runs on, read from the environment variables each CI provider sets.
 /// </summary>
-internal enum CIProvider
+/// <remarks>
+/// Each property reads the environment variables when it's used, so setting a variable yourself, for example to try a
+/// CI run locally, works too.
+/// </remarks>
+public static class CIProvider
 {
     /// <summary>
-    /// No supported CI server, such as a local run.
+    /// Gets the supported CI provider the build runs on, or <see cref="CIProviderType.None"/> outside CI or on a CI
+    /// provider that baun doesn't support.
     /// </summary>
-    None,
-
-    /// <summary>
-    /// GitHub Actions: <c>GITHUB_ACTIONS</c> is <c>true</c>.
-    /// </summary>
-    GitHubActions,
-
-    /// <summary>
-    /// Azure Pipelines: <c>TF_BUILD</c> is <c>True</c>.
-    /// </summary>
-    AzurePipelines,
-
-    /// <summary>
-    /// GitLab CI/CD: <c>GITLAB_CI</c> is <c>true</c>.
-    /// </summary>
-    GitLab,
-
-    /// <summary>
-    /// TeamCity: <c>TEAMCITY_VERSION</c> is set.
-    /// </summary>
-    TeamCity,
-}
-
-/// <summary>
-/// Detects the CI server the build runs on.
-/// </summary>
-internal static class CIProviders
-{
-    /// <summary>
-    /// Returns the CI server the build runs on, from the environment variables each server sets.
-    /// </summary>
-    public static CIProvider Detect()
+    public static CIProviderType Current
     {
-        if (GitHubActions.IsRunning)
+        get
         {
-            return CIProvider.GitHubActions;
-        }
+            if (GitHubActions.IsRunning)
+            {
+                return CIProviderType.GitHubActions;
+            }
 
-        if (IsTrue("TF_BUILD"))
-        {
-            return CIProvider.AzurePipelines;
-        }
+            if (AzurePipelines.IsRunning)
+            {
+                return CIProviderType.AzurePipelines;
+            }
 
-        if (IsTrue("GITLAB_CI"))
-        {
-            return CIProvider.GitLab;
-        }
+            if (GitLabCI.IsRunning)
+            {
+                return CIProviderType.GitLab;
+            }
 
-        if (Get("TEAMCITY_VERSION") is not null)
-        {
-            return CIProvider.TeamCity;
-        }
+            if (TeamCityBuild.IsRunning)
+            {
+                return CIProviderType.TeamCity;
+            }
 
-        return CIProvider.None;
+            return CIProviderType.None;
+        }
     }
+
+    /// <summary>
+    /// Gets whether the build runs on a CI provider: <see cref="Current"/> isn't <see cref="CIProviderType.None"/>, or
+    /// <c>CI</c> is <c>true</c>, which most other CI providers set.
+    /// </summary>
+    public static bool IsRunning => Current != CIProviderType.None || IsTrue("CI");
 }

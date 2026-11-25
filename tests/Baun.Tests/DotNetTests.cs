@@ -128,7 +128,7 @@ public class DotNetTests
     {
         var console = new TestConsole().Width(250);
 
-        var exitCode = await new BuildRunner(build, console, ParameterSources.None, CIProvider.None).RunAsync(["Run"]);
+        var exitCode = await new BuildRunner(build, console, ParameterSources.None, CIProviderType.None).RunAsync(["Run"]);
 
         return (exitCode, console.Output);
     }

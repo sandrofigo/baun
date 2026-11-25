@@ -8,12 +8,12 @@ namespace Baun.Tests;
 public class LogGroupTests
 {
     [Theory]
-    [InlineData(nameof(CIProvider.GitHubActions), "::group::Restore", "::endgroup::")]
-    [InlineData(nameof(CIProvider.AzurePipelines), "##[group]Restore", "##[endgroup]")]
-    [InlineData(nameof(CIProvider.TeamCity), "##teamcity[blockOpened name='Restore']", "##teamcity[blockClosed name='Restore']")]
+    [InlineData(nameof(CIProviderType.GitHubActions), "::group::Restore", "::endgroup::")]
+    [InlineData(nameof(CIProviderType.AzurePipelines), "##[group]Restore", "##[endgroup]")]
+    [InlineData(nameof(CIProviderType.TeamCity), "##teamcity[blockOpened name='Restore']", "##teamcity[blockClosed name='Restore']")]
     public void Writes_the_markers_of_the_CI_server(string provider, string start, string end)
     {
-        string[] lines = Write(Enum.Parse<CIProvider>(provider), "Restore");
+        string[] lines = Write(Enum.Parse<CIProviderType>(provider), "Restore");
 
         Assert.Equal([start, "inside", end], lines);
     }
@@ -21,7 +21,7 @@ public class LogGroupTests
     [Fact]
     public void Writes_GitLab_sections()
     {
-        string[] lines = Write(CIProvider.GitLab, "Run tests");
+        string[] lines = Write(CIProviderType.GitLab, "Run tests");
 
         Assert.Equal(3, lines.Length);
         Match start = Regex.Match(lines[0], @"^\e\[0Ksection_start:\d+:(run_tests_\d+)\[collapsed=true\]\r\e\[0KRun tests$");
@@ -45,7 +45,7 @@ public class LogGroupTests
     [Fact]
     public void Writes_a_name_with_line_breaks_on_one_line()
     {
-        string[] lines = Write(CIProvider.GitHubActions, "first\nsecond");
+        string[] lines = Write(CIProviderType.GitHubActions, "first\nsecond");
 
         Assert.Equal("::group::first second", lines[0]);
     }
@@ -53,7 +53,7 @@ public class LogGroupTests
     [Fact]
     public void Writes_a_line_instead_of_a_group_outside_CI()
     {
-        string[] lines = Write(CIProvider.None, "Restore");
+        string[] lines = Write(CIProviderType.None, "Restore");
 
         Assert.Equal(["> Restore", "inside"], lines);
     }
@@ -63,9 +63,9 @@ public class LogGroupTests
     {
         var console = new TestConsole();
 
-        using (LogGroups.Begin(console, CIProvider.GitHubActions, "Outer", "> Outer"))
+        using (LogGroups.Begin(console, CIProviderType.GitHubActions, "Outer", "> Outer"))
         {
-            using (LogGroups.Begin(console, CIProvider.GitHubActions, "Inner", "> Inner"))
+            using (LogGroups.Begin(console, CIProviderType.GitHubActions, "Inner", "> Inner"))
             {
                 console.WriteLine("inside");
             }
@@ -79,7 +79,7 @@ public class LogGroupTests
     {
         var console = new TestConsole();
 
-        IDisposable group = LogGroups.Begin(console, CIProvider.GitHubActions, "Restore", "> Restore");
+        IDisposable group = LogGroups.Begin(console, CIProviderType.GitHubActions, "Restore", "> Restore");
         group.Dispose();
         group.Dispose();
 
@@ -91,19 +91,19 @@ public class LogGroupTests
     {
         var console = new TestConsole();
 
-        using (LogGroups.Begin(console, CIProvider.GitHubActions, "First", "> First"))
+        using (LogGroups.Begin(console, CIProviderType.GitHubActions, "First", "> First"))
         {
-            LogGroups.Begin(console, CIProvider.GitHubActions, "Forgotten", "> Forgotten");
+            LogGroups.Begin(console, CIProviderType.GitHubActions, "Forgotten", "> Forgotten");
         }
 
-        using (LogGroups.Begin(console, CIProvider.GitHubActions, "Second", "> Second"))
+        using (LogGroups.Begin(console, CIProviderType.GitHubActions, "Second", "> Second"))
         {
         }
 
         Assert.Equal(["::group::First", "> Forgotten", "::endgroup::", "::group::Second", "::endgroup::"], Lines(console));
     }
 
-    private static string[] Write(CIProvider provider, string name)
+    private static string[] Write(CIProviderType provider, string name)
     {
         var console = new TestConsole();
 

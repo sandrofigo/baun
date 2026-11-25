@@ -178,7 +178,7 @@ public class BuildRunnerTests
             var console = new TestConsole().Width(250);
 
             // A file where the folder should be, so the folder can't be created.
-            var exitCode = await new BuildRunner(new SampleBuild(), console, ParameterSources.None, CIProvider.None, _ => true, file)
+            var exitCode = await new BuildRunner(new SampleBuild(), console, ParameterSources.None, CIProviderType.None, _ => true, file)
                 .RunAsync(["--plan"]);
 
             Assert.Equal(1, exitCode);
@@ -199,8 +199,8 @@ public class BuildRunnerTests
         {
             using var console = new TestConsole();
 
-            await new BuildRunner(new SampleBuild(), console, ParameterSources.None, CIProvider.None, _ => true, folder).RunAsync(["--plan", "Pack"]);
-            await new BuildRunner(new SampleBuild(), console, ParameterSources.None, CIProvider.None, _ => true, folder).RunAsync(["--plan", "Clean"]);
+            await new BuildRunner(new SampleBuild(), console, ParameterSources.None, CIProviderType.None, _ => true, folder).RunAsync(["--plan", "Pack"]);
+            await new BuildRunner(new SampleBuild(), console, ParameterSources.None, CIProviderType.None, _ => true, folder).RunAsync(["--plan", "Clean"]);
 
             Assert.Equal(["plan.html"], Directory.GetFiles(folder).Select(Path.GetFileName));
             Assert.Contains("""{"name":"Pack","dependencies":["Test","Compile"],"order":null}""", File.ReadAllText(folder / "plan.html"));
@@ -334,7 +334,7 @@ public class BuildRunnerTests
             var console = new TestConsole().Width(250);
             var opened = new List<string>();
 
-            var exitCode = await new BuildRunner(build, console, ParameterSources.None, CIProvider.None, path =>
+            var exitCode = await new BuildRunner(build, console, ParameterSources.None, CIProviderType.None, path =>
             {
                 opened.Add(path);
                 return browserOpens;
@@ -501,7 +501,7 @@ public class BuildRunnerTests
     {
         var build = new SampleBuild();
 
-        var result = await RunInCIAsync(build, CIProvider.GitHubActions, "Compile");
+        var result = await RunInCIAsync(build, CIProviderType.GitHubActions, "Compile");
 
         Assert.Equal(0, result.ExitCode);
         string[] lines = result.Output.ReplaceLineEndings("\n").Split('\n');
@@ -520,7 +520,7 @@ public class BuildRunnerTests
     {
         var build = new FailingBuild();
 
-        var result = await RunInCIAsync(build, CIProvider.GitHubActions);
+        var result = await RunInCIAsync(build, CIProviderType.GitHubActions);
 
         Assert.Equal(1, result.ExitCode);
 
@@ -537,7 +537,7 @@ public class BuildRunnerTests
         var console = new TestConsole().Width(250);
         var build = new GroupingBuild(console);
 
-        var exitCode = await new BuildRunner(build, console, ParameterSources.None, CIProvider.GitHubActions).RunAsync([]);
+        var exitCode = await new BuildRunner(build, console, ParameterSources.None, CIProviderType.GitHubActions).RunAsync([]);
         var result = new RunResult(exitCode, console.Output);
 
         Assert.Equal(0, result.ExitCode);
@@ -549,7 +549,7 @@ public class BuildRunnerTests
     private static int CountOccurrences(string text, string value) =>
         (text.Length - text.Replace(value, string.Empty, StringComparison.Ordinal).Length) / value.Length;
 
-    private static async Task<RunResult> RunInCIAsync(IBaunBuild build, CIProvider provider, params string[] arguments)
+    private static async Task<RunResult> RunInCIAsync(IBaunBuild build, CIProviderType provider, params string[] arguments)
     {
         var console = new TestConsole().Width(250);
 
@@ -570,7 +570,7 @@ public class BuildRunnerTests
     {
         var console = new TestConsole().Width(250);
 
-        var exitCode = await new BuildRunner(build, console, ParameterSources.None, CIProvider.None, openInBrowser: _ => false).RunAsync(arguments);
+        var exitCode = await new BuildRunner(build, console, ParameterSources.None, CIProviderType.None, openInBrowser: _ => false).RunAsync(arguments);
 
         return new RunResult(exitCode, console.Output);
     }
@@ -641,7 +641,7 @@ internal sealed partial class GroupingBuild(IAnsiConsole console)
         {
             await Task.Yield();
 
-            using (LogGroups.Begin(console, CIProvider.GitHubActions, "Inner", "› Inner"))
+            using (LogGroups.Begin(console, CIProviderType.GitHubActions, "Inner", "› Inner"))
             {
                 console.WriteLine("inside");
             }

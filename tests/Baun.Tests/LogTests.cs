@@ -180,7 +180,7 @@ public class LogTests
         var console = new TestConsole().Width(80);
         var build = new LongLineBuild(text);
 
-        var exitCode = await new BuildRunner(build, console, ParameterSources.None, CIProvider.None).RunAsync([]);
+        var exitCode = await new BuildRunner(build, console, ParameterSources.None, CIProviderType.None).RunAsync([]);
 
         Assert.Equal(0, exitCode);
         Assert.Matches(new Regex($@"^\d\d:\d\d:\d\d INF {text}$", RegexOptions.Multiline), console.Output);
@@ -193,7 +193,7 @@ public class LogTests
     {
         var console = new TestConsole().Width(250);
 
-        var exitCode = await new BuildRunner(build, console, new ParameterSources(environment, null), CIProvider.None).RunAsync(arguments);
+        var exitCode = await new BuildRunner(build, console, new ParameterSources(environment, null), CIProviderType.None).RunAsync(arguments);
 
         return new RunResult(exitCode, console.Output);
     }

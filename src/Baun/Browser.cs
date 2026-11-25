@@ -43,7 +43,7 @@ internal static class Browser
 
     private static string? GetReasonToNotOpen()
     {
-        if (CIProviders.Detect() != CIProvider.None || IsTrue("CI"))
+        if (CIProvider.IsRunning)
         {
             return "running on a CI server";
         }

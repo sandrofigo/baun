@@ -35,7 +35,7 @@ public class ToolTests
         var console = new TestConsole().Width(250);
         console.Profile.Capabilities.Unicode = false;
 
-        var exitCode = await new BuildRunner(new ToolBuild(), console, ParameterSources.None, CIProvider.None)
+        var exitCode = await new BuildRunner(new ToolBuild(), console, ParameterSources.None, CIProviderType.None)
             .RunAsync(["Version"]);
 
         Assert.Equal(0, exitCode);
@@ -246,7 +246,7 @@ public class ToolTests
     {
         var console = new TestConsole().Width(250);
 
-        var exitCode = await new BuildRunner(build, console, ParameterSources.None, CIProvider.None).RunAsync(arguments);
+        var exitCode = await new BuildRunner(build, console, ParameterSources.None, CIProviderType.None).RunAsync(arguments);
 
         return (exitCode, console.Output);
     }

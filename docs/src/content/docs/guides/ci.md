@@ -1,7 +1,27 @@
 ---
 title: CI
-description: GitHub Actions, GitHub releases, changelogs and log groups on CI servers.
+description: Detecting the CI provider, GitHub Actions, GitHub releases, changelogs and log groups.
 ---
+
+## CI Provider
+
+`CIProvider.Current` returns the CI provider the build runs on, as a `CIProviderType`: `GitHubActions`, `AzurePipelines`, `GitLab`, `TeamCity`, or `None` outside CI or on a CI provider that baun doesn't support. `CIProvider.IsRunning` is true on any CI provider: when `Current` isn't `None`, or when `CI` is `true`, which most other CI providers set.
+
+```csharp
+Step Publish() => _ => _
+    .OnlyWhen(() => CIProvider.IsRunning)
+    .Executes(() =>
+    {
+        if (CIProvider.Current == CIProviderType.AzurePipelines)
+        {
+            // runs only in Azure Pipelines
+        }
+    });
+```
+
+Each supported CI provider also has a class with an `IsRunning` property: `GitHubActions.IsRunning`, `AzurePipelines.IsRunning`, `GitLabCI.IsRunning` and `TeamCityBuild.IsRunning`. The check above can also be written as `if (AzurePipelines.IsRunning)`.
+
+Like the properties of `GitHubActions`, they read the environment variables each time they're used, so you can set them yourself to try a CI run locally: `CI=true baun Publish`. [Log Groups](#log-groups) lists the variables of each CI provider.
 
 ## GitHub Actions
 
@@ -54,7 +74,7 @@ When a new `GitHubRelease` updates an existing release, `Draft` and `Prerelease`
 A release has:
 
 | Property | Default for a new release |
-| --- | --- |
+| --- | --- | --- |
 | `Tag` | Required. GitHub creates the tag, if it doesn't exist yet, when the release is published |
 | `Name` | The tag. If it's null, an existing release keeps its title |
 | `Notes` | No notes. Markdown, such as the notes from the [changelog](#changelog). If they're null, an existing release keeps its notes |
@@ -167,13 +187,13 @@ Step Release() => _ => _
 
 ## Log Groups
 
-On a CI server that supports log groups, baun writes each step in a collapsible group named after the step. The summary and the error of a failing step are written outside the groups, so they stay visible. baun detects the CI server from its environment variables:
+On a CI provider that supports log groups, baun writes each step in a collapsible group named after the step. The summary and the error of a failing step are written outside the groups, so they stay visible. baun detects the CI provider, which is also `CIProvider.Current`, from its environment variables:
 
-| CI server | Detected by |
-| --- | --- |
-| GitHub Actions | `GITHUB_ACTIONS=true` |
-| Azure Pipelines | `TF_BUILD=True` |
-| GitLab CI/CD | `GITLAB_CI=true` |
-| TeamCity | `TEAMCITY_VERSION` |
+| CI provider | Detected by | Check |
+| --- | --- | --- |
+| GitHub Actions | `GITHUB_ACTIONS=true` | `GitHubActions.IsRunning` |
+| Azure Pipelines | `TF_BUILD=True` | `AzurePipelines.IsRunning` |
+| GitLab CI/CD | `GITLAB_CI=true` | `GitLabCI.IsRunning` |
+| TeamCity | `TEAMCITY_VERSION` | `TeamCityBuild.IsRunning` |
 
 Outside CI, steps are written as plain lines.

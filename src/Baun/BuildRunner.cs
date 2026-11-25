@@ -18,7 +18,7 @@ namespace Baun;
 /// <c>.baun/parameters.json</c> in the nearest <c>.baun</c> folder of the current directory or its parents.
 /// </param>
 /// <param name="ciProvider">
-/// The CI server whose log groups each step is written in. Defaults to the one detected from the environment variables.
+/// The CI provider whose log groups each step is written in. Defaults to the one detected from the environment variables.
 /// </param>
 /// <param name="openInBrowser">
 /// Opens a file in the browser and returns whether it could. Defaults to <see cref="Browser.TryOpen"/>.
@@ -30,11 +30,11 @@ internal sealed class BuildRunner(
     IBaunBuild build,
     IAnsiConsole console,
     ParameterSources? parameterSources = null,
-    CIProvider? ciProvider = null,
+    CIProviderType? ciProvider = null,
     Func<string, bool>? openInBrowser = null,
     AbsolutePath? planFolder = null)
 {
-    private readonly CIProvider provider = ciProvider ?? CIProviders.Detect();
+    private readonly CIProviderType provider = ciProvider ?? CIProvider.Current;
 
     private readonly Func<string, bool> openInBrowser = openInBrowser ?? Browser.TryOpen;
 

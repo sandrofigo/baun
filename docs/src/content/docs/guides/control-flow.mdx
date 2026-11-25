@@ -29,7 +29,7 @@ On the command line, [`--skip`](#skipping-steps) skips steps of a run.
 ```csharp
 Step Publish() => _ => _
     .DependsOn(Pack)
-    .OnlyWhen(() => GitHubActions.IsRunning)
+    .OnlyWhen(() => CIProvider.IsRunning)
     .Executes(async () =>
     {
         // push the packages
@@ -38,7 +38,7 @@ Step Publish() => _ => _
 
 <Conditions class="flow-diagram" />
 
-baun checks the condition right before the step starts, after its dependencies ran, so it can use values that earlier steps computed. When the condition is false, baun writes why it skips the step, such as `Skipping Publish because GitHubActions.IsRunning is false`, and the summary shows the step as skipped. Steps that depend on a skipped step still run.
+baun checks the condition right before the step starts, after its dependencies ran, so it can use values that earlier steps computed. When the condition is false, baun writes why it skips the step, such as `Skipping Publish because CIProvider.IsRunning is false`, and the summary shows the step as skipped. Steps that depend on a skipped step still run.
 
 Chain `OnlyWhen` to add several conditions, which must all be true. If a condition throws, the step fails. `baun --help` lists the conditions of each step.
 

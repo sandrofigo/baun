@@ -56,13 +56,16 @@ The generator also reports mistakes as compiler errors, such as a build class th
 
 ## Namespaces
 
-baun's types are in six namespaces, which the Baun package imports automatically, so a build never needs using directives for baun itself:
+baun's types are in nine namespaces, which the Baun package imports automatically, so a build never needs using directives for baun itself:
 
 | Namespace | Types |
 | --- | --- |
 | `Baun` | `Step`, `Entry`, `Parameter`, `BaunBuild`, `AbsolutePath`, `Tool` |
-| `Baun.CI` | CI servers, log groups and `Changelog` |
+| `Baun.CI` | `CIProvider`, `CIProviderType` and `Changelog` |
+| `Baun.CI.AzureDevOps` | Azure Pipelines: `AzurePipelines` |
 | `Baun.CI.GitHub` | GitHub Actions and releases: `GitHubActions`, `GitHubReleases`, `GitHubRelease` and `GitHubRepository` |
+| `Baun.CI.GitLab` | GitLab CI/CD: `GitLabCI` |
+| `Baun.CI.TeamCity` | TeamCity: `TeamCityBuild` |
 | `Baun.Logging` | `Log` and `LogLevel` |
 | `Baun.Tools.DotNet` | The `DotNet` tool, `Solution` and `Project` |
 | `Baun.Tools.Git` | The `Git` tool |

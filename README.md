@@ -57,7 +57,7 @@ Running `baun` without arguments starts the entry step, so `Compile` runs first 
 - [Parameters](https://baun.dev/guides/parameters/): set values from the command line, environment variables or `parameters.json`
 - [Running Tools](https://baun.dev/guides/tools/): run command-line tools from steps
 - [dotnet](https://baun.dev/tools/dotnet/) and [git](https://baun.dev/tools/git/): typed commands for the .NET CLI and git
-- [CI](https://baun.dev/guides/ci/): GitHub Actions, releases and changelogs
+- [CI](https://baun.dev/guides/ci/): CI providers, GitHub Actions, releases and changelogs
 - [baun CLI](https://baun.dev/reference/cli/): every command and option
 
 ## Contributing

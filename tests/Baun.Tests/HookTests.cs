@@ -71,7 +71,7 @@ public class HookTests
 
         try
         {
-            var exitCode = await new BuildRunner(build, new TestConsole(), ParameterSources.None, CIProvider.None, _ => true, folder)
+            var exitCode = await new BuildRunner(build, new TestConsole(), ParameterSources.None, CIProviderType.None, _ => true, folder)
                 .RunAsync(["--plan"]);
 
             Assert.Equal(0, exitCode);
@@ -206,7 +206,7 @@ public class HookTests
     {
         var console = new TestConsole().Width(250);
 
-        var exitCode = await new BuildRunner(build, console, ParameterSources.None, CIProvider.None, openInBrowser: _ => false).RunAsync(arguments);
+        var exitCode = await new BuildRunner(build, console, ParameterSources.None, CIProviderType.None, openInBrowser: _ => false).RunAsync(arguments);
 
         return (exitCode, console.Output);
     }
