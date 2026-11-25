@@ -57,6 +57,7 @@ public sealed class CIProviderTests : IDisposable
     [InlineData("GITLAB_CI", "true")]
     [InlineData("CI", "true")]
     [InlineData("CI", "TRUE")]
+    [InlineData("CI", "1")]
     public void Runs_on_a_CI_provider_with_a_known_one_or_CI(string variable, string value)
     {
         System.Environment.SetEnvironmentVariable(variable, value);

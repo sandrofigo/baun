@@ -14,15 +14,15 @@ internal static class EnvironmentVariables
     public static string? Get(string name) => Environment.GetEnvironmentVariable(name) is { Length: > 0 } value ? value : null;
 
     /// <summary>
-    /// Returns whether the variable <paramref name="name"/> is <c>true</c>, ignoring case.
+    /// Returns whether the variable <paramref name="name"/> is <c>true</c> or <c>1</c>, ignoring case.
     /// </summary>
-    public static bool IsTrue(string name) => string.Equals(Get(name), "true", StringComparison.OrdinalIgnoreCase);
+    public static bool IsTrue(string name) => Get(name)?.ToLowerInvariant() is "true" or "1";
 
     /// <summary>
-    /// Returns the variable <paramref name="name"/> as a non-negative whole number, or <see langword="null"/> if it's not
+    /// Returns the variable <paramref name="name"/> as a whole number, or <see langword="null"/> if it's not
     /// set or not a number.
     /// </summary>
-    public static long? GetNumber(string name) => long.TryParse(Get(name), NumberStyles.None, CultureInfo.InvariantCulture, out long number) ? number : null;
+    public static long? GetNumber(string name) => long.TryParse(Get(name), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out long number) ? number : null;
 
     /// <summary>
     /// Returns the variable <paramref name="name"/> as an absolute path, or <see langword="null"/> if it's not set or not an

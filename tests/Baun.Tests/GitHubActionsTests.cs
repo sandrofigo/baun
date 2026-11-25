@@ -127,7 +127,7 @@ public sealed class GitHubActionsTests : IDisposable
     [Theory]
     [InlineData("1234567890", 1234567890L)]
     [InlineData("abc", null)]
-    [InlineData("-1", null)]
+    [InlineData("1.5", null)]
     public void Reads_the_run_id(string value, long? expected)
     {
         System.Environment.SetEnvironmentVariable("GITHUB_RUN_ID", value);
