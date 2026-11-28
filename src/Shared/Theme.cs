@@ -22,15 +22,38 @@ internal static class Theme
 
     public static readonly Style FaintStyle = new(Color.Grey);
 
+    public static readonly Style SuccessStyle = new(Color.Green);
+
+    public static readonly Style ErrorStyle = new(Color.Red);
+
+    public static readonly Style WarningStyle = new(Color.Yellow);
+
     /// <summary>
     /// Returns <paramref name="text"/> as markup in the primary color.
     /// </summary>
-    public static string Accent(string text) => $"[{PrimaryMarkup}]{Markup.Escape(text)}[/]";
+    public static string Accent(string text) => Paint(PrimaryStyle, text);
 
     /// <summary>
     /// Returns <paramref name="text"/> as faint markup.
     /// </summary>
-    public static string Faint(string text) => $"[grey]{Markup.Escape(text)}[/]";
+    public static string Faint(string text) => Paint(FaintStyle, text);
+
+    /// <summary>
+    /// Returns <paramref name="text"/> as markup in the color of success.
+    /// </summary>
+    public static string Success(string text) => Paint(SuccessStyle, text);
+
+    /// <summary>
+    /// Returns <paramref name="text"/> as markup in the color of errors.
+    /// </summary>
+    public static string Error(string text) => Paint(ErrorStyle, text);
+
+    /// <summary>
+    /// Returns <paramref name="text"/> as markup in the color of warnings.
+    /// </summary>
+    public static string Warning(string text) => Paint(WarningStyle, text);
+
+    private static string Paint(Style style, string text) => $"[{style.ToMarkup()}]{Markup.Escape(text)}[/]";
 
     public static string Check(this IAnsiConsole console) => console.Profile.Capabilities.Unicode ? "✓" : "+";
 
@@ -51,7 +74,7 @@ internal static class Theme
     /// <param name="console">The console to write to.</param>
     /// <param name="markup">The message, as markup.</param>
     public static void WriteSuccess(this IAnsiConsole console, string markup) =>
-        console.MarkupLine($"[green]{console.Check()}[/] {markup}");
+        console.MarkupLine($"{Success(console.Check())} {markup}");
 
     /// <summary>
     /// Writes an error line.
@@ -59,7 +82,7 @@ internal static class Theme
     /// <param name="console">The console to write to.</param>
     /// <param name="markup">The message, as markup.</param>
     public static void WriteError(this IAnsiConsole console, string markup) =>
-        console.MarkupLine($"[red]{console.Cross()} error:[/] {markup}");
+        console.MarkupLine($"{Error($"{console.Cross()} error:")} {markup}");
 
     /// <summary>
     /// Writes a warning line.
@@ -67,7 +90,7 @@ internal static class Theme
     /// <param name="console">The console to write to.</param>
     /// <param name="markup">The message, as markup.</param>
     public static void WriteWarning(this IAnsiConsole console, string markup) =>
-        console.MarkupLine($"[yellow]! warning:[/] {markup}");
+        console.MarkupLine($"{Warning("! warning:")} {markup}");
 
     /// <summary>
     /// The settings for writing exceptions, in the theme's colors.
@@ -81,10 +104,10 @@ internal static class Theme
         Format = format,
         Style = new ExceptionStyle
         {
-            Exception = new Style(Color.Red),
-            Message = new Style(Color.Red),
+            Exception = ErrorStyle,
+            Message = ErrorStyle,
             Method = PrimaryStyle,
-            ParameterType = PrimaryStyle,
+            ParameterType = FaintStyle,
             ParameterName = FaintStyle,
             Parenthesis = FaintStyle,
             Path = FaintStyle,

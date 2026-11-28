@@ -48,9 +48,9 @@ internal sealed class AnsiConsoleSink(IAnsiConsole console) : ILogEventSink
         LogEventLevel.Verbose => Theme.Faint("VRB"),
         LogEventLevel.Debug => Theme.Faint("DBG"),
         LogEventLevel.Information => Theme.Accent("INF"),
-        LogEventLevel.Warning => "[yellow]WRN[/]",
-        LogEventLevel.Error => "[red]ERR[/]",
-        _ => "[red]FTL[/]",
+        LogEventLevel.Warning => Theme.Warning("WRN"),
+        LogEventLevel.Error => Theme.Error("ERR"),
+        _ => Theme.Error("FTL"),
     };
 
     /// <summary>

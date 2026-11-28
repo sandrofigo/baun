@@ -165,11 +165,11 @@ internal sealed class BuildRunner(
 
         if (!succeeded)
         {
-            console.MarkupLine($"[red]{console.Cross()} Build failed after {Format(total.Elapsed)}[/]");
+            console.MarkupLine(Theme.Error($"{console.Cross()} Build failed after {Format(total.Elapsed)}"));
             return 1;
         }
 
-        console.MarkupLine($"[green]{console.Check()} Build succeeded in {Format(total.Elapsed)}[/]");
+        console.MarkupLine(Theme.Success($"{console.Check()} Build succeeded in {Format(total.Elapsed)}"));
         return 0;
     }
 
@@ -435,17 +435,17 @@ internal sealed class BuildRunner(
 
         foreach (StepResult result in results)
         {
-            string color = result.Status switch
+            Func<string, string> paint = result.Status switch
             {
-                StepStatus.Succeeded => "green",
-                StepStatus.Failed => "red",
-                _ => "grey"
+                StepStatus.Succeeded => Theme.Success,
+                StepStatus.Failed => Theme.Error,
+                _ => Theme.Faint
             };
 
             table.AddRow(
-                $"[{color}]{Markup.Escape(result.Name)}[/]",
-                $"[{color}]{result.Status}[/]",
-                $"[{color}]{(result.Duration is { } duration ? Markup.Escape(Format(duration)) : "-")}[/]");
+                paint(result.Name),
+                paint(result.Status.ToString()),
+                paint(result.Duration is { } duration ? Format(duration) : "-"));
         }
 
         // The simple border starts with an empty line, which separates the table from the step output.

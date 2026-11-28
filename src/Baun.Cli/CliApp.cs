@@ -58,6 +58,20 @@ internal static class CliApp
             config.UseStrictParsing();
             config.CaseSensitivity(CaseSensitivity.None); // baun Init works like baun init, as step names do
             config.SetHelpProvider(new ThemedHelpProvider(config.Settings, console));
+            config.SetExceptionHandler((exception, _) =>
+            {
+                // Parse errors come with their own rendering, which points at the invalid argument.
+                if (exception is CommandAppException { Pretty: { } pretty })
+                {
+                    console.Write(pretty);
+                }
+                else
+                {
+                    console.WriteException(exception, Theme.ExceptionSettings(ExceptionFormats.ShortenPaths));
+                }
+
+                return -1;
+            });
 
             config.AddCommand<InitCommand>(InitCommandName)
                 .WithDescription("Creates a new build in the current folder, or updates the bootstrap scripts of an existing one.")

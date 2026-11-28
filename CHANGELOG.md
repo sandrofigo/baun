@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `Version` is available on all `DotNet` commands that run MSBuild, not only `Pack`, so a build can compile the assemblies with the version that `Pack --no-build` then packages.
 - The build summary colors each whole row in the color of the step's status.
+- The `baun` CLI writes unexpected errors in the theme's colors, like the build does.
 
 ### Removed
 
