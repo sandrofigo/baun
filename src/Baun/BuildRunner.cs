@@ -435,17 +435,17 @@ internal sealed class BuildRunner(
 
         foreach (StepResult result in results)
         {
-            string status = result.Status switch
+            string color = result.Status switch
             {
-                StepStatus.Succeeded => "[green]Succeeded[/]",
-                StepStatus.Failed => "[red]Failed[/]",
-                _ => Theme.Faint("Skipped")
+                StepStatus.Succeeded => "green",
+                StepStatus.Failed => "red",
+                _ => "grey"
             };
 
             table.AddRow(
-                result.Status == StepStatus.Skipped ? Theme.Faint(result.Name) : Markup.Escape(result.Name),
-                status,
-                result.Duration is { } duration ? Format(duration) : Theme.Faint("-"));
+                $"[{color}]{Markup.Escape(result.Name)}[/]",
+                $"[{color}]{result.Status}[/]",
+                $"[{color}]{(result.Duration is { } duration ? Markup.Escape(Format(duration)) : "-")}[/]");
         }
 
         // The simple border starts with an empty line, which separates the table from the step output.
