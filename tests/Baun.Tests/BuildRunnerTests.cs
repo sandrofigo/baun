@@ -444,7 +444,7 @@ public class BuildRunnerTests
         Assert.Equal(["First"], build.Executed);
         Assert.Matches(@"Failing\s+Failed", result.Output);
         Assert.Contains("Boom", result.Output);
-        Assert.Matches(@"Last\s+Skipped", result.Output);
+        Assert.Matches(@"Last\s+Not run", result.Output);
         Assert.Contains("Build failed", result.Output);
     }
 

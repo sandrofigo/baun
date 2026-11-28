@@ -168,9 +168,9 @@ public class StepControlFlowTests
         Assert.Equal(1, result.ExitCode);
         Assert.Equal(["Other"], build.Executed);
         Assert.Matches(@"Flaky\s+Failed", result.Output);
-        Assert.Matches(@"Dependent\s+Skipped", result.Output);
+        Assert.Matches(@"Dependent\s+Not run", result.Output);
         Assert.Matches(@"Other\s+Succeeded", result.Output);
-        Assert.Matches(@"All\s+Skipped", result.Output);
+        Assert.Matches(@"All\s+Not run", result.Output);
         Assert.Contains("Build failed", result.Output);
     }
 
@@ -183,7 +183,7 @@ public class StepControlFlowTests
 
         Assert.Equal(1, result.ExitCode);
         Assert.Equal(["First", "Cleanup"], build.Executed);
-        Assert.Matches(@"Last\s+Skipped", result.Output);
+        Assert.Matches(@"Last\s+Not run", result.Output);
         Assert.Matches(@"Cleanup\s+Succeeded", result.Output);
     }
 

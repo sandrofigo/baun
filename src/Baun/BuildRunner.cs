@@ -160,7 +160,7 @@ internal sealed class BuildRunner(
 
         succeeded &= await TryRunHookAsync<IOnBuildCompleted>(hook => hook.OnBuildCompletedAsync());
 
-        results.AddRange(plan.Skip(results.Count).Select(skipped => new StepResult(skipped.Name, StepStatus.Skipped, null)));
+        results.AddRange(plan.Skip(results.Count).Select(step => new StepResult(step.Name, StepStatus.NotRun, null)));
         WriteSummary(results);
 
         if (!succeeded)
@@ -204,7 +204,7 @@ internal sealed class BuildRunner(
             if (!step.Builder.RunsAlways && (stopped || step.Dependencies.Any(notRun.Contains)))
             {
                 notRun.Add(step);
-                results.Add(new StepResult(step.Name, StepStatus.Skipped, null));
+                results.Add(new StepResult(step.Name, StepStatus.NotRun, null));
                 continue;
             }
 
@@ -439,12 +439,13 @@ internal sealed class BuildRunner(
             {
                 StepStatus.Succeeded => Theme.Success,
                 StepStatus.Failed => Theme.Error,
+                StepStatus.NotRun => Theme.Warning,
                 _ => Theme.Faint
             };
 
             table.AddRow(
                 paint(result.Name),
-                paint(result.Status.ToString()),
+                paint(result.Status is StepStatus.NotRun ? "Not run" : result.Status.ToString()),
                 paint(result.Duration is { } duration ? Format(duration) : "-"));
         }
 
@@ -1051,7 +1052,16 @@ internal sealed class BuildRunner(
     {
         Succeeded,
         Failed,
-        Skipped
+
+        /// <summary>
+        /// Skipped with <c>--skip</c> or because one of its conditions is false.
+        /// </summary>
+        Skipped,
+
+        /// <summary>
+        /// Would have run, but didn't because a previous step or hook failed. Shown as "Not run" in the warning color.
+        /// </summary>
+        NotRun
     }
 
     private sealed record StepResult(string Name, StepStatus Status, TimeSpan? Duration);

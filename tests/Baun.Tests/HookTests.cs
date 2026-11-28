@@ -116,7 +116,7 @@ public class HookTests
         Assert.Equal(1, result.ExitCode);
         Assert.Equal(["BuildCreated", "BuildInitialized", "BuildFailed", "BuildCompleted"], build.Calls);
         Assert.Contains("Hook OnBuildInitializedAsync failed", result.Output);
-        Assert.Matches(@"First\s+Skipped", result.Output);
+        Assert.Matches(@"First\s+Not run", result.Output);
     }
 
     [Fact]
@@ -188,7 +188,7 @@ public class HookTests
         Assert.Equal(1, result.ExitCode);
         Assert.DoesNotContain("Execute Last", build.Calls);
         Assert.Matches(@"First\s+Succeeded", result.Output);
-        Assert.Matches(@"Last\s+Skipped", result.Output);
+        Assert.Matches(@"Last\s+Not run", result.Output);
     }
 
     [Fact]
