@@ -132,6 +132,10 @@ public sealed class StepGenerator : IIncrementalGenerator
 
     private const string TempDirectoryName = "TempDirectory";
 
+    private const string IsLocalBuildName = "IsLocalBuild";
+
+    private const string IsCIBuildName = "IsCIBuild";
+
     /// <summary>The baun tool's commands, which take precedence over steps with the same name.</summary>
     private static readonly string[] CliCommands = new[] { "init" };
 
@@ -336,6 +340,8 @@ public sealed class StepGenerator : IIncrementalGenerator
             Entry: entry,
             HasRootDirectory: !type.GetMembers(RootDirectoryName).IsEmpty,
             HasTempDirectory: !type.GetMembers(TempDirectoryName).IsEmpty,
+            HasIsLocalBuild: !type.GetMembers(IsLocalBuildName).IsEmpty,
+            HasIsCIBuild: !type.GetMembers(IsCIBuildName).IsEmpty,
             IsPartial: isPartial,
             IsSupported: isSupported,
             TypeLocation: LocationInfo.From(type.Locations.FirstOrDefault()));
@@ -590,6 +596,25 @@ public sealed class StepGenerator : IIncrementalGenerator
             source.AppendLine();
         }
 
+        if (!type.HasIsLocalBuild)
+        {
+            source.AppendLine("    /// <summary>");
+            source.AppendLine("    /// Gets whether the build runs locally rather than on a CI provider:");
+            source.AppendLine("    /// <see cref=\"global::Baun.CI.CIProvider.IsRunning\"/> is <see langword=\"false\"/>.");
+            source.AppendLine("    /// </summary>");
+            source.AppendLine($"    private static bool {IsLocalBuildName} => !global::Baun.CI.CIProvider.IsRunning;");
+            source.AppendLine();
+        }
+
+        if (!type.HasIsCIBuild)
+        {
+            source.AppendLine("    /// <summary>");
+            source.AppendLine("    /// Gets whether the build runs on a CI provider: <see cref=\"global::Baun.CI.CIProvider.IsRunning\"/>.");
+            source.AppendLine("    /// </summary>");
+            source.AppendLine($"    private static bool {IsCIBuildName} => global::Baun.CI.CIProvider.IsRunning;");
+            source.AppendLine();
+        }
+
         source.AppendLine("    global::System.Collections.Generic.IReadOnlyList<global::Baun.BaunStep> global::Baun.IBaunBuild.GetSteps() =>");
         source.AppendLine("        new global::Baun.BaunStep[]");
         source.AppendLine("        {");
@@ -634,6 +659,8 @@ public sealed class StepGenerator : IIncrementalGenerator
         EntryInfo? Entry,
         bool HasRootDirectory,
         bool HasTempDirectory,
+        bool HasIsLocalBuild,
+        bool HasIsCIBuild,
         bool IsPartial,
         bool IsSupported,
         LocationInfo? TypeLocation);

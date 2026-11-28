@@ -583,6 +583,49 @@ public class StepGeneratorTests
     }
 
     [Fact]
+    public void Adds_local_and_ci_build_properties_to_the_build_class()
+    {
+        var (diagnostics, sources) = RunGenerator("""
+            partial class Build
+            {
+                Step Compile() => _ => _
+                    .OnlyWhen(() => IsLocalBuild)
+                    .Executes(() => System.Console.WriteLine(IsCIBuild));
+            }
+            """);
+
+        Assert.Empty(diagnostics);
+        var source = Assert.Single(sources);
+        Assert.Contains("private static bool IsLocalBuild => !global::Baun.CI.CIProvider.IsRunning;", source);
+        Assert.Contains("private static bool IsCIBuild => global::Baun.CI.CIProvider.IsRunning;", source);
+    }
+
+    [Theory]
+    [InlineData("IsLocalBuild")]
+    [InlineData("IsCIBuild")]
+    public void Adds_no_local_or_ci_build_property_when_the_build_class_has_one(string name)
+    {
+        var (diagnostics, sources) = RunGenerator($$"""
+            partial class Build
+            {
+                bool {{name}} => true;
+
+                Step Compile() => _ => _;
+            }
+            """);
+
+        Assert.Empty(diagnostics);
+        Assert.DoesNotContain($" {name} =>", Assert.Single(sources));
+    }
+
+    [Fact]
+    public void The_local_and_ci_build_properties_return_whether_the_build_runs_on_a_ci_provider()
+    {
+        Assert.Equal(Baun.CI.CIProvider.IsRunning, SplitBuild.CI);
+        Assert.Equal(!Baun.CI.CIProvider.IsRunning, SplitBuild.Local);
+    }
+
+    [Fact]
     public void Registers_parameters_from_all_parts_of_a_partial_class()
     {
         var parameters = ((IBaunBuild)new SplitBuild()).GetParameters();
@@ -725,6 +768,10 @@ internal sealed partial class SplitBuild
     public static AbsolutePath Root => RootDirectory;
 
     public static AbsolutePath Temp => TempDirectory;
+
+    public static bool Local => IsLocalBuild;
+
+    public static bool CI => IsCIBuild;
 
     public Step Compile() => _ => _;
 }

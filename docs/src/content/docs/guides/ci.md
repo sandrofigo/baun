@@ -19,6 +19,14 @@ Step Publish() => _ => _
     });
 ```
 
+In a build class, the source generator also adds `IsCIBuild`, which returns `CIProvider.IsRunning`, and `IsLocalBuild`, its opposite, unless the class already has a member with that name:
+
+```csharp
+Step OpenReport() => _ => _
+    .OnlyWhen(() => IsLocalBuild)
+    .Executes(() => { /* open the coverage report in a browser */ });
+```
+
 Each supported CI provider also has a class with an `IsRunning` property: `GitHubActions.IsRunning`, `AzurePipelines.IsRunning`, `GitLabCI.IsRunning` and `TeamCityBuild.IsRunning`. The check above can also be written as `if (AzurePipelines.IsRunning)`.
 
 Like the properties of `GitHubActions`, they read the environment variables each time they're used, so you can set them yourself to try a CI run locally: `CI=true baun Publish`. [Log Groups](#log-groups) lists the variables of each CI provider.

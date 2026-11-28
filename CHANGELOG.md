@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `WriteJson` and `ReadJson` to `AbsolutePath`, with indented or minimized output, C# property names and case-insensitive reading by default, and optional `JsonSerializerOptions`.
 - Added `ZipTo` and `UnzipTo` to `AbsolutePath`, which zip a file or directory and extract an archive.
 - Added `CIProvider.Current`, the CI provider the build runs on as a `CIProviderType`, and `CIProvider.IsRunning`, whether the build runs on any CI provider.
+- Added `IsLocalBuild` and `IsCIBuild` to build classes, which the source generator adds unless the class already has a member with that name, like `RootDirectory`. They return whether the build runs locally or on a CI provider, based on `CIProvider.IsRunning`.
 - Added `AzurePipelines.IsRunning`, `GitLabCI.IsRunning` and `TeamCityBuild.IsRunning`, like `GitHubActions.IsRunning`.
 - Added `EnvironmentVariables`, which reads environment variables as text, booleans or numbers and treats an empty variable as not set.
 
